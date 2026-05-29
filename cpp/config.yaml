@@ -1,0 +1,46 @@
+# Photo Analyzer runtime config
+# 所有阈值都会在每张照片分析成功后写入 analysis_config_snapshot，
+# 这样以后即使修改本文件，也能复查当时的判断依据。
+
+blur_detection:
+  # 拉普拉斯方差阈值。
+  # variance < laplacian_threshold 时判定为虚焦。
+  # 调大：更容易判定为虚焦；调小：更宽松。
+  laplacian_threshold: 100.0
+
+  # 拉普拉斯核大小，只允许正奇数，建议 3。
+  # 值越大，对边缘变化更敏感，但也可能放大噪声。
+  laplacian_kernel_size: 3
+
+exposure_detection:
+  # 高亮像素阈值。
+  # 灰度亮度 > 该值的像素会计入高亮像素。
+  # 取值范围 0~255，建议先用 245。
+  overexpose_pixel_threshold: 245
+
+  # 暗部像素阈值。
+  # 灰度亮度 < 该值的像素会计入暗部像素。
+  # 取值范围 0~255，建议先用 10。
+  underexpose_pixel_threshold: 10
+
+  # 过曝比例阈值。
+  # 高亮像素占比 > 该值时判定为过曝。
+  # 0.05 表示超过 5% 像素属于高亮区域。
+  overexpose_ratio_limit: 0.05
+
+  # 欠曝比例阈值。
+  # 暗部像素占比 > 该值时判定为欠曝。
+  # 0.05 表示超过 5% 像素属于暗部区域。
+  underexpose_ratio_limit: 0.05
+
+raw_conversion:
+  # RAW 转 JPG 的输出质量。
+  # 取值范围 0~100；值越高文件越大、细节保留越多。
+  jpg_quality: 95
+
+thread_pool:
+  # 固定 worker 数。
+  # 当前方案强制使用 4 个 worker。
+  # 这里保留配置项主要是为了让运行参数显式可见；
+  # 即使这里改成其他数字，执行层仍按 4 个 worker 运行。
+  worker_count: 4

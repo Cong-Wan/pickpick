@@ -1,0 +1,14 @@
+draft/
+.DS_Store
+*.log
+*.tmp
+*.bak
+*.swp
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+clip-vit-large-patch14/
+tests/
+build/
+

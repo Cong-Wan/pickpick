@@ -1,0 +1,12 @@
+# LibRaw pkg-config file
+prefix=/Users/wilbur/project/rawViewer/3rdPart/libraw
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: LibRaw
+Description: Library for reading and processing of RAW digicam images
+Version: 0.22.1
+Libs: -L${libdir} -lraw
+Libs.private: -lm -lz
+Cflags: -I${includedir}

@@ -1,0 +1,11 @@
+prefix=/Users/wilbur/project/rawViewer/3rdPart/yaml
+exec_prefix=${prefix}
+includedir=/Users/wilbur/project/rawViewer/3rdPart/yaml/include
+libdir=/Users/wilbur/project/rawViewer/3rdPart/yaml/lib
+
+Name: Yaml-cpp
+Description: A YAML parser and emitter for C++
+Version: 0.9.0
+Requires:
+Libs: -L${libdir} -lyaml-cpp
+Cflags: -I${includedir}
