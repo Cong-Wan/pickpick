@@ -1,7 +1,7 @@
 # Author: wilbur
-# Version: 1.2
+# Version: 1.4
 # Date: 2026-06-01
-# Description: CMake build for rawViewer project；新增 Objective-C++ GPU 能力检测编译配置
+# Description: CMake build for rawViewer project；补齐 imageAnalyzer OpenCV 测试所需 macOS framework 链接
 
 cmake_minimum_required(VERSION 3.16)
 project(rawViewer LANGUAGES CXX OBJCXX)
@@ -117,9 +117,11 @@ if(RAWVIEWER_BUILD_TESTS)
     add_executable(rawViewerTests
         src/configLoader.cpp
         src/gpuSupport.mm
+        src/imageAnalyzer.cpp
         src/taskState.cpp
         tests/configLoaderTests.cpp
         tests/gpuSupportTests.cpp
+        tests/imageAnalyzerTests.cpp
         tests/testMain.cpp
         tests/perfTimerTests.cpp
     )
@@ -130,13 +132,20 @@ if(RAWVIEWER_BUILD_TESTS)
     )
 
     target_link_libraries(rawViewerTests PRIVATE
+        opencv_imgcodecs
+        opencv_imgproc
+        opencv_core
+        ${OPENCV_3RDPARTY_LIBS}
         yaml-cpp
     )
 
     if(APPLE)
         target_link_libraries(rawViewerTests PRIVATE
             ${FOUNDATION_LIBRARY}
+            ${APPKIT_LIBRARY}
             ${METAL_LIBRARY}
+            ${OPENCL_LIBRARY}
+            ${ACCELERATE_LIBRARY}
         )
     endif()
 endif()

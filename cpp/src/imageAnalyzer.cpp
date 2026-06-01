@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.1
+ * Version: 1.2
  * Date: 2026-06-01
- * Description: 使用 OpenCV 读取 JPG，计算拉普拉斯统计和 256-bin 灰度直方图，生成配置快照；记录分析阶段耗时
+ * Description: 使用 OpenCV 读取 JPG，计算拉普拉斯统计和 256-bin 灰度直方图，生成配置快照；使用行指针优化直方图统计
  */
 
 #include "imageAnalyzer.h"
@@ -55,8 +55,9 @@ AnalyzeResult ImageAnalyzer::analyze(const AnalyzeTask& task, const AppConfig& c
 
     phaseTimer.reset();
     for (int r = 0; r < gray.rows; ++r) {
+        const uint8_t* row = gray.ptr<uint8_t>(r);
         for (int c = 0; c < gray.cols; ++c) {
-            uint8_t v = gray.at<uint8_t>(r, c);
+            uint8_t v = row[c];
             bins[v]++;
             if (v > config.exposureDetection.overexposePixelThreshold) overCount++;
             if (v < config.exposureDetection.underexposePixelThreshold) underCount++;
