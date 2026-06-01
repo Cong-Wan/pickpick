@@ -196,6 +196,7 @@ RunSummary AppRunner::run(const RunOptions& options) {
 
                 logFile << "[" << tsBuf << "] photo=" << anaResult.photoId
                         << " elapsed=" << elapsedMs << "ms"
+                        << " backend=" << anaResult.backendUsed
                         << " read_image=" << anaResult.readImageMs << "ms"
                         << " gray=" << anaResult.grayMs << "ms"
                         << " laplacian=" << anaResult.laplacianMs << "ms"

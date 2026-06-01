@@ -1,7 +1,7 @@
 # Author: wilbur
-# Version: 1.4
+# Version: 1.5
 # Date: 2026-06-01
-# Description: CMake build for rawViewer project；补齐 imageAnalyzer OpenCV 测试所需 macOS framework 链接
+# Description: CMake build for rawViewer project；新增 macOS Metal-backed 图片分析源和 framework 链接
 
 cmake_minimum_required(VERSION 3.16)
 project(rawViewer LANGUAGES CXX OBJCXX)
@@ -74,6 +74,7 @@ set(SOURCES
     src/gpuSupport.mm
     src/imageAnalyzer.cpp
     src/jsonManager.cpp
+    src/macImageAnalyzer.mm
     src/rawConverter.cpp
     src/resumePlanner.cpp
     src/taskState.cpp
@@ -101,13 +102,19 @@ target_link_libraries(rawViewer PRIVATE
 if(APPLE)
     find_library(FOUNDATION_LIBRARY Foundation)
     find_library(APPKIT_LIBRARY AppKit)
+    find_library(COREGRAPHICS_LIBRARY CoreGraphics)
+    find_library(COREIMAGE_LIBRARY CoreImage)
     find_library(METAL_LIBRARY Metal)
+    find_library(MPS_LIBRARY MetalPerformanceShaders)
     find_library(OPENCL_LIBRARY OpenCL)
     find_library(ACCELERATE_LIBRARY Accelerate)
     target_link_libraries(rawViewer PRIVATE
         ${FOUNDATION_LIBRARY}
         ${APPKIT_LIBRARY}
+        ${COREGRAPHICS_LIBRARY}
+        ${COREIMAGE_LIBRARY}
         ${METAL_LIBRARY}
+        ${MPS_LIBRARY}
         ${OPENCL_LIBRARY}
         ${ACCELERATE_LIBRARY}
     )
@@ -118,9 +125,11 @@ if(RAWVIEWER_BUILD_TESTS)
         src/configLoader.cpp
         src/gpuSupport.mm
         src/imageAnalyzer.cpp
+        src/macImageAnalyzer.mm
         src/taskState.cpp
         tests/configLoaderTests.cpp
         tests/gpuSupportTests.cpp
+        tests/imageAnalyzerBackendTests.cpp
         tests/imageAnalyzerTests.cpp
         tests/testMain.cpp
         tests/perfTimerTests.cpp
@@ -143,7 +152,10 @@ if(RAWVIEWER_BUILD_TESTS)
         target_link_libraries(rawViewerTests PRIVATE
             ${FOUNDATION_LIBRARY}
             ${APPKIT_LIBRARY}
+            ${COREGRAPHICS_LIBRARY}
+            ${COREIMAGE_LIBRARY}
             ${METAL_LIBRARY}
+            ${MPS_LIBRARY}
             ${OPENCL_LIBRARY}
             ${ACCELERATE_LIBRARY}
         )

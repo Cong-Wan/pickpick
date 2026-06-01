@@ -31,7 +31,7 @@ PlannedTasks ResumePlanner::plan(const std::vector<PhotoTaskState>& states, cons
             RawConvertTask task;
             task.photoId = state.photoId;
             task.rawPath = state.rawPath;
-            task.outputJpgPath = std::filesystem::path(state.rawPath).parent_path().string() + "/.cache/converted/" + state.photoId + ".JPG";
+            task.outputJpgPath = std::filesystem::path(state.rawPath).parent_path().string() + "/" + state.photoId + ".JPG";
             planned.rawConvertTasks.push_back(task);
         }
 

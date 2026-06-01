@@ -9,6 +9,6 @@ __pycache__/
 *.pyo
 *.egg-info/
 clip-vit-large-patch14/
-tests/
+/tests/
 build/
 

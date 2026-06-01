@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.2
+ * Version: 1.3
  * Date: 2026-06-01
- * Description: 定义状态枚举、照片状态、配置结构、任务结构、结果结构、字符串转换函数；补充图片处理 backend 配置
+ * Description: 定义状态枚举、照片状态、配置结构、任务结构、结果结构、字符串转换函数；补充分析 backend 结果标记
  */
 
 #pragma once
@@ -138,6 +138,7 @@ struct AnalyzeResult {
     std::string jpgPath;
     int attempts = 0;
     std::string error;
+    std::string backendUsed = "cpu";
     int64_t readImageMs = 0;
     int64_t grayMs = 0;
     int64_t laplacianMs = 0;
