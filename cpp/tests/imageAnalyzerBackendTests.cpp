@@ -1,14 +1,12 @@
 /*
  * Author: wilbur
- * Version: 1.0
+ * Version: 2.0
  * Date: 2026-06-01
- * Description: 验证 JPG 分析器 backend 调度、Metal 可用路径和 CPU fallback 行为
+ * Description: 验证 JPG 分析器始终使用 Metal-only backend
  */
 
 #include "testAssert.h"
-#include "gpuSupport.h"
 #include "imageAnalyzer.h"
-#include <cmath>
 #include <filesystem>
 #include <opencv2/opencv.hpp>
 #include <string>
@@ -23,7 +21,7 @@ static AppConfig makeBackendConfig(ImageBackend backend) {
     config.exposureDetection.overexposeRatioLimit = 0.05;
     config.exposureDetection.underexposeRatioLimit = 0.05;
     config.imageProcessing.analysisBackend = backend;
-    config.imageProcessing.rawBackend = ImageBackend::Cpu;
+    config.imageProcessing.rawBackend = ImageBackend::Metal;
     return config;
 }
 
@@ -37,7 +35,7 @@ static std::string writeBackendImage(const std::string& fileName) {
     }
 
     std::filesystem::path path = std::filesystem::temp_directory_path() / fileName;
-    std::vector<int> params = {cv::IMWRITE_JPEG_QUALITY, 95};
+    std::vector<int> params = {cv::IMWRITE_PNG_COMPRESSION, 0};
     cv::imwrite(path.string(), image, params);
     return path.string();
 }
@@ -49,50 +47,16 @@ static AnalyzeTask makeBackendTask(const std::string& path) {
     return task;
 }
 
-static bool imageAnalyzerCpuBackendUsesCpu() {
-    std::string path = writeBackendImage("rawviewer-backend-cpu.jpg");
-    AnalyzeResult result = ImageAnalyzer().analyze(makeBackendTask(path), makeBackendConfig(ImageBackend::Cpu));
+static bool imageAnalyzerAlwaysUsesMetalBackend() {
+    std::string path = writeBackendImage("rawviewer-backend-metal-only.png");
+    AnalyzeResult result = ImageAnalyzer().analyze(makeBackendTask(path), makeBackendConfig(ImageBackend::Metal));
     TEST_REQUIRE(result.success);
-    TEST_REQUIRE(result.backendUsed == "cpu");
-    return true;
-}
-
-static bool imageAnalyzerAutoBackendFallsBackOrUsesMetal() {
-    std::string path = writeBackendImage("rawviewer-backend-auto.jpg");
-    AnalyzeResult result = ImageAnalyzer().analyze(makeBackendTask(path), makeBackendConfig(ImageBackend::Auto));
-    TEST_REQUIRE(result.success);
-    TEST_REQUIRE(result.backendUsed == "cpu" || result.backendUsed == "metal");
-    return true;
-}
-
-static bool imageAnalyzerMetalBackendMatchesCpuDecisionsWhenAvailable() {
-    GpuSupport support = getGpuSupport();
-    if (!support.hasMetal) {
-        return true;
-    }
-
-    std::string path = writeBackendImage("rawviewer-backend-metal.jpg");
-    AnalyzeTask task = makeBackendTask(path);
-    AnalyzeResult cpuResult = ImageAnalyzer().analyze(task, makeBackendConfig(ImageBackend::Cpu));
-    AnalyzeResult metalResult = ImageAnalyzer().analyze(task, makeBackendConfig(ImageBackend::Metal));
-
-    TEST_REQUIRE(cpuResult.success);
-    TEST_REQUIRE(metalResult.success);
-    TEST_REQUIRE(metalResult.backendUsed == "metal");
-    TEST_REQUIRE(cpuResult.exposureStatus == metalResult.exposureStatus);
-    TEST_REQUIRE(cpuResult.isBlurry == metalResult.isBlurry);
-    TEST_REQUIRE(cpuResult.histogramData.totalPixels == metalResult.histogramData.totalPixels);
-
-    double base = std::max(std::abs(cpuResult.laplacianData.variance), 1.0);
-    double relDiff = std::abs(cpuResult.laplacianData.variance - metalResult.laplacianData.variance) / base;
-    TEST_REQUIRE(relDiff < 0.05);
+    TEST_REQUIRE(result.backendUsed == "metal");
     return true;
 }
 
 std::vector<TestCase> makeImageAnalyzerBackendTests() {
     return {
-        {"imageAnalyzerBackend.cpuBackendUsesCpu", imageAnalyzerCpuBackendUsesCpu},
-        {"imageAnalyzerBackend.autoBackendFallsBackOrUsesMetal", imageAnalyzerAutoBackendFallsBackOrUsesMetal},
-        {"imageAnalyzerBackend.metalBackendMatchesCpuDecisionsWhenAvailable", imageAnalyzerMetalBackendMatchesCpuDecisionsWhenAvailable},
+        {"imageAnalyzerBackend.alwaysUsesMetalBackend", imageAnalyzerAlwaysUsesMetalBackend},
     };
 }

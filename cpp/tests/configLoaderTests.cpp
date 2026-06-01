@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.0
+ * Version: 1.1
  * Date: 2026-06-01
- * Description: 验证配置读取器对图片处理 backend 配置的成功解析和非法值拒绝
+ * Description: 验证配置读取器只接受 Metal 图片处理 backend，并拒绝 CPU/auto 配置
  */
 
 #include "testAssert.h"
@@ -40,39 +40,46 @@ static std::string writeTempConfig(const std::string& fileName, const std::strin
     return path.string();
 }
 
-static bool configLoaderParsesValidImageBackends() {
-    ConfigLoader loader;
-    const std::vector<std::string> values = {"auto", "cpu", "metal"};
+static std::string writeTempConfig(const std::string& content) {
+    return writeTempConfig("rawviewer-metal-only-config.yaml", content);
+}
 
-    for (const auto& value : values) {
-        std::string path = writeTempConfig("rawviewer-valid-" + value + ".yaml", makeConfigText(value, value));
-        AppConfig config = loader.loadFromFile(path);
-        TEST_REQUIRE(toString(config.imageProcessing.analysisBackend) == value);
-        TEST_REQUIRE(toString(config.imageProcessing.rawBackend) == value);
-        TEST_REQUIRE(config.imageProcessing.logBackend);
-    }
-
+static bool configLoaderAcceptsMetalOnlyBackends() {
+    std::string path = writeTempConfig(makeConfigText("metal", "metal"));
+    AppConfig config = ConfigLoader().loadFromFile(path);
+    TEST_REQUIRE(config.imageProcessing.analysisBackend == ImageBackend::Metal);
+    TEST_REQUIRE(config.imageProcessing.rawBackend == ImageBackend::Metal);
     return true;
 }
 
-static bool configLoaderRejectsInvalidImageBackend() {
-    ConfigLoader loader;
-    std::string path = writeTempConfig("rawviewer-invalid-backend.yaml", makeConfigText("opencl", "auto"));
-
+static bool configLoaderRejectsCpuAnalysisBackend() {
+    std::string path = writeTempConfig(makeConfigText("cpu", "metal"));
     try {
-        loader.loadFromFile(path);
+        (void)ConfigLoader().loadFromFile(path);
     } catch (const std::runtime_error& err) {
-        TEST_REQUIRE(std::string(err.what()).find("Invalid config field: image_processing.analysis_backend") != std::string::npos);
+        TEST_REQUIRE(std::string(err.what()).find("only metal is supported") != std::string::npos);
         return true;
     }
+    TEST_REQUIRE(false);
+    return false;
+}
 
+static bool configLoaderRejectsAutoAnalysisBackend() {
+    std::string path = writeTempConfig(makeConfigText("auto", "metal"));
+    try {
+        (void)ConfigLoader().loadFromFile(path);
+    } catch (const std::runtime_error& err) {
+        TEST_REQUIRE(std::string(err.what()).find("only metal is supported") != std::string::npos);
+        return true;
+    }
     TEST_REQUIRE(false);
     return false;
 }
 
 std::vector<TestCase> makeConfigLoaderTests() {
     return {
-        {"configLoader.parsesValidImageBackends", configLoaderParsesValidImageBackends},
-        {"configLoader.rejectsInvalidImageBackend", configLoaderRejectsInvalidImageBackend},
+        {"configLoader.acceptsMetalOnlyBackends", configLoaderAcceptsMetalOnlyBackends},
+        {"configLoader.rejectsCpuAnalysisBackend", configLoaderRejectsCpuAnalysisBackend},
+        {"configLoader.rejectsAutoAnalysisBackend", configLoaderRejectsAutoAnalysisBackend},
     };
 }

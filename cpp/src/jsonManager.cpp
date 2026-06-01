@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-05-29
- * Description: 实现 .cache/analysis.json 的完整读写和临时文件 rename 覆盖
+ * Version: 1.1
+ * Date: 2026-06-01
+ * Description: 实现 .cache/analysis.json 的完整读写、临时文件 rename 覆盖，并记录分析 backend
  */
 
 #include "jsonManager.h"
@@ -192,6 +192,7 @@ void JsonManager::updateAnalysisResult(const AnalyzeResult& result) {
     auto& p = impl_->photo(result.photoId);
     if (result.success) {
         p["analysis_status"] = "success";
+        p["analysis_backend"] = result.backendUsed;
         p["failed_step"] = "none";
         p["is_blurry"] = result.isBlurry;
         p["exposure_status"] = result.exposureStatus;
@@ -214,6 +215,7 @@ void JsonManager::updateAnalysisResult(const AnalyzeResult& result) {
         p["analysis_error"] = nullptr;
     } else {
         p["analysis_status"] = "failed";
+        p["analysis_backend"] = result.backendUsed;
         p["failed_step"] = "analysis";
         p["analysis_error"] = result.error;
     }

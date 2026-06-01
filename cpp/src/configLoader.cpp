@@ -58,8 +58,8 @@ AppConfig ConfigLoader::loadFromFile(const std::string& configPath) const {
 
     checkMissing(blur["laplacian_kernel_size"], "blur_detection.laplacian_kernel_size");
     int kernelSize = blur["laplacian_kernel_size"].as<int>();
-    if (kernelSize <= 0 || kernelSize % 2 == 0) {
-        throw std::runtime_error("Invalid config field: blur_detection.laplacian_kernel_size");
+    if (kernelSize != 3) {
+        throw std::runtime_error("Invalid config field: blur_detection.laplacian_kernel_size; GPU analyzer supports 3 only");
     }
     config.blurDetection.laplacianKernelSize = kernelSize;
 
@@ -92,8 +92,14 @@ AppConfig ConfigLoader::loadFromFile(const std::string& configPath) const {
     checkMissing(imageProcessing, "image_processing");
     config.imageProcessing.analysisBackend = readImageBackend(
         imageProcessing["analysis_backend"], "image_processing.analysis_backend");
+    if (config.imageProcessing.analysisBackend != ImageBackend::Metal) {
+        throw std::runtime_error("Invalid config field: image_processing.analysis_backend; only metal is supported");
+    }
     config.imageProcessing.rawBackend = readImageBackend(
         imageProcessing["raw_backend"], "image_processing.raw_backend");
+    if (config.imageProcessing.rawBackend != ImageBackend::Metal) {
+        throw std::runtime_error("Invalid config field: image_processing.raw_backend; only metal is supported by configuration");
+    }
     checkMissing(imageProcessing["log_backend"], "image_processing.log_backend");
     config.imageProcessing.logBackend = imageProcessing["log_backend"].as<bool>();
 

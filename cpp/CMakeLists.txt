@@ -84,6 +84,13 @@ set(SOURCES
 
 add_executable(rawViewer ${SOURCES})
 
+set(GPU_IMAGE_KERNELS ${CMAKE_CURRENT_SOURCE_DIR}/src/gpuImageKernels.metal)
+add_custom_command(TARGET rawViewer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${GPU_IMAGE_KERNELS}
+        $<TARGET_FILE_DIR:rawViewer>/gpuImageKernels.metal
+)
+
 target_include_directories(rawViewer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
@@ -133,6 +140,12 @@ if(RAWVIEWER_BUILD_TESTS)
         tests/imageAnalyzerTests.cpp
         tests/testMain.cpp
         tests/perfTimerTests.cpp
+    )
+
+    add_custom_command(TARGET rawViewerTests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${GPU_IMAGE_KERNELS}
+            $<TARGET_FILE_DIR:rawViewerTests>/gpuImageKernels.metal
     )
 
     target_include_directories(rawViewerTests PRIVATE

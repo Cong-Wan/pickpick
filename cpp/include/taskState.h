@@ -52,8 +52,8 @@ struct ThreadPoolConfig {
 };
 
 struct ImageProcessingConfig {
-    ImageBackend analysisBackend = ImageBackend::Auto;
-    ImageBackend rawBackend = ImageBackend::Auto;
+    ImageBackend analysisBackend = ImageBackend::Metal;
+    ImageBackend rawBackend = ImageBackend::Metal;
     bool logBackend = true;
 };
 
@@ -138,7 +138,7 @@ struct AnalyzeResult {
     std::string jpgPath;
     int attempts = 0;
     std::string error;
-    std::string backendUsed = "cpu";
+    std::string backendUsed = "metal";
     int64_t readImageMs = 0;
     int64_t grayMs = 0;
     int64_t laplacianMs = 0;

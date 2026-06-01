@@ -1,9 +1,9 @@
 # Photo Analyzer — 技术设计文档
 
 **Author:** wilbur  
-**Version:** 1.6  
-**Date:** 2026-05-29  
-**Description:** C++ 照片批量分析工具技术方案，涵盖 Xcode 项目结构、模块划分、RAW 转换、图像分析、config.yaml 配置、JSON 持久化、失败重试、断点续跑和固定 4 worker 线程池策略。1.6 更新：配置文件由 config.yaml 改回 config.yaml，保留 YAML 注释解释每个调参项；`configLoader` 使用 yaml-cpp 读取配置，`jsonManager` 继续使用 JSON 库读写 `analysis.json`。1.5 更新：补全 JSON 中拉普拉斯与直方图原始分析数据；虚焦和过曝判断参数从配置文件读取并写入每张照片的配置快照；线程池说明改为固定 4 个 worker 从共享任务队列持续取任务，任一 worker 完成后立即补充下一个任务，不按批次等待。1.4 更新：`cpp/` 下新增 `src/` 和 `include/`，`main.cpp` 保留在 `cpp/` 根目录，模块实现放入 `cpp/src/`，模块头文件放入 `cpp/include/`。1.3 更新：线程池最大并发限制为 4；转换和分析结果完成后立即写入 JSON；失败任务重试一次并记录失败阶段；启动时读取 JSON 支持断点续跑；按当前 `rawViewer` 项目结构调整第三方库路径和源码目录；删除第三方库安装/编译说明。1.2 更新：分析结果持久化从 SQLite 数据库改为 JSON 文件。1.1 更新：RAW 转换阶段改为多线程并行执行。
+**Version:** 1.7  
+**Date:** 2026-06-01  
+**Description:** C++ 照片批量分析工具技术方案，涵盖 Xcode 项目结构、模块划分、RAW 转换、图像分析、config.yaml 配置、JSON 持久化、失败重试、断点续跑和固定 4 worker 线程池策略。
 
 ---
 
@@ -430,6 +430,17 @@ public:
 - worker 只处理转换或分析，不直接写 JSON；
 - 主线程负责接收完成结果、更新内存状态、立即原子写入 JSON；
 - RAW 转换阶段和图像分析阶段可以分别创建一个 4-worker 线程池，阶段结束后销毁。
+
+> **技术约束：worker 线程栈必须 ≥ 8 MB**
+>
+> macOS 给非主线程默认栈只有 512 KB。LibRaw 解码 + OpenCV JPEG encoder + `std::function`
+> 调用链实测栈峰值约 500 KB ~ 1 MB，512 KB 必爆。`ThreadPool` 必须用 `pthread` API 显式
+> `pthread_attr_setstacksize(&attr, 8 * 1024 * 1024)` 创建 worker。
+>
+> 相关代码：
+> - `cpp/include/threadPool.h` 中 `static constexpr size_t kWorkerStackSize = 8 * 1024 * 1024;`
+>
+> 详细 BUG 定位：`docs/20260601_worker_thread_stack_overflow.md`。
 
 ---
 

@@ -1,17 +1,35 @@
 /*
  * Author: wilbur
- * Version: 1.0
+ * Version: 2.0
  * Date: 2026-06-01
- * Description: 验证 JPG 分析器在典型曝光图像上的直方图、曝光状态和模糊判断输出
+ * Description: 验证 GPU-only JPG 分析器匹配测试内 CPU reference 的直方图、曝光和拉普拉斯统计
  */
 
 #include "testAssert.h"
 #include "imageAnalyzer.h"
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <filesystem>
-#include <numeric>
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <vector>
+
+struct ReferenceAnalysis {
+    std::vector<int64_t> bins;
+    int64_t totalPixels = 0;
+    int64_t overCount = 0;
+    int64_t underCount = 0;
+    double overRatio = 0.0;
+    double underRatio = 0.0;
+    std::string exposureStatus = "normal";
+    double mean = 0.0;
+    double variance = 0.0;
+    double stddev = 0.0;
+    double minVal = 0.0;
+    double maxVal = 0.0;
+    bool isBlurry = false;
+};
 
 static AppConfig makeAnalyzerConfig() {
     AppConfig config;
@@ -21,87 +39,151 @@ static AppConfig makeAnalyzerConfig() {
     config.exposureDetection.underexposePixelThreshold = 10;
     config.exposureDetection.overexposeRatioLimit = 0.05;
     config.exposureDetection.underexposeRatioLimit = 0.05;
+    config.imageProcessing.analysisBackend = ImageBackend::Metal;
+    config.imageProcessing.rawBackend = ImageBackend::Metal;
     return config;
 }
 
 static std::string writeImage(const std::string& fileName, const cv::Mat& image) {
     std::filesystem::path path = std::filesystem::temp_directory_path() / fileName;
-    cv::imwrite(path.string(), image);
+    std::vector<int> params = {cv::IMWRITE_PNG_COMPRESSION, 0};
+    cv::imwrite(path.string(), image, params);
     return path.string();
 }
 
-static int64_t sumBins(const std::vector<int64_t>& bins) {
-    return std::accumulate(bins.begin(), bins.end(), int64_t{0});
-}
-
-static bool imageAnalyzerDetectsUnderexposedBlackImage() {
-    cv::Mat image(16, 16, CV_8UC3, cv::Scalar(0, 0, 0));
-    std::string path = writeImage("rawviewer-black.png", image);
-
+static AnalyzeTask makeTask(const std::string& photoId, const std::string& path) {
     AnalyzeTask task;
-    task.photoId = "black";
+    task.photoId = photoId;
     task.jpgPath = path;
-
-    AnalyzeResult result = ImageAnalyzer().analyze(task, makeAnalyzerConfig());
-    TEST_REQUIRE(result.success);
-    TEST_REQUIRE(result.histogramData.totalPixels == 256);
-    TEST_REQUIRE(result.histogramData.bins.size() == 256);
-    TEST_REQUIRE(result.histogramData.bins[0] == 256);
-    TEST_REQUIRE(result.histogramData.underexposePixelCount == 256);
-    TEST_REQUIRE(result.histogramData.underexposeRatio == 1.0);
-    TEST_REQUIRE(result.exposureStatus == "underexposed");
-    return true;
+    return task;
 }
 
-static bool imageAnalyzerDetectsOverexposedWhiteImage() {
-    cv::Mat image(16, 16, CV_8UC3, cv::Scalar(255, 255, 255));
-    std::string path = writeImage("rawviewer-white.png", image);
+static ReferenceAnalysis makeReference(const cv::Mat& bgrImage, const AppConfig& config) {
+    ReferenceAnalysis ref;
+    ref.bins.assign(256, 0);
+    ref.totalPixels = static_cast<int64_t>(bgrImage.rows) * bgrImage.cols;
 
-    AnalyzeTask task;
-    task.photoId = "white";
-    task.jpgPath = path;
-
-    AnalyzeResult result = ImageAnalyzer().analyze(task, makeAnalyzerConfig());
-    TEST_REQUIRE(result.success);
-    TEST_REQUIRE(result.histogramData.totalPixels == 256);
-    TEST_REQUIRE(result.histogramData.bins.size() == 256);
-    TEST_REQUIRE(result.histogramData.bins[255] == 256);
-    TEST_REQUIRE(result.histogramData.overexposePixelCount == 256);
-    TEST_REQUIRE(result.histogramData.overexposeRatio == 1.0);
-    TEST_REQUIRE(result.exposureStatus == "overexposed");
-    return true;
-}
-
-static bool imageAnalyzerKeepsMixedHistogramTotalAndBlurDecision() {
-    cv::Mat image(16, 16, CV_8UC3, cv::Scalar(128, 128, 128));
-    for (int r = 0; r < image.rows; ++r) {
-        for (int c = 0; c < image.cols; ++c) {
-            if ((r + c) % 2 == 0) {
-                image.at<cv::Vec3b>(r, c) = cv::Vec3b(0, 0, 0);
-            } else {
-                image.at<cv::Vec3b>(r, c) = cv::Vec3b(255, 255, 255);
-            }
+    std::vector<int> gray(static_cast<size_t>(ref.totalPixels), 0);
+    for (int y = 0; y < bgrImage.rows; ++y) {
+        for (int x = 0; x < bgrImage.cols; ++x) {
+            cv::Vec3b bgr = bgrImage.at<cv::Vec3b>(y, x);
+            double b = bgr[0];
+            double g = bgr[1];
+            double r = bgr[2];
+            int value = static_cast<int>(std::floor(0.299 * r + 0.587 * g + 0.114 * b + 0.5));
+            value = std::clamp(value, 0, 255);
+            gray[static_cast<size_t>(y * bgrImage.cols + x)] = value;
+            ref.bins[value]++;
+            if (value > config.exposureDetection.overexposePixelThreshold) ref.overCount++;
+            if (value < config.exposureDetection.underexposePixelThreshold) ref.underCount++;
         }
     }
-    std::string path = writeImage("rawviewer-mixed.png", image);
 
-    AnalyzeTask task;
-    task.photoId = "mixed";
-    task.jpgPath = path;
+    ref.overRatio = ref.totalPixels > 0 ? static_cast<double>(ref.overCount) / ref.totalPixels : 0.0;
+    ref.underRatio = ref.totalPixels > 0 ? static_cast<double>(ref.underCount) / ref.totalPixels : 0.0;
+    if (ref.overRatio > config.exposureDetection.overexposeRatioLimit) {
+        ref.exposureStatus = "overexposed";
+    } else if (ref.underRatio > config.exposureDetection.underexposeRatioLimit) {
+        ref.exposureStatus = "underexposed";
+    }
 
-    AnalyzeResult result = ImageAnalyzer().analyze(task, makeAnalyzerConfig());
+    double sum = 0.0;
+    double sumSq = 0.0;
+    ref.minVal = std::numeric_limits<double>::infinity();
+    ref.maxVal = -std::numeric_limits<double>::infinity();
+    for (int y = 0; y < bgrImage.rows; ++y) {
+        for (int x = 0; x < bgrImage.cols; ++x) {
+            int leftX = x == 0 ? 0 : x - 1;
+            int rightX = x + 1 >= bgrImage.cols ? bgrImage.cols - 1 : x + 1;
+            int upY = y == 0 ? 0 : y - 1;
+            int downY = y + 1 >= bgrImage.rows ? bgrImage.rows - 1 : y + 1;
+            double center = gray[static_cast<size_t>(y * bgrImage.cols + x)];
+            double left = gray[static_cast<size_t>(y * bgrImage.cols + leftX)];
+            double right = gray[static_cast<size_t>(y * bgrImage.cols + rightX)];
+            double up = gray[static_cast<size_t>(upY * bgrImage.cols + x)];
+            double down = gray[static_cast<size_t>(downY * bgrImage.cols + x)];
+            double laplacian = center * 4.0 - left - right - up - down;
+            sum += laplacian;
+            sumSq += laplacian * laplacian;
+            ref.minVal = std::min(ref.minVal, laplacian);
+            ref.maxVal = std::max(ref.maxVal, laplacian);
+        }
+    }
+
+    ref.mean = ref.totalPixels > 0 ? sum / static_cast<double>(ref.totalPixels) : 0.0;
+    ref.variance = ref.totalPixels > 0 ? sumSq / static_cast<double>(ref.totalPixels) - ref.mean * ref.mean : 0.0;
+    ref.variance = std::max(0.0, ref.variance);
+    ref.stddev = std::sqrt(ref.variance);
+    ref.isBlurry = ref.variance < config.blurDetection.laplacianThreshold;
+    return ref;
+}
+
+static bool assertMatchesReference(const AnalyzeResult& result, const ReferenceAnalysis& ref) {
     TEST_REQUIRE(result.success);
-    TEST_REQUIRE(result.histogramData.totalPixels == 256);
-    TEST_REQUIRE(sumBins(result.histogramData.bins) == 256);
-    TEST_REQUIRE(result.laplacianData.variance >= 0.0);
-    TEST_REQUIRE(result.isBlurry == (result.laplacianData.variance < result.blurConfigSnapshot.laplacianThreshold));
+    TEST_REQUIRE(result.backendUsed == "metal");
+    TEST_REQUIRE(result.histogramData.totalPixels == ref.totalPixels);
+    TEST_REQUIRE(result.histogramData.bins == ref.bins);
+    TEST_REQUIRE(result.histogramData.overexposePixelCount == ref.overCount);
+    TEST_REQUIRE(result.histogramData.underexposePixelCount == ref.underCount);
+    TEST_REQUIRE(result.exposureStatus == ref.exposureStatus);
+    TEST_REQUIRE(result.isBlurry == ref.isBlurry);
+    TEST_REQUIRE(std::abs(result.laplacianData.variance - ref.variance) <= std::max(1.0, ref.variance) * 0.001);
     return true;
+}
+
+static bool imageAnalyzerGpuDetectsUnderexposedBlackImage() {
+    AppConfig config = makeAnalyzerConfig();
+    cv::Mat image(16, 16, CV_8UC3, cv::Scalar(0, 0, 0));
+    std::string path = writeImage("rawviewer-gpu-black.png", image);
+    ReferenceAnalysis ref = makeReference(image, config);
+    AnalyzeResult result = ImageAnalyzer().analyze(makeTask("black", path), config);
+    return assertMatchesReference(result, ref);
+}
+
+static bool imageAnalyzerGpuDetectsOverexposedWhiteImage() {
+    AppConfig config = makeAnalyzerConfig();
+    cv::Mat image(16, 16, CV_8UC3, cv::Scalar(255, 255, 255));
+    std::string path = writeImage("rawviewer-gpu-white.png", image);
+    ReferenceAnalysis ref = makeReference(image, config);
+    AnalyzeResult result = ImageAnalyzer().analyze(makeTask("white", path), config);
+    return assertMatchesReference(result, ref);
+}
+
+static bool imageAnalyzerGpuMatchesReferenceForCheckerImage() {
+    AppConfig config = makeAnalyzerConfig();
+    cv::Mat image(16, 16, CV_8UC3, cv::Scalar(0, 0, 0));
+    for (int r = 0; r < image.rows; ++r) {
+        for (int c = 0; c < image.cols; ++c) {
+            uint8_t value = ((r + c) % 2 == 0) ? 0 : 255;
+            image.at<cv::Vec3b>(r, c) = cv::Vec3b(value, value, value);
+        }
+    }
+    std::string path = writeImage("rawviewer-gpu-checker.png", image);
+    ReferenceAnalysis ref = makeReference(image, config);
+    AnalyzeResult result = ImageAnalyzer().analyze(makeTask("checker", path), config);
+    return assertMatchesReference(result, ref);
+}
+
+static bool imageAnalyzerGpuMatchesReferenceForGradientImage() {
+    AppConfig config = makeAnalyzerConfig();
+    cv::Mat image(32, 32, CV_8UC3, cv::Scalar(0, 0, 0));
+    for (int r = 0; r < image.rows; ++r) {
+        for (int c = 0; c < image.cols; ++c) {
+            uint8_t value = static_cast<uint8_t>((r * 7 + c * 11) % 256);
+            image.at<cv::Vec3b>(r, c) = cv::Vec3b(value, value, value);
+        }
+    }
+    std::string path = writeImage("rawviewer-gpu-gradient.png", image);
+    ReferenceAnalysis ref = makeReference(image, config);
+    AnalyzeResult result = ImageAnalyzer().analyze(makeTask("gradient", path), config);
+    return assertMatchesReference(result, ref);
 }
 
 std::vector<TestCase> makeImageAnalyzerTests() {
     return {
-        {"imageAnalyzer.detectsUnderexposedBlackImage", imageAnalyzerDetectsUnderexposedBlackImage},
-        {"imageAnalyzer.detectsOverexposedWhiteImage", imageAnalyzerDetectsOverexposedWhiteImage},
-        {"imageAnalyzer.keepsMixedHistogramTotalAndBlurDecision", imageAnalyzerKeepsMixedHistogramTotalAndBlurDecision},
+        {"imageAnalyzer.gpuDetectsUnderexposedBlackImage", imageAnalyzerGpuDetectsUnderexposedBlackImage},
+        {"imageAnalyzer.gpuDetectsOverexposedWhiteImage", imageAnalyzerGpuDetectsOverexposedWhiteImage},
+        {"imageAnalyzer.gpuMatchesReferenceForCheckerImage", imageAnalyzerGpuMatchesReferenceForCheckerImage},
+        {"imageAnalyzer.gpuMatchesReferenceForGradientImage", imageAnalyzerGpuMatchesReferenceForGradientImage},
     };
 }
