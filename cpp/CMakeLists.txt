@@ -1,13 +1,14 @@
 # Author: wilbur
-# Version: 1.0
-# Date: 2026-05-29
-# Description: CMake build for rawViewer project
+# Version: 1.1
+# Date: 2026-06-01
+# Description: CMake build for rawViewer project；新增 RAWVIEWER_BUILD_TESTS 轻量测试目标
 
 cmake_minimum_required(VERSION 3.16)
 project(rawViewer LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(RAWVIEWER_BUILD_TESTS "Build rawViewer lightweight tests" OFF)
 
 # --- 3rdParty root ---
 set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPart)
@@ -106,5 +107,17 @@ if(APPLE)
         ${APPKIT_LIBRARY}
         ${OPENCL_LIBRARY}
         ${ACCELERATE_LIBRARY}
+    )
+endif()
+
+if(RAWVIEWER_BUILD_TESTS)
+    add_executable(rawViewerTests
+        tests/testMain.cpp
+        tests/perfTimerTests.cpp
+    )
+
+    target_include_directories(rawViewerTests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
     )
 endif()

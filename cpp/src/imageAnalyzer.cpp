@@ -1,11 +1,12 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-05-29
- * Description: 使用 OpenCV 读取 JPG，计算拉普拉斯统计和 256-bin 灰度直方图，生成配置快照
+ * Version: 1.1
+ * Date: 2026-06-01
+ * Description: 使用 OpenCV 读取 JPG，计算拉普拉斯统计和 256-bin 灰度直方图，生成配置快照；记录分析阶段耗时
  */
 
 #include "imageAnalyzer.h"
+#include "perfTimer.h"
 #include <opencv2/opencv.hpp>
 #include <vector>
 
@@ -14,7 +15,9 @@ AnalyzeResult ImageAnalyzer::analyze(const AnalyzeTask& task, const AppConfig& c
     result.photoId = task.photoId;
     result.jpgPath = task.jpgPath;
 
+    PerfTimer phaseTimer;
     cv::Mat img = cv::imread(task.jpgPath, cv::IMREAD_COLOR);
+    result.readImageMs = phaseTimer.elapsedMs();
     if (img.empty()) {
         result.success = false;
         result.error = "Failed to read JPG: " + task.jpgPath;
@@ -22,17 +25,23 @@ AnalyzeResult ImageAnalyzer::analyze(const AnalyzeTask& task, const AppConfig& c
     }
 
     cv::Mat gray;
+    phaseTimer.reset();
     cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+    result.grayMs = phaseTimer.elapsedMs();
 
     // Laplacian
     cv::Mat laplacian;
     int ksize = config.blurDetection.laplacianKernelSize;
+    phaseTimer.reset();
     cv::Laplacian(gray, laplacian, CV_64F, ksize);
+    result.laplacianMs = phaseTimer.elapsedMs();
 
+    phaseTimer.reset();
     cv::Scalar meanVal, stddevVal;
     cv::meanStdDev(laplacian, meanVal, stddevVal);
     double minVal, maxVal;
     cv::minMaxLoc(laplacian, &minVal, &maxVal);
+    result.statsMs = phaseTimer.elapsedMs();
 
     double mean = meanVal[0];
     double stddev = stddevVal[0];
@@ -44,6 +53,7 @@ AnalyzeResult ImageAnalyzer::analyze(const AnalyzeTask& task, const AppConfig& c
     int64_t overCount = 0;
     int64_t underCount = 0;
 
+    phaseTimer.reset();
     for (int r = 0; r < gray.rows; ++r) {
         for (int c = 0; c < gray.cols; ++c) {
             uint8_t v = gray.at<uint8_t>(r, c);
@@ -52,6 +62,7 @@ AnalyzeResult ImageAnalyzer::analyze(const AnalyzeTask& task, const AppConfig& c
             if (v < config.exposureDetection.underexposePixelThreshold) underCount++;
         }
     }
+    result.histogramMs = phaseTimer.elapsedMs();
 
     double overRatio = totalPixels > 0 ? static_cast<double>(overCount) / totalPixels : 0.0;
     double underRatio = totalPixels > 0 ? static_cast<double>(underCount) / totalPixels : 0.0;

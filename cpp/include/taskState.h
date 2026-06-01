@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-05-29
- * Description: 定义状态枚举、照片状态、配置结构、任务结构、结果结构、字符串转换函数
+ * Version: 1.1
+ * Date: 2026-06-01
+ * Description: 定义状态枚举、照片状态、配置结构、任务结构、结果结构、字符串转换函数；补充图片处理阶段耗时字段
  */
 
 #pragma once
@@ -106,6 +106,12 @@ struct RawConvertResult {
     std::string jpgPath;
     int attempts = 0;
     std::string error;
+    int64_t elapsedMs = 0;
+    int64_t openFileMs = 0;
+    int64_t unpackMs = 0;
+    int64_t processMs = 0;
+    int64_t makeImageMs = 0;
+    int64_t writeJpgMs = 0;
 };
 
 struct AnalyzeTask {
@@ -119,6 +125,11 @@ struct AnalyzeResult {
     std::string jpgPath;
     int attempts = 0;
     std::string error;
+    int64_t readImageMs = 0;
+    int64_t grayMs = 0;
+    int64_t laplacianMs = 0;
+    int64_t statsMs = 0;
+    int64_t histogramMs = 0;
 
     bool isBlurry = false;
     std::string exposureStatus = "normal";
