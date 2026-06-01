@@ -1,13 +1,14 @@
 # Author: wilbur
-# Version: 1.0
-# Date: 2026-05-29
-# Description: CMake build for rawViewer project
+# Version: 1.5
+# Date: 2026-06-01
+# Description: CMake build for rawViewer project；新增 macOS Metal-backed 图片分析源和 framework 链接
 
 cmake_minimum_required(VERSION 3.16)
-project(rawViewer LANGUAGES CXX)
+project(rawViewer LANGUAGES CXX OBJCXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(RAWVIEWER_BUILD_TESTS "Build rawViewer lightweight tests" OFF)
 
 # --- 3rdParty root ---
 set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../3rdPart)
@@ -70,8 +71,10 @@ set(SOURCES
     src/appRunner.cpp
     src/configLoader.cpp
     src/fileScanner.cpp
+    src/gpuSupport.mm
     src/imageAnalyzer.cpp
     src/jsonManager.cpp
+    src/macImageAnalyzer.mm
     src/rawConverter.cpp
     src/resumePlanner.cpp
     src/taskState.cpp
@@ -99,12 +102,62 @@ target_link_libraries(rawViewer PRIVATE
 if(APPLE)
     find_library(FOUNDATION_LIBRARY Foundation)
     find_library(APPKIT_LIBRARY AppKit)
+    find_library(COREGRAPHICS_LIBRARY CoreGraphics)
+    find_library(COREIMAGE_LIBRARY CoreImage)
+    find_library(METAL_LIBRARY Metal)
+    find_library(MPS_LIBRARY MetalPerformanceShaders)
     find_library(OPENCL_LIBRARY OpenCL)
     find_library(ACCELERATE_LIBRARY Accelerate)
     target_link_libraries(rawViewer PRIVATE
         ${FOUNDATION_LIBRARY}
         ${APPKIT_LIBRARY}
+        ${COREGRAPHICS_LIBRARY}
+        ${COREIMAGE_LIBRARY}
+        ${METAL_LIBRARY}
+        ${MPS_LIBRARY}
         ${OPENCL_LIBRARY}
         ${ACCELERATE_LIBRARY}
     )
+endif()
+
+if(RAWVIEWER_BUILD_TESTS)
+    add_executable(rawViewerTests
+        src/configLoader.cpp
+        src/gpuSupport.mm
+        src/imageAnalyzer.cpp
+        src/macImageAnalyzer.mm
+        src/taskState.cpp
+        tests/configLoaderTests.cpp
+        tests/gpuSupportTests.cpp
+        tests/imageAnalyzerBackendTests.cpp
+        tests/imageAnalyzerTests.cpp
+        tests/testMain.cpp
+        tests/perfTimerTests.cpp
+    )
+
+    target_include_directories(rawViewerTests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    )
+
+    target_link_libraries(rawViewerTests PRIVATE
+        opencv_imgcodecs
+        opencv_imgproc
+        opencv_core
+        ${OPENCV_3RDPARTY_LIBS}
+        yaml-cpp
+    )
+
+    if(APPLE)
+        target_link_libraries(rawViewerTests PRIVATE
+            ${FOUNDATION_LIBRARY}
+            ${APPKIT_LIBRARY}
+            ${COREGRAPHICS_LIBRARY}
+            ${COREIMAGE_LIBRARY}
+            ${METAL_LIBRARY}
+            ${MPS_LIBRARY}
+            ${OPENCL_LIBRARY}
+            ${ACCELERATE_LIBRARY}
+        )
+    endif()
 endif()

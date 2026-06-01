@@ -1,11 +1,12 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-05-29
- * Description: 使用 LibRaw + OpenCV 将 RW2/CR2 转 JPG；worker 调用重试封装
+ * Version: 1.1
+ * Date: 2026-06-01
+ * Description: 使用 LibRaw + OpenCV 将 RW2/CR2 转 JPG；worker 调用重试封装；记录 RAW 转换阶段耗时
  */
 
 #include "rawConverter.h"
+#include "perfTimer.h"
 #include <libraw.h>
 #include <opencv2/opencv.hpp>
 #include <filesystem>
@@ -29,28 +30,36 @@ RawConvertResult RawConverter::convert(const RawConvertTask& task, const AppConf
     }
 
     LibRaw rawProcessor;
+    PerfTimer phaseTimer;
     int ret = rawProcessor.open_file(task.rawPath.c_str());
+    result.openFileMs = phaseTimer.elapsedMs();
     if (ret != LIBRAW_SUCCESS) {
         result.success = false;
         result.error = "LibRaw open failed: " + std::string(rawProcessor.strerror(ret));
         return result;
     }
 
+    phaseTimer.reset();
     ret = rawProcessor.unpack();
+    result.unpackMs = phaseTimer.elapsedMs();
     if (ret != LIBRAW_SUCCESS) {
         result.success = false;
         result.error = "LibRaw unpack failed: " + std::string(rawProcessor.strerror(ret));
         return result;
     }
 
+    phaseTimer.reset();
     ret = rawProcessor.dcraw_process();
+    result.processMs = phaseTimer.elapsedMs();
     if (ret != LIBRAW_SUCCESS) {
         result.success = false;
         result.error = "LibRaw process failed: " + std::string(rawProcessor.strerror(ret));
         return result;
     }
 
+    phaseTimer.reset();
     libraw_processed_image_t* img = rawProcessor.dcraw_make_mem_image(&ret);
+    result.makeImageMs = phaseTimer.elapsedMs();
     if (!img || ret != LIBRAW_SUCCESS) {
         result.success = false;
         result.error = "LibRaw make image failed";
@@ -66,7 +75,9 @@ RawConvertResult RawConverter::convert(const RawConvertTask& task, const AppConf
     }
 
     std::vector<int> params = {cv::IMWRITE_JPEG_QUALITY, config.rawConversion.jpgQuality};
+    phaseTimer.reset();
     bool written = cv::imwrite(task.outputJpgPath, mat, params);
+    result.writeJpgMs = phaseTimer.elapsedMs();
     rawProcessor.dcraw_clear_mem(img);
 
     if (!written) {

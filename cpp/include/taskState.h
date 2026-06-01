@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-05-29
- * Description: 定义状态枚举、照片状态、配置结构、任务结构、结果结构、字符串转换函数
+ * Version: 1.3
+ * Date: 2026-06-01
+ * Description: 定义状态枚举、照片状态、配置结构、任务结构、结果结构、字符串转换函数；补充分析 backend 结果标记
  */
 
 #pragma once
@@ -25,6 +25,12 @@ enum class FailedStep {
     Analysis
 };
 
+enum class ImageBackend {
+    Auto,
+    Cpu,
+    Metal
+};
+
 struct BlurDetectionConfig {
     double laplacianThreshold = 100.0;
     int laplacianKernelSize = 3;
@@ -45,11 +51,18 @@ struct ThreadPoolConfig {
     int workerCount = 4;
 };
 
+struct ImageProcessingConfig {
+    ImageBackend analysisBackend = ImageBackend::Auto;
+    ImageBackend rawBackend = ImageBackend::Auto;
+    bool logBackend = true;
+};
+
 struct AppConfig {
     BlurDetectionConfig blurDetection;
     ExposureDetectionConfig exposureDetection;
     RawConversionConfig rawConversion;
     ThreadPoolConfig threadPool;
+    ImageProcessingConfig imageProcessing;
     int effectiveWorkerCount = 4;
 };
 
@@ -106,6 +119,12 @@ struct RawConvertResult {
     std::string jpgPath;
     int attempts = 0;
     std::string error;
+    int64_t elapsedMs = 0;
+    int64_t openFileMs = 0;
+    int64_t unpackMs = 0;
+    int64_t processMs = 0;
+    int64_t makeImageMs = 0;
+    int64_t writeJpgMs = 0;
 };
 
 struct AnalyzeTask {
@@ -119,6 +138,12 @@ struct AnalyzeResult {
     std::string jpgPath;
     int attempts = 0;
     std::string error;
+    std::string backendUsed = "cpu";
+    int64_t readImageMs = 0;
+    int64_t grayMs = 0;
+    int64_t laplacianMs = 0;
+    int64_t statsMs = 0;
+    int64_t histogramMs = 0;
 
     bool isBlurry = false;
     std::string exposureStatus = "normal";
@@ -150,7 +175,9 @@ struct AnalyzeResult {
 
 std::string toString(StageStatus status);
 std::string toString(FailedStep step);
+std::string toString(ImageBackend backend);
 StageStatus stageStatusFromString(const std::string& value);
 FailedStep failedStepFromString(const std::string& value);
+ImageBackend imageBackendFromString(const std::string& value);
 StageStatus normalizeForResume(StageStatus status);
 PhotoTaskState makeDefaultPhotoState(const std::string& photoId);
