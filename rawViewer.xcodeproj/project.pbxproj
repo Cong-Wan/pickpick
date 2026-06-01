@@ -8,15 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		D1D806B9CF4F4CB6B168A3F4 /* testMain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5FCCB0F1ADD24C3BAC8CAA6F; };
-		F55DBFD6A3DA4D5C8A33339C /* taskStateTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DB2AABAE1E8542ABBD85296F; };
 		390A141DFBAA4595A7D0334E /* configLoaderTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A2EE229C2724978BBCCD901; };
-		FBA4A8B5A13943C3B840826D /* fileScannerTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 30A94E44716E4B4D96F6B1CC; };
-		FD50BBB7938A47518E48D8B8 /* jsonManagerTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DFB9EB5447EA46EE96855EFD; };
-		6A0A493197BA4D398E2AB448 /* resumePlannerTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1823213BCEC24998944FF309; };
-		E1854C62404640D58D2C833B /* threadPoolTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 14F050772D7745A389D77055; };
+		A10000000000000000000009 /* gpuSupportTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000C; };
+		A1000000000000000000000A /* imageAnalyzerBackendTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D; };
 		4A7FF3DB4A2143A2B61B7174 /* imageAnalyzerTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D7D6233187374E61927FE454; };
-		D229B02982D542969D65E6AE /* rawConverterTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B48CAE8A9C9B442385F946DE; };
-		EFE869B79AB34248883A546A /* appRunnerTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 26EADFB53E0F408ABEDB2DBB; };
+		A1000000000000000000000B /* perfTimerTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000E; };
+		A1000000000000000000000F /* baselineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010; };
 		88DCC893FC624A2087B49DC5 /* taskState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 703942AC0593451B98A8D65F; };
 		C32E0AF602CE46B886ADCCF3 /* configLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AA69733F7184F559F4E3773; };
 		907741988F7F4F8EBE786674 /* fileScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AC8DCC74E21A4967979839AE; };
@@ -26,6 +23,10 @@
 		32C633F01AAC42F4BDF74068 /* rawConverter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F2E8E12934E540C0B4420F5B; };
 		934AD4F746284922AD9628BB /* imageAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3D84AE4C73D74AEBAD670871; };
 		5145714F6BAE4099AB0AD1AC /* appRunner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CF3BE81B0BCF41EAB06427F4; };
+		A10000000000000000000001 /* macImageAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005; };
+		A10000000000000000000002 /* gpuSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006; };
+		A10000000000000000000003 /* macImageAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000007; };
+		A10000000000000000000004 /* gpuSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008; };
 
 		6AD029932C234022929744B2 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CBFD07FF7E2F464E8E4F405A; };
 		E445CCDC0FF14B34A028B934 /* taskState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F2554B820E6450384435CF1; };
@@ -50,18 +51,16 @@
 		658EF623F49F4E8BA73BF670 /* threadPool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/threadPool.cpp; sourceTree = "<group>"; };
 		15EDE1DAC1404C96B23F5602 /* rawConverter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/rawConverter.cpp; sourceTree = "<group>"; };
 		FAD190DAD67B4AA1B4E5E90A /* imageAnalyzer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/imageAnalyzer.cpp; sourceTree = "<group>"; };
+		A10000000000000000000005 /* macImageAnalyzer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/macImageAnalyzer.mm; sourceTree = "<group>"; };
+		A10000000000000000000006 /* gpuSupport.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/gpuSupport.mm; sourceTree = "<group>"; };
 		AE65D91F993140EC9176F938 /* appRunner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/appRunner.cpp; sourceTree = "<group>"; };
 		1A09E7E71F19468D8B698756 /* PhotoAnalyzerCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PhotoAnalyzerCLI; sourceTree = BUILT_PRODUCTS_DIR; };
 		5FCCB0F1ADD24C3BAC8CAA6F /* testMain.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/testMain.cpp; sourceTree = "<group>"; };
-		DB2AABAE1E8542ABBD85296F /* taskStateTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/taskStateTests.cpp; sourceTree = "<group>"; };
 		7A2EE229C2724978BBCCD901 /* configLoaderTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/configLoaderTests.cpp; sourceTree = "<group>"; };
-		30A94E44716E4B4D96F6B1CC /* fileScannerTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/fileScannerTests.cpp; sourceTree = "<group>"; };
-		DFB9EB5447EA46EE96855EFD /* jsonManagerTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/jsonManagerTests.cpp; sourceTree = "<group>"; };
-		1823213BCEC24998944FF309 /* resumePlannerTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/resumePlannerTests.cpp; sourceTree = "<group>"; };
-		14F050772D7745A389D77055 /* threadPoolTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/threadPoolTests.cpp; sourceTree = "<group>"; };
+		A1000000000000000000000C /* gpuSupportTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/gpuSupportTests.cpp; sourceTree = "<group>"; };
+		A1000000000000000000000D /* imageAnalyzerBackendTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/imageAnalyzerBackendTests.cpp; sourceTree = "<group>"; };
 		D7D6233187374E61927FE454 /* imageAnalyzerTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/imageAnalyzerTests.cpp; sourceTree = "<group>"; };
-		B48CAE8A9C9B442385F946DE /* rawConverterTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/rawConverterTests.cpp; sourceTree = "<group>"; };
-		26EADFB53E0F408ABEDB2DBB /* appRunnerTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/appRunnerTests.cpp; sourceTree = "<group>"; };
+		A1000000000000000000000E /* perfTimerTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/perfTimerTests.cpp; sourceTree = "<group>"; };
 		703942AC0593451B98A8D65F /* taskState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/taskState.cpp; sourceTree = "<group>"; };
 		1AA69733F7184F559F4E3773 /* configLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/configLoader.cpp; sourceTree = "<group>"; };
 		AC8DCC74E21A4967979839AE /* fileScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/fileScanner.cpp; sourceTree = "<group>"; };
@@ -70,8 +69,11 @@
 		C436A86835A3415D8ABE383A /* threadPool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/threadPool.cpp; sourceTree = "<group>"; };
 		F2E8E12934E540C0B4420F5B /* rawConverter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/rawConverter.cpp; sourceTree = "<group>"; };
 		3D84AE4C73D74AEBAD670871 /* imageAnalyzer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/imageAnalyzer.cpp; sourceTree = "<group>"; };
+		A10000000000000000000007 /* macImageAnalyzer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = cpp/src/macImageAnalyzer.mm; sourceTree = "<group>"; };
+		A10000000000000000000008 /* gpuSupport.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = cpp/src/gpuSupport.mm; sourceTree = "<group>"; };
 		CF3BE81B0BCF41EAB06427F4 /* appRunner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/appRunner.cpp; sourceTree = "<group>"; };
-		BB32040B54904569BDB64035 /* rawViewerTests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = rawViewerTests; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000010 /* baselineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = baselineTests.swift; sourceTree = "<group>"; };
+		BB32040B54904569BDB64035 /* rawViewerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rawViewerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -111,6 +113,7 @@
 			isa = PBXGroup;
 			children = (
 				D8DB71322FC92FEA00F93F82 /* rawViewer */,
+				A10000000000000000000013 /* rawViewerTests */,
 				4AE33933EEF34E19AF7037C3 /* cpp */,
 				D8DB71312FC92FEA00F93F82 /* Products */,
 			);
@@ -121,8 +124,17 @@
 			children = (
 				D8DB71302FC92FEA00F93F82 /* rawViewer.app */,
 				1A09E7E71F19468D8B698756 /* PhotoAnalyzerCLI */,
+				BB32040B54904569BDB64035 /* rawViewerTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000013 /* rawViewerTests */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000010 /* baselineTests.swift */,
+			);
+			path = rawViewerTests;
 			sourceTree = "<group>";
 		};
 		4AE33933EEF34E19AF7037C3 /* cpp */ = {
@@ -137,6 +149,8 @@
 				658EF623F49F4E8BA73BF670 /* threadPool.cpp */,
 				15EDE1DAC1404C96B23F5602 /* rawConverter.cpp */,
 				FAD190DAD67B4AA1B4E5E90A /* imageAnalyzer.cpp */,
+				A10000000000000000000005 /* macImageAnalyzer.mm */,
+				A10000000000000000000006 /* gpuSupport.mm */,
 				AE65D91F993140EC9176F938 /* appRunner.cpp */,
 			);
 			path = cpp;
@@ -146,15 +160,11 @@
 			isa = PBXGroup;
 			children = (
 				5FCCB0F1ADD24C3BAC8CAA6F /* testMain.cpp */,
-				DB2AABAE1E8542ABBD85296F /* taskStateTests.cpp */,
 				7A2EE229C2724978BBCCD901 /* configLoaderTests.cpp */,
-				30A94E44716E4B4D96F6B1CC /* fileScannerTests.cpp */,
-				DFB9EB5447EA46EE96855EFD /* jsonManagerTests.cpp */,
-				1823213BCEC24998944FF309 /* resumePlannerTests.cpp */,
-				14F050772D7745A389D77055 /* threadPoolTests.cpp */,
+				A1000000000000000000000C /* gpuSupportTests.cpp */,
+				A1000000000000000000000D /* imageAnalyzerBackendTests.cpp */,
 				D7D6233187374E61927FE454 /* imageAnalyzerTests.cpp */,
-				B48CAE8A9C9B442385F946DE /* rawConverterTests.cpp */,
-				26EADFB53E0F408ABEDB2DBB /* appRunnerTests.cpp */,
+				A1000000000000000000000E /* perfTimerTests.cpp */,
 				703942AC0593451B98A8D65F /* taskState.cpp */,
 				1AA69733F7184F559F4E3773 /* configLoader.cpp */,
 				AC8DCC74E21A4967979839AE /* fileScanner.cpp */,
@@ -163,6 +173,8 @@
 				C436A86835A3415D8ABE383A /* threadPool.cpp */,
 				F2E8E12934E540C0B4420F5B /* rawConverter.cpp */,
 				3D84AE4C73D74AEBAD670871 /* imageAnalyzer.cpp */,
+				A10000000000000000000007 /* macImageAnalyzer.mm */,
+				A10000000000000000000008 /* gpuSupport.mm */,
 				CF3BE81B0BCF41EAB06427F4 /* appRunner.cpp */,
 			);
 			name = tests;
@@ -185,6 +197,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				D8DB71322FC92FEA00F93F82 /* rawViewer */,
+				A10000000000000000000013 /* rawViewerTests */,
 				4AE33933EEF34E19AF7037C3 /* cpp */,
 			);
 			name = rawViewer;
@@ -227,8 +240,8 @@
 			packageProductDependencies = (
 			);
 			productName = rawViewerTests;
-			productReference = BB32040B54904569BDB64035 /* rawViewerTests */;
-			productType = "com.apple.product-type.tool";
+			productReference = BB32040B54904569BDB64035 /* rawViewerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -300,6 +313,8 @@
 				B84C9CC29F1E4535B4B6A666 /* threadPool.cpp in Sources */,
 				BE83762DF1204F5FA17F1918 /* rawConverter.cpp in Sources */,
 				847F76F611DE46119F6B51D4 /* imageAnalyzer.cpp in Sources */,
+				A10000000000000000000001 /* macImageAnalyzer.mm in Sources */,
+				A10000000000000000000002 /* gpuSupport.mm in Sources */,
 				51F2D3135A414442BF8DBB5A /* appRunner.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -308,25 +323,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D1D806B9CF4F4CB6B168A3F4 /* testMain.cpp in Sources */,
-				F55DBFD6A3DA4D5C8A33339C /* taskStateTests.cpp in Sources */,
-				390A141DFBAA4595A7D0334E /* configLoaderTests.cpp in Sources */,
-				FBA4A8B5A13943C3B840826D /* fileScannerTests.cpp in Sources */,
-				FD50BBB7938A47518E48D8B8 /* jsonManagerTests.cpp in Sources */,
-				6A0A493197BA4D398E2AB448 /* resumePlannerTests.cpp in Sources */,
-				E1854C62404640D58D2C833B /* threadPoolTests.cpp in Sources */,
-				4A7FF3DB4A2143A2B61B7174 /* imageAnalyzerTests.cpp in Sources */,
-				D229B02982D542969D65E6AE /* rawConverterTests.cpp in Sources */,
-				EFE869B79AB34248883A546A /* appRunnerTests.cpp in Sources */,
-				88DCC893FC624A2087B49DC5 /* taskState.cpp in Sources */,
-				C32E0AF602CE46B886ADCCF3 /* configLoader.cpp in Sources */,
-				907741988F7F4F8EBE786674 /* fileScanner.cpp in Sources */,
-				3799FC9948054DFB96C51AA0 /* jsonManager.cpp in Sources */,
-				BCD572C60E754BBBA511220E /* resumePlanner.cpp in Sources */,
-				A76797A1E91643A2AC8B1E2A /* threadPool.cpp in Sources */,
-				32C633F01AAC42F4BDF74068 /* rawConverter.cpp in Sources */,
-				934AD4F746284922AD9628BB /* imageAnalyzer.cpp in Sources */,
-				5145714F6BAE4099AB0AD1AC /* appRunner.cpp in Sources */,
+				A1000000000000000000000F /* baselineTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -539,6 +536,12 @@
 				Accelerate,
 				"-framework",
 				OpenCL,
+				"-framework",
+				Metal,
+				"-framework",
+				CoreImage,
+				"-framework",
+				CoreGraphics,
 				"-lz",
 				"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
 				"-llibpng",
@@ -589,6 +592,12 @@
 				Accelerate,
 				"-framework",
 				OpenCL,
+				"-framework",
+				Metal,
+				"-framework",
+				CoreImage,
+				"-framework",
+				CoreGraphics,
 				"-lz",
 				"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
 				"-llibpng",
@@ -614,98 +623,36 @@
 		91FD9F604DEC4E94BC16A4FA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = (
-				"$(PROJECT_DIR)/cpp/include",
-				"$(PROJECT_DIR)/3rdPart/json",
-				"$(PROJECT_DIR)/3rdPart/yaml/include",
-				"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
-				"$(PROJECT_DIR)/3rdPart/libraw/include",
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-				"$(PROJECT_DIR)/3rdPart/opencv/lib",
-				"$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-				"$(PROJECT_DIR)/3rdPart/libraw/lib",
-				"$(PROJECT_DIR)/3rdPart/yaml/lib",
-				);
-				OTHER_LDFLAGS = (
-				"-lopencv_core",
-				"-lopencv_imgcodecs",
-				"-lopencv_imgproc",
-				"-lraw",
-				"-lyaml-cpp",
-				"-lc++",
-				"-framework",
-				Accelerate,
-				"-framework",
-				OpenCL,
-				"-lz",
-				"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-				"-llibpng",
-				"-llibjpeg-turbo",
-				"-llibtiff",
-				"-llibwebp",
-				"-llibopenjp2",
-				"-lIlmImf",
-				"-lzlib",
-				"-littnotify",
-				"-ltegra_hal",
-				"-lkleidicv_hal",
-				"-lkleidicv_thread",
-				"-lkleidicv",
-				);
+				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.rawViewerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = xctest;
 			};
 			name = Debug;
 		};
 		B5DADD81867B47FAA4249629 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = (
-				"$(PROJECT_DIR)/cpp/include",
-				"$(PROJECT_DIR)/3rdPart/json",
-				"$(PROJECT_DIR)/3rdPart/yaml/include",
-				"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
-				"$(PROJECT_DIR)/3rdPart/libraw/include",
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-				"$(PROJECT_DIR)/3rdPart/opencv/lib",
-				"$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-				"$(PROJECT_DIR)/3rdPart/libraw/lib",
-				"$(PROJECT_DIR)/3rdPart/yaml/lib",
-				);
-				OTHER_LDFLAGS = (
-				"-lopencv_core",
-				"-lopencv_imgcodecs",
-				"-lopencv_imgproc",
-				"-lraw",
-				"-lyaml-cpp",
-				"-lc++",
-				"-framework",
-				Accelerate,
-				"-framework",
-				OpenCL,
-				"-lz",
-				"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-				"-llibpng",
-				"-llibjpeg-turbo",
-				"-llibtiff",
-				"-llibwebp",
-				"-llibopenjp2",
-				"-lIlmImf",
-				"-lzlib",
-				"-littnotify",
-				"-ltegra_hal",
-				"-lkleidicv_hal",
-				"-lkleidicv_thread",
-				"-lkleidicv",
-				);
+				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.rawViewerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = xctest;
 			};
 			name = Release;
 		};
