@@ -1,10 +1,10 @@
 # Author: wilbur
-# Version: 1.1
+# Version: 1.2
 # Date: 2026-06-01
-# Description: CMake build for rawViewer project；新增 RAWVIEWER_BUILD_TESTS 轻量测试目标
+# Description: CMake build for rawViewer project；新增 Objective-C++ GPU 能力检测编译配置
 
 cmake_minimum_required(VERSION 3.16)
-project(rawViewer LANGUAGES CXX)
+project(rawViewer LANGUAGES CXX OBJCXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -71,6 +71,7 @@ set(SOURCES
     src/appRunner.cpp
     src/configLoader.cpp
     src/fileScanner.cpp
+    src/gpuSupport.mm
     src/imageAnalyzer.cpp
     src/jsonManager.cpp
     src/rawConverter.cpp
@@ -100,11 +101,13 @@ target_link_libraries(rawViewer PRIVATE
 if(APPLE)
     find_library(FOUNDATION_LIBRARY Foundation)
     find_library(APPKIT_LIBRARY AppKit)
+    find_library(METAL_LIBRARY Metal)
     find_library(OPENCL_LIBRARY OpenCL)
     find_library(ACCELERATE_LIBRARY Accelerate)
     target_link_libraries(rawViewer PRIVATE
         ${FOUNDATION_LIBRARY}
         ${APPKIT_LIBRARY}
+        ${METAL_LIBRARY}
         ${OPENCL_LIBRARY}
         ${ACCELERATE_LIBRARY}
     )
@@ -112,6 +115,11 @@ endif()
 
 if(RAWVIEWER_BUILD_TESTS)
     add_executable(rawViewerTests
+        src/configLoader.cpp
+        src/gpuSupport.mm
+        src/taskState.cpp
+        tests/configLoaderTests.cpp
+        tests/gpuSupportTests.cpp
         tests/testMain.cpp
         tests/perfTimerTests.cpp
     )
@@ -120,4 +128,15 @@ if(RAWVIEWER_BUILD_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
     )
+
+    target_link_libraries(rawViewerTests PRIVATE
+        yaml-cpp
+    )
+
+    if(APPLE)
+        target_link_libraries(rawViewerTests PRIVATE
+            ${FOUNDATION_LIBRARY}
+            ${METAL_LIBRARY}
+        )
+    endif()
 endif()

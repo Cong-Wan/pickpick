@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.1
+ * Version: 1.2
  * Date: 2026-06-01
- * Description: 定义状态枚举、照片状态、配置结构、任务结构、结果结构、字符串转换函数；补充图片处理阶段耗时字段
+ * Description: 定义状态枚举、照片状态、配置结构、任务结构、结果结构、字符串转换函数；补充图片处理 backend 配置
  */
 
 #pragma once
@@ -25,6 +25,12 @@ enum class FailedStep {
     Analysis
 };
 
+enum class ImageBackend {
+    Auto,
+    Cpu,
+    Metal
+};
+
 struct BlurDetectionConfig {
     double laplacianThreshold = 100.0;
     int laplacianKernelSize = 3;
@@ -45,11 +51,18 @@ struct ThreadPoolConfig {
     int workerCount = 4;
 };
 
+struct ImageProcessingConfig {
+    ImageBackend analysisBackend = ImageBackend::Auto;
+    ImageBackend rawBackend = ImageBackend::Auto;
+    bool logBackend = true;
+};
+
 struct AppConfig {
     BlurDetectionConfig blurDetection;
     ExposureDetectionConfig exposureDetection;
     RawConversionConfig rawConversion;
     ThreadPoolConfig threadPool;
+    ImageProcessingConfig imageProcessing;
     int effectiveWorkerCount = 4;
 };
 
@@ -161,7 +174,9 @@ struct AnalyzeResult {
 
 std::string toString(StageStatus status);
 std::string toString(FailedStep step);
+std::string toString(ImageBackend backend);
 StageStatus stageStatusFromString(const std::string& value);
 FailedStep failedStepFromString(const std::string& value);
+ImageBackend imageBackendFromString(const std::string& value);
 StageStatus normalizeForResume(StageStatus status);
 PhotoTaskState makeDefaultPhotoState(const std::string& photoId);

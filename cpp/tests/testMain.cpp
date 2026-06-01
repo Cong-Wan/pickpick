@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.0
+ * Version: 1.1
  * Date: 2026-06-01
- * Description: 实现轻量测试入口，支持通过 --filter 运行指定测试分组
+ * Description: 实现轻量测试入口，支持通过 --filter 运行指定测试分组；支持逗号分隔的多个过滤词
  */
 
 #include "testAssert.h"
@@ -11,9 +11,28 @@
 #include <vector>
 
 std::vector<TestCase> makePerfTimerTests();
+std::vector<TestCase> makeConfigLoaderTests();
+std::vector<TestCase> makeGpuSupportTests();
 
 static bool matchesFilter(const std::string& name, const std::string& filter) {
-    return filter.empty() || name.find(filter) != std::string::npos;
+    if (filter.empty()) {
+        return true;
+    }
+
+    size_t start = 0;
+    while (start <= filter.size()) {
+        size_t comma = filter.find(',', start);
+        std::string token = filter.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
+        if (!token.empty() && name.find(token) != std::string::npos) {
+            return true;
+        }
+        if (comma == std::string::npos) {
+            break;
+        }
+        start = comma + 1;
+    }
+
+    return false;
 }
 
 int main(int argc, char** argv) {
@@ -26,6 +45,10 @@ int main(int argc, char** argv) {
     }
 
     std::vector<TestCase> tests;
+    auto configLoaderTests = makeConfigLoaderTests();
+    tests.insert(tests.end(), configLoaderTests.begin(), configLoaderTests.end());
+    auto gpuSupportTests = makeGpuSupportTests();
+    tests.insert(tests.end(), gpuSupportTests.begin(), gpuSupportTests.end());
     auto perfTimerTests = makePerfTimerTests();
     tests.insert(tests.end(), perfTimerTests.begin(), perfTimerTests.end());
 

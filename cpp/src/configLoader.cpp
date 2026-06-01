@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-05-29
- * Description: 使用 yaml-cpp 读取 config.yaml，缺字段或非法值时抛出明确错误
+ * Version: 1.1
+ * Date: 2026-06-01
+ * Description: 使用 yaml-cpp 读取 config.yaml，缺字段或非法值时抛出明确错误；补充图片处理 backend 配置解析
  */
 
 #include "configLoader.h"
@@ -28,6 +28,15 @@ static void checkRangeInt(const YAML::Node& node, const char* path, int minVal, 
     checkMissing(node, path);
     int val = node.as<int>();
     if (val < minVal || val > maxVal) {
+        throw std::runtime_error(std::string("Invalid config field: ") + path);
+    }
+}
+
+static ImageBackend readImageBackend(const YAML::Node& node, const char* path) {
+    checkMissing(node, path);
+    try {
+        return imageBackendFromString(node.as<std::string>());
+    } catch (const std::invalid_argument&) {
         throw std::runtime_error(std::string("Invalid config field: ") + path);
     }
 }
@@ -78,6 +87,15 @@ AppConfig ConfigLoader::loadFromFile(const std::string& configPath) const {
     checkMissing(tp["worker_count"], "thread_pool.worker_count");
     config.threadPool.workerCount = tp["worker_count"].as<int>();
     config.effectiveWorkerCount = 4;
+
+    auto imageProcessing = root["image_processing"];
+    checkMissing(imageProcessing, "image_processing");
+    config.imageProcessing.analysisBackend = readImageBackend(
+        imageProcessing["analysis_backend"], "image_processing.analysis_backend");
+    config.imageProcessing.rawBackend = readImageBackend(
+        imageProcessing["raw_backend"], "image_processing.raw_backend");
+    checkMissing(imageProcessing["log_backend"], "image_processing.log_backend");
+    config.imageProcessing.logBackend = imageProcessing["log_backend"].as<bool>();
 
     return config;
 }

@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-05-29
- * Description: 实现枚举和状态结构的字符串转换、默认值构造、状态归一化
+ * Version: 1.1
+ * Date: 2026-06-01
+ * Description: 实现枚举和状态结构的字符串转换、默认值构造、状态归一化；补充图片处理 backend 字符串转换
  */
 
 #include "taskState.h"
@@ -28,6 +28,15 @@ std::string toString(FailedStep step) {
     return "unknown";
 }
 
+std::string toString(ImageBackend backend) {
+    switch (backend) {
+        case ImageBackend::Auto: return "auto";
+        case ImageBackend::Cpu: return "cpu";
+        case ImageBackend::Metal: return "metal";
+    }
+    return "unknown";
+}
+
 StageStatus stageStatusFromString(const std::string& value) {
     if (value == "pending") return StageStatus::Pending;
     if (value == "running") return StageStatus::Running;
@@ -42,6 +51,13 @@ FailedStep failedStepFromString(const std::string& value) {
     if (value == "raw_conversion") return FailedStep::RawConversion;
     if (value == "analysis") return FailedStep::Analysis;
     throw std::invalid_argument("Invalid FailedStep: " + value);
+}
+
+ImageBackend imageBackendFromString(const std::string& value) {
+    if (value == "auto") return ImageBackend::Auto;
+    if (value == "cpu") return ImageBackend::Cpu;
+    if (value == "metal") return ImageBackend::Metal;
+    throw std::invalid_argument("Invalid ImageBackend: " + value);
 }
 
 StageStatus normalizeForResume(StageStatus status) {
