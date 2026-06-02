@@ -1,12 +1,13 @@
 /*
  * Author: wilbur
- * Version: 2.0
- * Date: 2026-06-01
- * Description: 验证 GPU-only JPG 分析器匹配测试内 CPU reference 的直方图、曝光和拉普拉斯统计
+ * Version: 2.2
+ * Date: 2026-06-02
+ * Description: 验证 GPU-only JPG 分析器匹配测试内 CPU reference 的直方图、曝光和拉普拉斯统计，并校验 timing 字段；增加 Metal context 跨调用复用验证
  */
 
 #include "testAssert.h"
 #include "imageAnalyzer.h"
+#include "macImageAnalyzer.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -179,11 +180,56 @@ static bool imageAnalyzerGpuMatchesReferenceForGradientImage() {
     return assertMatchesReference(result, ref);
 }
 
+static bool imageAnalyzerGpuReportsTimingFields() {
+    AppConfig config = makeAnalyzerConfig();
+    cv::Mat image(32, 32, CV_8UC3, cv::Scalar(32, 64, 128));
+    std::string path = writeImage("rawviewer-gpu-timing.png", image);
+    AnalyzeResult result = ImageAnalyzer().analyze(makeTask("timing", path), config);
+
+    TEST_REQUIRE(result.success);
+    TEST_REQUIRE(result.totalWallMs >= 0);
+    TEST_REQUIRE(result.readImageMs >= 0);
+    TEST_REQUIRE(result.renderImageMs >= 0);
+    TEST_REQUIRE(result.grayMs >= 0);
+    TEST_REQUIRE(result.laplacianMs >= 0);
+    TEST_REQUIRE(result.statsMs >= 0);
+    TEST_REQUIRE(result.histogramMs >= 0);
+    TEST_REQUIRE(result.gpuEncodeMs >= 0);
+    TEST_REQUIRE(result.gpuWaitMs >= 0);
+    TEST_REQUIRE(result.totalWallMs >= result.readImageMs);
+    return true;
+}
+
+static bool imageAnalyzerGpuReusesMetalContextAcrossCalls() {
+#ifdef RAWVIEWER_ENABLE_METAL_DIAGNOSTICS
+    AppConfig config = makeAnalyzerConfig();
+    cv::Mat image(16, 16, CV_8UC3, cv::Scalar(20, 40, 60));
+    std::string path = writeImage("rawviewer-gpu-context-reuse.png", image);
+
+    int before = rawViewerMetalAnalyzerContextCreateCountForTests();
+    AnalyzeResult first = ImageAnalyzer().analyze(makeTask("reuse1", path), config);
+    AnalyzeResult second = ImageAnalyzer().analyze(makeTask("reuse2", path), config);
+    AnalyzeResult third = ImageAnalyzer().analyze(makeTask("reuse3", path), config);
+    int after = rawViewerMetalAnalyzerContextCreateCountForTests();
+
+    TEST_REQUIRE(first.success);
+    TEST_REQUIRE(second.success);
+    TEST_REQUIRE(third.success);
+    TEST_REQUIRE(after >= before);
+    TEST_REQUIRE((after - before) <= 1);
+    return true;
+#else
+    return true;
+#endif
+}
+
 std::vector<TestCase> makeImageAnalyzerTests() {
     return {
         {"imageAnalyzer.gpuDetectsUnderexposedBlackImage", imageAnalyzerGpuDetectsUnderexposedBlackImage},
         {"imageAnalyzer.gpuDetectsOverexposedWhiteImage", imageAnalyzerGpuDetectsOverexposedWhiteImage},
         {"imageAnalyzer.gpuMatchesReferenceForCheckerImage", imageAnalyzerGpuMatchesReferenceForCheckerImage},
         {"imageAnalyzer.gpuMatchesReferenceForGradientImage", imageAnalyzerGpuMatchesReferenceForGradientImage},
+        {"imageAnalyzer.gpuReportsTimingFields", imageAnalyzerGpuReportsTimingFields},
+        {"imageAnalyzer.gpuReusesMetalContextAcrossCalls", imageAnalyzerGpuReusesMetalContextAcrossCalls},
     };
 }

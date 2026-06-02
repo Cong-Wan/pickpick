@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.3
- * Date: 2026-06-01
- * Description: 实现轻量测试入口，支持通过 --filter 运行指定测试分组；注册图片分析 backend 测试
+ * Version: 1.4
+ * Date: 2026-06-02
+ * Description: 实现轻量测试入口，支持通过 --filter 运行指定测试分组；注册图片分析 backend 测试；注册 objcRuntime ARC 验证测试
  */
 
 #include "testAssert.h"
@@ -15,6 +15,7 @@ std::vector<TestCase> makeConfigLoaderTests();
 std::vector<TestCase> makeGpuSupportTests();
 std::vector<TestCase> makeImageAnalyzerTests();
 std::vector<TestCase> makeImageAnalyzerBackendTests();
+std::vector<TestCase> makeObjcRuntimeTests();
 
 static bool matchesFilter(const std::string& name, const std::string& filter) {
     if (filter.empty()) {
@@ -51,6 +52,8 @@ int main(int argc, char** argv) {
     tests.insert(tests.end(), configLoaderTests.begin(), configLoaderTests.end());
     auto gpuSupportTests = makeGpuSupportTests();
     tests.insert(tests.end(), gpuSupportTests.begin(), gpuSupportTests.end());
+    auto objcRuntimeTests = makeObjcRuntimeTests();
+    tests.insert(tests.end(), objcRuntimeTests.begin(), objcRuntimeTests.end());
     auto imageAnalyzerTests = makeImageAnalyzerTests();
     tests.insert(tests.end(), imageAnalyzerTests.begin(), imageAnalyzerTests.end());
     auto imageAnalyzerBackendTests = makeImageAnalyzerBackendTests();

@@ -1,7 +1,7 @@
 /*
  * Author: wilbur
- * Version: 1.4
- * Date: 2026-06-01
+ * Version: 1.5
+ * Date: 2026-06-02
  * Description: 定义状态枚举、照片状态、App review 状态、配置结构、任务结构、结果结构、字符串转换函数
  */
 
@@ -156,6 +156,10 @@ struct AnalyzeResult {
     int64_t laplacianMs = 0;
     int64_t statsMs = 0;
     int64_t histogramMs = 0;
+    int64_t renderImageMs = 0;
+    int64_t gpuEncodeMs = 0;
+    int64_t gpuWaitMs = 0;
+    int64_t totalWallMs = 0;
 
     bool isBlurry = false;
     std::string exposureStatus = "normal";

@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.2
- * Date: 2026-06-01
- * Description: 实现扫描、JSON 合并、两阶段线程池执行、即时 JSON 保存、最终摘要输出、App 进度回调；写入转换和分析阶段性能日志
+ * Version: 1.3
+ * Date: 2026-06-02
+ * Description: 实现扫描、JSON 合并、两阶段线程池执行、即时 JSON 保存、最终摘要输出、App 进度回调；写入转换和分析阶段性能日志；分析阶段日志包含 total wall、CPU encode、GPU wait 三类耗时
  */
 
 #include "appRunner.h"
@@ -235,8 +235,10 @@ RunSummary AppRunner::run(const RunOptions& options) {
             analysisCompletedCount++;
             emitStageProgress(options, RunPhase::Analysis, analysisCompletedCount, analysisTotalCount, kRawConversionEnd, kAnalysisEnd);
 
-            int64_t elapsedMs = anaResult.readImageMs + anaResult.grayMs + anaResult.laplacianMs +
-                                anaResult.statsMs + anaResult.histogramMs;
+            int64_t elapsedMs = anaResult.totalWallMs > 0
+                ? anaResult.totalWallMs
+                : anaResult.readImageMs + anaResult.renderImageMs + anaResult.grayMs + anaResult.laplacianMs +
+                  anaResult.statsMs + anaResult.histogramMs + anaResult.gpuWaitMs;
             totalElapsedMs += elapsedMs;
             logCount++;
             if (logFile) {
@@ -249,10 +251,14 @@ RunSummary AppRunner::run(const RunOptions& options) {
                         << " elapsed=" << elapsedMs << "ms"
                         << " backend=" << anaResult.backendUsed
                         << " read_image=" << anaResult.readImageMs << "ms"
+                        << " render_image=" << anaResult.renderImageMs << "ms"
                         << " gray=" << anaResult.grayMs << "ms"
                         << " laplacian=" << anaResult.laplacianMs << "ms"
                         << " stats=" << anaResult.statsMs << "ms"
                         << " histogram=" << anaResult.histogramMs << "ms"
+                        << " gpu_encode=" << anaResult.gpuEncodeMs << "ms"
+                        << " gpu_wait=" << anaResult.gpuWaitMs << "ms"
+                        << " total_wall=" << anaResult.totalWallMs << "ms"
                         << " attempts=" << anaResult.attempts
                         << " success=" << (anaResult.success ? "true" : "false");
                 if (!anaResult.success) {

@@ -1,7 +1,7 @@
 # Author: wilbur
-# Version: 1.5
-# Date: 2026-06-01
-# Description: CMake build for rawViewer project；新增 macOS Metal-backed 图片分析源和 framework 链接
+# Version: 1.7
+# Date: 2026-06-02
+# Description: CMake build for rawViewer project；新增 macOS Metal-backed 图片分析源和 framework 链接；为 OBJCXX 目标开启 ARC，注册 objcRuntimeTests，并为测试目标启用 Metal diagnostics
 
 cmake_minimum_required(VERSION 3.16)
 project(rawViewer LANGUAGES CXX OBJCXX)
@@ -91,6 +91,10 @@ add_custom_command(TARGET rawViewer POST_BUILD
         $<TARGET_FILE_DIR:rawViewer>/gpuImageKernels.metal
 )
 
+target_compile_options(rawViewer PRIVATE
+    $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>
+)
+
 target_include_directories(rawViewer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
@@ -138,9 +142,16 @@ if(RAWVIEWER_BUILD_TESTS)
         tests/gpuSupportTests.cpp
         tests/imageAnalyzerBackendTests.cpp
         tests/imageAnalyzerTests.cpp
+        tests/objcRuntimeTests.mm
         tests/testMain.cpp
         tests/perfTimerTests.cpp
     )
+
+    target_compile_options(rawViewerTests PRIVATE
+        $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>
+    )
+
+    target_compile_definitions(rawViewerTests PRIVATE RAWVIEWER_ENABLE_METAL_DIAGNOSTICS=1)
 
     add_custom_command(TARGET rawViewerTests POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
