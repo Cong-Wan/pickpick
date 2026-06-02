@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-05-29
- * Description: 声明端到端流程编排器，允许测试注入 fake converter/analyzer
+ * Version: 1.1
+ * Date: 2026-06-01
+ * Description: 声明端到端流程编排器、进度回调模型，允许测试注入 fake converter/analyzer
  */
 
 #pragma once
@@ -10,10 +10,26 @@
 #include "taskState.h"
 #include <functional>
 
+enum class RunPhase {
+    Scanning,
+    RawConversion,
+    Analysis,
+    Organizing,
+    Completed
+};
+
+struct RunProgress {
+    RunPhase phase = RunPhase::Scanning;
+    int completedCount = 0;
+    int totalCount = 0;
+    double overallProgress = 0.0;
+};
+
 struct RunOptions {
     std::string folderPath;
     std::string configPath;
     bool resume = false;
+    std::function<void(const RunProgress&)> progressCallback;
 };
 
 struct RunSummary {

@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.3
+ * Version: 1.4
  * Date: 2026-06-01
- * Description: 定义状态枚举、照片状态、配置结构、任务结构、结果结构、字符串转换函数；补充分析 backend 结果标记
+ * Description: 定义状态枚举、照片状态、App review 状态、配置结构、任务结构、结果结构、字符串转换函数
  */
 
 #pragma once
@@ -29,6 +29,13 @@ enum class ImageBackend {
     Auto,
     Cpu,
     Metal
+};
+
+enum class ReviewStatus {
+    Active,
+    Kept,
+    Passed,
+    Trashed
 };
 
 struct BlurDetectionConfig {
@@ -104,6 +111,11 @@ struct PhotoTaskState {
 
     std::string createdAt;
     std::string updatedAt;
+
+    ReviewStatus reviewStatus = ReviewStatus::Active;
+    std::string reviewGroupId;
+    std::string templatePhotoId;
+    std::string trashedAt;
 };
 
 struct RawConvertTask {
@@ -176,8 +188,10 @@ struct AnalyzeResult {
 std::string toString(StageStatus status);
 std::string toString(FailedStep step);
 std::string toString(ImageBackend backend);
+std::string toString(ReviewStatus status);
 StageStatus stageStatusFromString(const std::string& value);
 FailedStep failedStepFromString(const std::string& value);
 ImageBackend imageBackendFromString(const std::string& value);
+ReviewStatus reviewStatusFromString(const std::string& value);
 StageStatus normalizeForResume(StageStatus status);
 PhotoTaskState makeDefaultPhotoState(const std::string& photoId);

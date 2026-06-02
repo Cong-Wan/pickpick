@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.1
+ * Version: 1.2
  * Date: 2026-06-01
- * Description: 实现枚举和状态结构的字符串转换、默认值构造、状态归一化；补充图片处理 backend 字符串转换
+ * Description: 实现枚举、App review 状态和状态结构的字符串转换、默认值构造、状态归一化
  */
 
 #include "taskState.h"
@@ -37,6 +37,16 @@ std::string toString(ImageBackend backend) {
     return "unknown";
 }
 
+std::string toString(ReviewStatus status) {
+    switch (status) {
+        case ReviewStatus::Active: return "active";
+        case ReviewStatus::Kept: return "kept";
+        case ReviewStatus::Passed: return "passed";
+        case ReviewStatus::Trashed: return "trashed";
+    }
+    return "unknown";
+}
+
 StageStatus stageStatusFromString(const std::string& value) {
     if (value == "pending") return StageStatus::Pending;
     if (value == "running") return StageStatus::Running;
@@ -58,6 +68,14 @@ ImageBackend imageBackendFromString(const std::string& value) {
     if (value == "cpu") return ImageBackend::Cpu;
     if (value == "metal") return ImageBackend::Metal;
     throw std::invalid_argument("Invalid ImageBackend: " + value);
+}
+
+ReviewStatus reviewStatusFromString(const std::string& value) {
+    if (value == "active") return ReviewStatus::Active;
+    if (value == "kept") return ReviewStatus::Kept;
+    if (value == "passed") return ReviewStatus::Passed;
+    if (value == "trashed") return ReviewStatus::Trashed;
+    throw std::invalid_argument("Invalid ReviewStatus: " + value);
 }
 
 StageStatus normalizeForResume(StageStatus status) {

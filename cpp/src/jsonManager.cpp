@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.1
+ * Version: 1.2
  * Date: 2026-06-01
- * Description: 实现 .cache/analysis.json 的完整读写、临时文件 rename 覆盖，并记录分析 backend
+ * Description: 实现 .cache/analysis.json 的完整读写、App review 字段持久化、临时文件 rename 覆盖，并记录分析 backend
  */
 
 #include "jsonManager.h"
@@ -136,7 +136,23 @@ void JsonManager::mergeScannedPairs(const std::vector<PhotoPair>& pairs) {
             p["analysis_config_snapshot"] = nullptr;
             p["analysis_raw_data"] = nullptr;
             p["raw_converted"] = false;
+            p["review_status"] = "active";
+            p["review_group_id"] = "";
+            p["template_photo_id"] = "";
+            p["trashed_at"] = "";
             p["created_at"] = utcNow();
+        }
+        if (!p.contains("review_status") || p["review_status"].is_null()) {
+            p["review_status"] = "active";
+        }
+        if (!p.contains("review_group_id") || p["review_group_id"].is_null()) {
+            p["review_group_id"] = "";
+        }
+        if (!p.contains("template_photo_id") || p["template_photo_id"].is_null()) {
+            p["template_photo_id"] = "";
+        }
+        if (!p.contains("trashed_at") || p["trashed_at"].is_null()) {
+            p["trashed_at"] = "";
         }
         // Update paths
         if (pair.hasJpg) {
@@ -224,6 +240,31 @@ void JsonManager::updateAnalysisResult(const AnalyzeResult& result) {
     impl_->updateSummary();
 }
 
+void JsonManager::updateReviewStatus(const std::string& photoId, ReviewStatus status, const std::string& trashedAt) {
+    impl_->ensureInit();
+    auto& p = impl_->photo(photoId);
+    p["review_status"] = toString(status);
+    if (status == ReviewStatus::Trashed) {
+        p["trashed_at"] = trashedAt;
+    } else {
+        p["trashed_at"] = "";
+    }
+    p["updated_at"] = utcNow();
+    impl_->updateSummary();
+}
+
+void JsonManager::updateDuplicateTemplate(const std::string& reviewGroupId, const std::string& templatePhotoId) {
+    impl_->ensureInit();
+    for (auto& [key, val] : impl_->root_["photos"].items()) {
+        std::string currentGroupId = (val.contains("review_group_id") && !val["review_group_id"].is_null()) ? val["review_group_id"].get<std::string>() : "";
+        if (currentGroupId == reviewGroupId) {
+            val["template_photo_id"] = templatePhotoId;
+            val["updated_at"] = utcNow();
+        }
+    }
+    impl_->updateSummary();
+}
+
 std::vector<PhotoTaskState> JsonManager::getAllPhotoStates() const {
     impl_->ensureInit();
     std::vector<PhotoTaskState> states;
@@ -244,6 +285,10 @@ std::vector<PhotoTaskState> JsonManager::getAllPhotoStates() const {
         state.exposureStatus = (val.contains("exposure_status") && !val["exposure_status"].is_null()) ? val["exposure_status"].get<std::string>() : "normal";
         state.createdAt = (val.contains("created_at") && !val["created_at"].is_null()) ? val["created_at"].get<std::string>() : "";
         state.updatedAt = (val.contains("updated_at") && !val["updated_at"].is_null()) ? val["updated_at"].get<std::string>() : "";
+        state.reviewStatus = reviewStatusFromString((val.contains("review_status") && !val["review_status"].is_null()) ? val["review_status"].get<std::string>() : "active");
+        state.reviewGroupId = (val.contains("review_group_id") && !val["review_group_id"].is_null()) ? val["review_group_id"].get<std::string>() : "";
+        state.templatePhotoId = (val.contains("template_photo_id") && !val["template_photo_id"].is_null()) ? val["template_photo_id"].get<std::string>() : "";
+        state.trashedAt = (val.contains("trashed_at") && !val["trashed_at"].is_null()) ? val["trashed_at"].get<std::string>() : "";
         if (val.contains("analysis_raw_data") && !val["analysis_raw_data"].is_null()) {
             auto& rd = val["analysis_raw_data"];
             if (rd.contains("histogram") && rd["histogram"].contains("bins")) {

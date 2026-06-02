@@ -1,17 +1,12 @@
-//
-//  rawViewerApp.swift
-//  rawViewer
-//
-//  Created by wilbur on 2026/5/29.
-//
+/*
+Author: wilbur
+Version: 1.1
+Date: 2026-06-02
+Description: 移除 SwiftUI @main 入口，App 入口改由 AppKit appDelegate 提供
+*/
 
-import SwiftUI
+import Foundation
 
-@main
-struct rawViewerApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-    }
+enum rawViewerAppEntry {
+    static let usesAppKitDelegate = true
 }

@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.1
+ * Version: 1.2
  * Date: 2026-06-01
- * Description: 实现扫描、JSON 合并、两阶段线程池执行、即时 JSON 保存、最终摘要输出；写入转换和分析阶段性能日志
+ * Description: 实现扫描、JSON 合并、两阶段线程池执行、即时 JSON 保存、最终摘要输出、App 进度回调；写入转换和分析阶段性能日志
  */
 
 #include "appRunner.h"
@@ -18,6 +18,45 @@
 #include <fstream>
 #include <filesystem>
 #include <ctime>
+#include <algorithm>
+
+namespace {
+
+constexpr double kScanningStart = 0.0;
+constexpr double kScanningEnd = 0.1;
+constexpr double kRawConversionEnd = 0.45;
+constexpr double kAnalysisEnd = 0.9;
+constexpr double kOrganizingEnd = 0.98;
+constexpr double kCompleted = 1.0;
+
+void emitProgress(const RunOptions& options,
+                  RunPhase phase,
+                  int completedCount,
+                  int totalCount,
+                  double overallProgress) {
+    if (!options.progressCallback) {
+        return;
+    }
+
+    RunProgress progress;
+    progress.phase = phase;
+    progress.completedCount = completedCount;
+    progress.totalCount = totalCount;
+    progress.overallProgress = std::clamp(overallProgress, 0.0, 1.0);
+    options.progressCallback(progress);
+}
+
+void emitStageProgress(const RunOptions& options,
+                       RunPhase phase,
+                       int completedCount,
+                       int totalCount,
+                       double stageStart,
+                       double stageEnd) {
+    double ratio = totalCount > 0 ? static_cast<double>(completedCount) / static_cast<double>(totalCount) : 1.0;
+    emitProgress(options, phase, completedCount, totalCount, stageStart + ((stageEnd - stageStart) * ratio));
+}
+
+}  // namespace
 
 AppRunner::AppRunner()
     : convertFn_([](const RawConvertTask& t, const AppConfig& c) { return RawConverter().convert(t, c); }),
@@ -75,7 +114,9 @@ RunSummary AppRunner::run(const RunOptions& options) {
     AppConfig config = configLoader.loadFromFile(options.configPath);
 
     FileScanner scanner;
+    emitProgress(options, RunPhase::Scanning, 0, 0, kScanningStart);
     auto pairs = scanner.scanTopLevel(options.folderPath);
+    emitProgress(options, RunPhase::Scanning, static_cast<int>(pairs.size()), static_cast<int>(pairs.size()), kScanningEnd);
 
     JsonManager jsonManager;
     jsonManager.init(options.folderPath, options.configPath);
@@ -88,6 +129,9 @@ RunSummary AppRunner::run(const RunOptions& options) {
     auto planned = planner.plan(states, config);
 
     // RAW conversion phase
+    int rawCompletedCount = 0;
+    int rawTotalCount = static_cast<int>(planned.rawConvertTasks.size());
+    emitStageProgress(options, RunPhase::RawConversion, 0, rawTotalCount, kScanningEnd, kRawConversionEnd);
     if (!planned.rawConvertTasks.empty()) {
         namespace fs = std::filesystem;
         fs::path logDir = fs::path(options.folderPath) / ".cache";
@@ -119,6 +163,8 @@ RunSummary AppRunner::run(const RunOptions& options) {
         while (pool.tryPopResult(rcResult)) {
             jsonManager.updateRawConversionResult(rcResult);
             jsonManager.atomicSave();
+            rawCompletedCount++;
+            emitStageProgress(options, RunPhase::RawConversion, rawCompletedCount, rawTotalCount, kScanningEnd, kRawConversionEnd);
 
             totalElapsedMs += rcResult.elapsedMs;
             logCount++;
@@ -160,6 +206,9 @@ RunSummary AppRunner::run(const RunOptions& options) {
     planned = planner.plan(states, config);
 
     // Analysis phase
+    int analysisCompletedCount = 0;
+    int analysisTotalCount = static_cast<int>(planned.analyzeTasks.size());
+    emitStageProgress(options, RunPhase::Analysis, 0, analysisTotalCount, kRawConversionEnd, kAnalysisEnd);
     if (!planned.analyzeTasks.empty()) {
         namespace fs = std::filesystem;
         fs::path logDir = fs::path(options.folderPath) / ".cache";
@@ -183,6 +232,8 @@ RunSummary AppRunner::run(const RunOptions& options) {
         while (pool.tryPopResult(anaResult)) {
             jsonManager.updateAnalysisResult(anaResult);
             jsonManager.atomicSave();
+            analysisCompletedCount++;
+            emitStageProgress(options, RunPhase::Analysis, analysisCompletedCount, analysisTotalCount, kRawConversionEnd, kAnalysisEnd);
 
             int64_t elapsedMs = anaResult.readImageMs + anaResult.grayMs + anaResult.laplacianMs +
                                 anaResult.statsMs + anaResult.histogramMs;
@@ -223,6 +274,7 @@ RunSummary AppRunner::run(const RunOptions& options) {
     }
 
     // Final summary
+    emitProgress(options, RunPhase::Organizing, 0, 0, kOrganizingEnd);
     states = jsonManager.getAllPhotoStates();
     RunSummary summary;
     summary.totalPhotos = static_cast<int>(states.size());
@@ -242,5 +294,6 @@ RunSummary AppRunner::run(const RunOptions& options) {
     }
 
     jsonManager.atomicSave();
+    emitProgress(options, RunPhase::Completed, summary.totalPhotos, summary.totalPhotos, kCompleted);
     return summary;
 }

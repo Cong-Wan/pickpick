@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-05-29
- * Description: 声明 JSON 初始化、读取、合并、更新、summary 计算、原子保存接口
+ * Version: 1.1
+ * Date: 2026-06-01
+ * Description: 声明 JSON 初始化、读取、合并、分析更新、App review 更新、summary 计算、原子保存接口
  */
 
 #pragma once
@@ -23,6 +23,8 @@ public:
     void markRunningAsPending();
     void updateRawConversionResult(const RawConvertResult& result);
     void updateAnalysisResult(const AnalyzeResult& result);
+    void updateReviewStatus(const std::string& photoId, ReviewStatus status, const std::string& trashedAt);
+    void updateDuplicateTemplate(const std::string& reviewGroupId, const std::string& templatePhotoId);
     std::vector<PhotoTaskState> getAllPhotoStates() const;
     PhotoTaskState getPhotoState(const std::string& photoId) const;
     void atomicSave();
