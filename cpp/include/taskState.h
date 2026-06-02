@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.5
+ * Version: 1.7
  * Date: 2026-06-02
- * Description: 定义状态枚举、照片状态、App review 状态、配置结构、任务结构、结果结构、字符串转换函数
+ * Description: 定义状态枚举、照片状态、App review 状态、配置结构、任务结构、结果结构、字符串转换函数、共享 summary counts 结构；分析结果时间字段改为 double 毫秒以支持亚毫秒精度
  */
 
 #pragma once
@@ -151,15 +151,15 @@ struct AnalyzeResult {
     int attempts = 0;
     std::string error;
     std::string backendUsed = "metal";
-    int64_t readImageMs = 0;
-    int64_t grayMs = 0;
-    int64_t laplacianMs = 0;
-    int64_t statsMs = 0;
-    int64_t histogramMs = 0;
-    int64_t renderImageMs = 0;
-    int64_t gpuEncodeMs = 0;
-    int64_t gpuWaitMs = 0;
-    int64_t totalWallMs = 0;
+    double readImageMs = 0.0;
+    double grayMs = 0.0;
+    double laplacianMs = 0.0;
+    double statsMs = 0.0;
+    double histogramMs = 0.0;
+    double renderImageMs = 0.0;
+    double gpuEncodeMs = 0.0;
+    double gpuWaitMs = 0.0;
+    double totalWallMs = 0.0;
 
     bool isBlurry = false;
     std::string exposureStatus = "normal";
@@ -198,4 +198,19 @@ FailedStep failedStepFromString(const std::string& value);
 ImageBackend imageBackendFromString(const std::string& value);
 ReviewStatus reviewStatusFromString(const std::string& value);
 StageStatus normalizeForResume(StageStatus status);
+struct SummaryCounts {
+    int totalPhotos = 0;
+    int rawConversionSuccess = 0;
+    int rawConversionFailed = 0;
+    int analysisSuccess = 0;
+    int analysisFailed = 0;
+    int pending = 0;
+    int blurry = 0;
+    int overexposed = 0;
+    int underexposed = 0;
+    int normal = 0;
+};
+
+SummaryCounts calculateSummaryCounts(const std::vector<PhotoTaskState>& states);
+
 PhotoTaskState makeDefaultPhotoState(const std::string& photoId);

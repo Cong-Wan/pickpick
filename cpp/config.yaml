@@ -6,7 +6,7 @@ blur_detection:
   # 拉普拉斯方差阈值。
   # variance < laplacian_threshold 时判定为虚焦。
   # 调大：更容易判定为虚焦；调小：更宽松。
-  laplacian_threshold: 100.0
+  laplacian_threshold: 10.0
 
   # 拉普拉斯核大小，只允许正奇数，建议 3。
   # 值越大，对边缘变化更敏感，但也可能放大噪声。
@@ -36,7 +36,7 @@ exposure_detection:
 raw_conversion:
   # RAW 转 JPG 的输出质量。
   # 取值范围 0~100；值越高文件越大、细节保留越多。
-  jpg_quality: 95
+  jpg_quality: 100
 
 image_processing:
   # M-series macOS only. Image analysis uses Metal GPU exclusively.

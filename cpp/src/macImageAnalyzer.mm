@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 3.3
+ * Version: 3.4
  * Date: 2026-06-02
- * Description: 使用自定义 Metal compute shader 完成 GPU-only JPG 分析；中间灰度和拉普拉斯数据不回传 CPU；记录 wall time、CPU encode 和 GPU wait；macOS 分析主体包入 @autoreleasepool 以释放 autoreleased 临时对象；Metal device/queue/CIContext/library/pipelines 在多次分析间共享同一个 context
+ * Description: 使用自定义 Metal compute shader 完成 GPU-only JPG 分析；中间灰度和拉普拉斯数据不回传 CPU；记录 wall time、CPU encode 和 GPU wait；macOS 分析主体包入 @autoreleasepool 以释放 autoreleased 临时对象；Metal device/queue/CIContext/library/pipelines 在多次分析间共享同一个 context；分析时间字段使用精细毫秒计时，日志中显示小数毫秒
  */
 
 #include "macImageAnalyzer.h"
@@ -230,7 +230,7 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
         if (!support.hasMetal) {
             result.success = false;
             result.error = support.reason;
-            result.totalWallMs = totalTimer.elapsedMs();
+            result.totalWallMs = totalTimer.elapsedMsPrecise();
             return result;
         }
 
@@ -239,7 +239,7 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             RawViewerMetalAnalyzerContext* context = sharedMetalAnalyzerContext(contextError);
             if (context == nil) {
                 fillError(result, contextError);
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
 
@@ -255,15 +255,15 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             NSString* path = [NSString stringWithUTF8String:task.jpgPath.c_str()];
             if (path == nil) {
                 fillError(result, "Invalid image path: " + task.jpgPath);
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
             NSURL* url = [NSURL fileURLWithPath:path];
             CIImage* ciImage = [CIImage imageWithContentsOfURL:url];
-            result.readImageMs = phaseTimer.elapsedMs();
+            result.readImageMs = phaseTimer.elapsedMsPrecise();
             if (ciImage == nil) {
                 fillError(result, "Core Image failed to read image: " + task.jpgPath);
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
 
@@ -272,14 +272,14 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             uint32_t height = static_cast<uint32_t>(std::lround(CGRectGetHeight(extent)));
             if (width == 0 || height == 0) {
                 fillError(result, "Metal analyzer received invalid image size: " + task.jpgPath);
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
 
             uint64_t totalPixels64 = static_cast<uint64_t>(width) * static_cast<uint64_t>(height);
             if (totalPixels64 > std::numeric_limits<uint32_t>::max()) {
                 fillError(result, "Metal analyzer image is too large: " + task.jpgPath);
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
             uint32_t totalPixels = static_cast<uint32_t>(totalPixels64);
@@ -293,14 +293,14 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             id<MTLTexture> rgbaTexture = [device newTextureWithDescriptor:rgbaDesc];
             if (rgbaTexture == nil) {
                 fillError(result, "Failed to allocate RGBA texture");
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
 
             id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
             if (commandBuffer == nil) {
                 fillError(result, "Failed to create MTLCommandBuffer");
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
 
@@ -312,7 +312,7 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
                      bounds:CGRectMake(extent.origin.x, extent.origin.y, width, height)
                  colorSpace:rgbaColorSpace];
             CGColorSpaceRelease(rgbaColorSpace);
-            result.renderImageMs = phaseTimer.elapsedMs();
+            result.renderImageMs = phaseTimer.elapsedMsPrecise();
 
             id<MTLBuffer> grayBuffer = [device newBufferWithLength:totalPixels options:MTLResourceStorageModeShared];
             id<MTLBuffer> laplacianBuffer = [device newBufferWithLength:totalPixels * sizeof(float) options:MTLResourceStorageModeShared];
@@ -323,7 +323,7 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             if (grayBuffer == nil || laplacianBuffer == nil || histogramBuffer == nil ||
                 exposureCountsBuffer == nil || partialStatsBuffer == nil || configBuffer == nil) {
                 fillError(result, "Failed to allocate Metal analysis buffers");
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
 
@@ -342,12 +342,12 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             MTLSize threads2d = MTLSizeMake(16, 16, 1);
             MTLSize groups2d = MTLSizeMake((width + 15) / 16, (height + 15) / 16, 1);
 
-            int64_t encodeMs = 0;
+            double encodeMs = 0.0;
             phaseTimer.reset();
             id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
             if (encoder == nil) {
                 fillError(result, "Failed to create rgbToGray encoder");
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
             [encoder setComputePipelineState:rgbToGrayPipeline];
@@ -356,14 +356,14 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             [encoder setBuffer:configBuffer offset:0 atIndex:1];
             [encoder dispatchThreadgroups:groups2d threadsPerThreadgroup:threads2d];
             [encoder endEncoding];
-            result.grayMs = phaseTimer.elapsedMs();
+            result.grayMs = phaseTimer.elapsedMsPrecise();
             encodeMs += result.grayMs;
 
             phaseTimer.reset();
             encoder = [commandBuffer computeCommandEncoder];
             if (encoder == nil) {
                 fillError(result, "Failed to create laplacian encoder");
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
             [encoder setComputePipelineState:laplacianPipeline];
@@ -372,14 +372,14 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             [encoder setBuffer:configBuffer offset:0 atIndex:2];
             [encoder dispatchThreadgroups:groups2d threadsPerThreadgroup:threads2d];
             [encoder endEncoding];
-            result.laplacianMs = phaseTimer.elapsedMs();
+            result.laplacianMs = phaseTimer.elapsedMsPrecise();
             encodeMs += result.laplacianMs;
 
             phaseTimer.reset();
             encoder = [commandBuffer computeCommandEncoder];
             if (encoder == nil) {
                 fillError(result, "Failed to create histogram encoder");
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
             [encoder setComputePipelineState:histogramPipeline];
@@ -389,14 +389,14 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             [encoder setBuffer:configBuffer offset:0 atIndex:3];
             [encoder dispatchThreadgroups:groups1d threadsPerThreadgroup:threads1d];
             [encoder endEncoding];
-            result.histogramMs = phaseTimer.elapsedMs();
+            result.histogramMs = phaseTimer.elapsedMsPrecise();
             encodeMs += result.histogramMs;
 
             phaseTimer.reset();
             encoder = [commandBuffer computeCommandEncoder];
             if (encoder == nil) {
                 fillError(result, "Failed to create reduce encoder");
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
             [encoder setComputePipelineState:reducePipeline];
@@ -405,17 +405,17 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             [encoder setBuffer:configBuffer offset:0 atIndex:2];
             [encoder dispatchThreadgroups:groups1d threadsPerThreadgroup:threads1d];
             [encoder endEncoding];
-            result.statsMs = phaseTimer.elapsedMs();
+            result.statsMs = phaseTimer.elapsedMsPrecise();
             encodeMs += result.statsMs;
 
             result.gpuEncodeMs = encodeMs;
             [commandBuffer commit];
             phaseTimer.reset();
             [commandBuffer waitUntilCompleted];
-            result.gpuWaitMs = phaseTimer.elapsedMs();
+            result.gpuWaitMs = phaseTimer.elapsedMsPrecise();
             if (commandBuffer.status == MTLCommandBufferStatusError) {
                 fillError(result, "Metal command buffer failed: " + nsErrorMessage(commandBuffer.error));
-                result.totalWallMs = totalTimer.elapsedMs();
+                result.totalWallMs = totalTimer.elapsedMsPrecise();
                 return result;
             }
 
@@ -474,13 +474,13 @@ AnalyzeResult analyzeWithMacMetal(const AnalyzeTask& task, const AppConfig& conf
             result.histogramData.underexposePixelCount = underCount;
             result.histogramData.overexposeRatio = overRatio;
             result.histogramData.underexposeRatio = underRatio;
-            result.totalWallMs = totalTimer.elapsedMs();
+            result.totalWallMs = totalTimer.elapsedMsPrecise();
             return result;
         } @catch (NSException* ex) {
             NSString* reason = ex.reason ?: @"unknown";
             result.success = false;
             result.error = std::string("Metal analysis threw: ") + [reason UTF8String];
-            result.totalWallMs = totalTimer.elapsedMs();
+            result.totalWallMs = totalTimer.elapsedMsPrecise();
             return result;
         }
     }

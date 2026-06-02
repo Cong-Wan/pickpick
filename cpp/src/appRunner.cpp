@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.3
+ * Version: 1.5
  * Date: 2026-06-02
- * Description: 实现扫描、JSON 合并、两阶段线程池执行、即时 JSON 保存、最终摘要输出、App 进度回调；写入转换和分析阶段性能日志；分析阶段日志包含 total wall、CPU encode、GPU wait 三类耗时
+ * Description: 实现扫描、JSON 合并、两阶段线程池执行、即时 JSON 保存、最终摘要输出、App 进度回调；写入转换和分析阶段性能日志；分析阶段日志使用 double 毫秒，显示小数毫秒；使用共享 summary counts 统计
  */
 
 #include "appRunner.h"
@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <ctime>
 #include <algorithm>
+#include <iomanip>
 
 namespace {
 
@@ -216,7 +217,7 @@ RunSummary AppRunner::run(const RunOptions& options) {
         fs::create_directories(logDir, ec);
         fs::path logPath = logDir / "analysis.log";
         std::ofstream logFile(logPath, std::ios::out | std::ios::trunc);
-        int64_t totalElapsedMs = 0;
+        double totalElapsedMs = 0.0;
         int logCount = 0;
 
         ThreadPool<AnalyzeTask, AnalyzeResult> pool([this, &config](const AnalyzeTask& t) {
@@ -235,7 +236,7 @@ RunSummary AppRunner::run(const RunOptions& options) {
             analysisCompletedCount++;
             emitStageProgress(options, RunPhase::Analysis, analysisCompletedCount, analysisTotalCount, kRawConversionEnd, kAnalysisEnd);
 
-            int64_t elapsedMs = anaResult.totalWallMs > 0
+            double elapsedMs = anaResult.totalWallMs > 0.0
                 ? anaResult.totalWallMs
                 : anaResult.readImageMs + anaResult.renderImageMs + anaResult.grayMs + anaResult.laplacianMs +
                   anaResult.statsMs + anaResult.histogramMs + anaResult.gpuWaitMs;
@@ -247,7 +248,10 @@ RunSummary AppRunner::run(const RunOptions& options) {
                 std::tm tmUtc = *std::gmtime(&nowT);
                 std::strftime(tsBuf, sizeof(tsBuf), "%Y-%m-%dT%H:%M:%SZ", &tmUtc);
 
-                logFile << "[" << tsBuf << "] photo=" << anaResult.photoId
+                auto oldFlags = logFile.flags();
+                auto oldPrecision = logFile.precision();
+                logFile << std::fixed << std::setprecision(3)
+                        << "[" << tsBuf << "] photo=" << anaResult.photoId
                         << " elapsed=" << elapsedMs << "ms"
                         << " backend=" << anaResult.backendUsed
                         << " read_image=" << anaResult.readImageMs << "ms"
@@ -258,8 +262,10 @@ RunSummary AppRunner::run(const RunOptions& options) {
                         << " histogram=" << anaResult.histogramMs << "ms"
                         << " gpu_encode=" << anaResult.gpuEncodeMs << "ms"
                         << " gpu_wait=" << anaResult.gpuWaitMs << "ms"
-                        << " total_wall=" << anaResult.totalWallMs << "ms"
-                        << " attempts=" << anaResult.attempts
+                        << " total_wall=" << anaResult.totalWallMs << "ms";
+                logFile.flags(oldFlags);
+                logFile.precision(oldPrecision);
+                logFile << " attempts=" << anaResult.attempts
                         << " success=" << (anaResult.success ? "true" : "false");
                 if (!anaResult.success) {
                     logFile << " error=" << anaResult.error;
@@ -272,8 +278,13 @@ RunSummary AppRunner::run(const RunOptions& options) {
         if (logFile && logCount > 0) {
             logFile << "=== Analysis Summary ===\n";
             logFile << "total_photos=" << logCount << "\n";
-            logFile << "total_time_ms=" << totalElapsedMs << "\n";
-            logFile << "average_time_ms=" << (totalElapsedMs / logCount) << "\n";
+            auto oldFlags = logFile.flags();
+            auto oldPrecision = logFile.precision();
+            logFile << std::fixed << std::setprecision(3)
+                    << "total_time_ms=" << totalElapsedMs << "\n"
+                    << "average_time_ms=" << (totalElapsedMs / static_cast<double>(logCount)) << "\n";
+            logFile.flags(oldFlags);
+            logFile.precision(oldPrecision);
             logFile.flush();
         }
         pool.stop();
@@ -282,22 +293,18 @@ RunSummary AppRunner::run(const RunOptions& options) {
     // Final summary
     emitProgress(options, RunPhase::Organizing, 0, 0, kOrganizingEnd);
     states = jsonManager.getAllPhotoStates();
+    SummaryCounts counts = calculateSummaryCounts(states);
     RunSummary summary;
-    summary.totalPhotos = static_cast<int>(states.size());
-    for (const auto& state : states) {
-        if (state.rawConversionStatus == StageStatus::Success) summary.rawConversionSuccess++;
-        if (state.rawConversionStatus == StageStatus::Failed) summary.rawConversionFailed++;
-        if (state.analysisStatus == StageStatus::Success) summary.analysisSuccess++;
-        if (state.analysisStatus == StageStatus::Failed) summary.analysisFailed++;
-        if (state.rawConversionStatus == StageStatus::Pending || state.rawConversionStatus == StageStatus::Running ||
-            state.analysisStatus == StageStatus::Pending || state.analysisStatus == StageStatus::Running) {
-            summary.pending++;
-        }
-        if (state.isBlurry) summary.blurry++;
-        if (state.exposureStatus == "overexposed") summary.overexposed++;
-        if (state.exposureStatus == "underexposed") summary.underexposed++;
-        if (state.exposureStatus == "normal") summary.normal++;
-    }
+    summary.totalPhotos = counts.totalPhotos;
+    summary.rawConversionSuccess = counts.rawConversionSuccess;
+    summary.rawConversionFailed = counts.rawConversionFailed;
+    summary.analysisSuccess = counts.analysisSuccess;
+    summary.analysisFailed = counts.analysisFailed;
+    summary.pending = counts.pending;
+    summary.blurry = counts.blurry;
+    summary.overexposed = counts.overexposed;
+    summary.underexposed = counts.underexposed;
+    summary.normal = counts.normal;
 
     jsonManager.atomicSave();
     emitProgress(options, RunPhase::Completed, summary.totalPhotos, summary.totalPhotos, kCompleted);

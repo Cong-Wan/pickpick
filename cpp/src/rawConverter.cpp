@@ -1,12 +1,13 @@
 /*
  * Author: wilbur
- * Version: 1.1
+ * Version: 1.2
  * Date: 2026-06-01
- * Description: 使用 LibRaw + OpenCV 将 RW2/CR2 转 JPG；worker 调用重试封装；记录 RAW 转换阶段耗时
+ * Description: 使用 LibRaw + OpenCV 将 RW2/CR2 转 JPG；使用相机白平衡、sRGB 输出、8-bit 数据；通过 RGB-to-BGR 转换确保 OpenCV 正确写入
  */
 
 #include "rawConverter.h"
 #include "perfTimer.h"
+#include "rawJpgMat.h"
 #include <libraw.h>
 #include <opencv2/opencv.hpp>
 #include <filesystem>
@@ -39,6 +40,11 @@ RawConvertResult RawConverter::convert(const RawConvertTask& task, const AppConf
         return result;
     }
 
+    rawProcessor.imgdata.params.use_camera_wb = 1;
+    rawProcessor.imgdata.params.use_auto_wb = 0;
+    rawProcessor.imgdata.params.output_color = 1;
+    rawProcessor.imgdata.params.output_bps = 8;
+
     phaseTimer.reset();
     ret = rawProcessor.unpack();
     result.unpackMs = phaseTimer.elapsedMs();
@@ -68,10 +74,13 @@ RawConvertResult RawConverter::convert(const RawConvertTask& task, const AppConf
     }
 
     cv::Mat mat;
-    if (img->colors == 3) {
-        mat = cv::Mat(img->height, img->width, CV_8UC3, img->data);
-    } else {
-        mat = cv::Mat(img->height, img->width, CV_8UC1, img->data);
+    try {
+        mat = makeJpgWriteMatFromDecodedImage(img->height, img->width, img->colors, img->data);
+    } catch (const std::exception& e) {
+        result.success = false;
+        result.error = "Unsupported decoded RAW image: " + std::string(e.what());
+        rawProcessor.dcraw_clear_mem(img);
+        return result;
     }
 
     std::vector<int> params = {cv::IMWRITE_JPEG_QUALITY, config.rawConversion.jpgQuality};

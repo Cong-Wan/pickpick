@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.2
- * Date: 2026-06-01
- * Description: 实现枚举、App review 状态和状态结构的字符串转换、默认值构造、状态归一化
+ * Version: 1.3
+ * Date: 2026-06-02
+ * Description: 实现枚举、App review 状态和状态结构的字符串转换、默认值构造、状态归一化、共享 summary counts 统计
  */
 
 #include "taskState.h"
@@ -95,4 +95,32 @@ PhotoTaskState makeDefaultPhotoState(const std::string& photoId) {
     state.analysisAttempts = 0;
     state.histogramBins.resize(256, 0);
     return state;
+}
+
+SummaryCounts calculateSummaryCounts(const std::vector<PhotoTaskState>& states) {
+    SummaryCounts summary;
+    summary.totalPhotos = static_cast<int>(states.size());
+
+    for (const auto& state : states) {
+        if (state.rawConversionStatus == StageStatus::Success) summary.rawConversionSuccess++;
+        if (state.rawConversionStatus == StageStatus::Failed) summary.rawConversionFailed++;
+        if (state.analysisStatus == StageStatus::Success) summary.analysisSuccess++;
+        if (state.analysisStatus == StageStatus::Failed) summary.analysisFailed++;
+
+        if (state.rawConversionStatus == StageStatus::Pending || state.rawConversionStatus == StageStatus::Running ||
+            state.analysisStatus == StageStatus::Pending || state.analysisStatus == StageStatus::Running) {
+            summary.pending++;
+        }
+
+        if (state.analysisStatus != StageStatus::Success) {
+            continue;
+        }
+
+        if (state.isBlurry) summary.blurry++;
+        if (state.exposureStatus == "overexposed") summary.overexposed++;
+        if (state.exposureStatus == "underexposed") summary.underexposed++;
+        if (!state.isBlurry && state.exposureStatus == "normal") summary.normal++;
+    }
+
+    return summary;
 }

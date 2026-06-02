@@ -76,6 +76,7 @@ set(SOURCES
     src/jsonManager.cpp
     src/macImageAnalyzer.mm
     src/rawConverter.cpp
+    src/rawJpgMat.cpp
     src/resumePlanner.cpp
     src/taskState.cpp
     src/threadPool.cpp
@@ -133,30 +134,12 @@ endif()
 
 if(RAWVIEWER_BUILD_TESTS)
     add_executable(rawViewerTests
-        src/configLoader.cpp
-        src/gpuSupport.mm
-        src/imageAnalyzer.cpp
-        src/macImageAnalyzer.mm
+        src/rawJpgMat.cpp
         src/taskState.cpp
-        tests/configLoaderTests.cpp
-        tests/gpuSupportTests.cpp
-        tests/imageAnalyzerBackendTests.cpp
-        tests/imageAnalyzerTests.cpp
-        tests/objcRuntimeTests.mm
         tests/testMain.cpp
+        tests/summaryCountsTests.cpp
+        tests/rawJpgMatTests.cpp
         tests/perfTimerTests.cpp
-    )
-
-    target_compile_options(rawViewerTests PRIVATE
-        $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>
-    )
-
-    target_compile_definitions(rawViewerTests PRIVATE RAWVIEWER_ENABLE_METAL_DIAGNOSTICS=1)
-
-    add_custom_command(TARGET rawViewerTests POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${GPU_IMAGE_KERNELS}
-            $<TARGET_FILE_DIR:rawViewerTests>/gpuImageKernels.metal
     )
 
     target_include_directories(rawViewerTests PRIVATE
@@ -165,11 +148,9 @@ if(RAWVIEWER_BUILD_TESTS)
     )
 
     target_link_libraries(rawViewerTests PRIVATE
-        opencv_imgcodecs
         opencv_imgproc
         opencv_core
         ${OPENCV_3RDPARTY_LIBS}
-        yaml-cpp
     )
 
     if(APPLE)

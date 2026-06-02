@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.2
- * Date: 2026-06-01
- * Description: 实现 .cache/analysis.json 的完整读写、App review 字段持久化、临时文件 rename 覆盖，并记录分析 backend
+ * Version: 1.3
+ * Date: 2026-06-02
+ * Description: 实现 .cache/analysis.json 的完整读写、App review 字段持久化、临时文件 rename 覆盖，并记录分析 backend；使用共享 summary counts 统计
  */
 
 #include "jsonManager.h"
@@ -52,36 +52,42 @@ public:
     }
 
     void updateSummary() {
-        auto& sum = root_["summary"];
-        int total = 0, rawSucc = 0, rawFail = 0, anaSucc = 0, anaFail = 0, pending = 0, blurry = 0, over = 0, under = 0, normal = 0;
+        std::vector<PhotoTaskState> states;
+        // IMPORTANT CONTRACT: PhotoTaskState is intentionally populated below with ONLY the
+        // fields consumed by calculateSummaryCounts: rawConversionStatus, analysisStatus,
+        // isBlurry, exposureStatus, plus photoId (fallback to JSON key). If
+        // calculateSummaryCounts ever reads additional fields, this JSON reconstruction
+        // path MUST be updated to keep terminal and JSON summaries in sync.
         for (auto& [key, val] : root_["photos"].items()) {
-            total++;
-            std::string rs = (val.contains("raw_conversion_status") && !val["raw_conversion_status"].is_null()) ? val["raw_conversion_status"].get<std::string>() : "pending";
-            std::string as = (val.contains("analysis_status") && !val["analysis_status"].is_null()) ? val["analysis_status"].get<std::string>() : "pending";
-            if (rs == "success") rawSucc++;
-            if (rs == "failed") rawFail++;
-            if (as == "success") {
-                anaSucc++;
-                std::string es = (val.contains("exposure_status") && !val["exposure_status"].is_null()) ? val["exposure_status"].get<std::string>() : "normal";
-                if (es == "overexposed") over++;
-                else if (es == "underexposed") under++;
-                else normal++;
-                bool blurryFlag = (val.contains("is_blurry") && !val["is_blurry"].is_null()) ? val["is_blurry"].get<bool>() : false;
-                if (blurryFlag) blurry++;
-            }
-            if (as == "failed") anaFail++;
-            if (rs == "pending" || rs == "running" || as == "pending" || as == "running") pending++;
+            PhotoTaskState state;
+            state.photoId = (val.contains("photo_id") && !val["photo_id"].is_null()) ? val["photo_id"].get<std::string>() : key;
+            std::string rawStatus = (val.contains("raw_conversion_status") && !val["raw_conversion_status"].is_null())
+                ? val["raw_conversion_status"].get<std::string>()
+                : "pending";
+            std::string analysisStatus = (val.contains("analysis_status") && !val["analysis_status"].is_null())
+                ? val["analysis_status"].get<std::string>()
+                : "pending";
+            state.rawConversionStatus = stageStatusFromString(rawStatus);
+            state.analysisStatus = stageStatusFromString(analysisStatus);
+            state.isBlurry = (val.contains("is_blurry") && !val["is_blurry"].is_null()) ? val["is_blurry"].get<bool>() : false;
+            state.exposureStatus = (val.contains("exposure_status") && !val["exposure_status"].is_null())
+                ? val["exposure_status"].get<std::string>()
+                : "normal";
+            states.push_back(state);
         }
-        sum["total_photos"] = total;
-        sum["raw_conversion_success"] = rawSucc;
-        sum["raw_conversion_failed"] = rawFail;
-        sum["analysis_success"] = anaSucc;
-        sum["analysis_failed"] = anaFail;
-        sum["pending"] = pending;
-        sum["blurry"] = blurry;
-        sum["overexposed"] = over;
-        sum["underexposed"] = under;
-        sum["normal"] = normal;
+
+        SummaryCounts counts = calculateSummaryCounts(states);
+        auto& sum = root_["summary"];
+        sum["total_photos"] = counts.totalPhotos;
+        sum["raw_conversion_success"] = counts.rawConversionSuccess;
+        sum["raw_conversion_failed"] = counts.rawConversionFailed;
+        sum["analysis_success"] = counts.analysisSuccess;
+        sum["analysis_failed"] = counts.analysisFailed;
+        sum["pending"] = counts.pending;
+        sum["blurry"] = counts.blurry;
+        sum["overexposed"] = counts.overexposed;
+        sum["underexposed"] = counts.underexposed;
+        sum["normal"] = counts.normal;
     }
 };
 

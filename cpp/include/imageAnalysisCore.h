@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-06-01
- * Description: 提供基于灰度图的共享分析逻辑，供 CPU 和 macOS GPU 渲染路径复用
+ * Version: 1.1
+ * Date: 2026-06-02
+ * Description: 提供基于灰度图的共享分析逻辑，供 CPU 和 macOS GPU 渲染路径复用；使用精细毫秒计时
  */
 
 #pragma once
@@ -19,14 +19,14 @@ inline void fillAnalyzeResultFromGray(const cv::Mat& gray, const AppConfig& conf
     int ksize = config.blurDetection.laplacianKernelSize;
     PerfTimer phaseTimer;
     cv::Laplacian(gray, laplacian, CV_64F, ksize);
-    result.laplacianMs = phaseTimer.elapsedMs();
+    result.laplacianMs = phaseTimer.elapsedMsPrecise();
 
     phaseTimer.reset();
     cv::Scalar meanVal, stddevVal;
     cv::meanStdDev(laplacian, meanVal, stddevVal);
     double minVal, maxVal;
     cv::minMaxLoc(laplacian, &minVal, &maxVal);
-    result.statsMs = phaseTimer.elapsedMs();
+    result.statsMs = phaseTimer.elapsedMsPrecise();
 
     double mean = meanVal[0];
     double stddev = stddevVal[0];
@@ -47,7 +47,7 @@ inline void fillAnalyzeResultFromGray(const cv::Mat& gray, const AppConfig& conf
             if (v < config.exposureDetection.underexposePixelThreshold) underCount++;
         }
     }
-    result.histogramMs = phaseTimer.elapsedMs();
+    result.histogramMs = phaseTimer.elapsedMsPrecise();
 
     double overRatio = totalPixels > 0 ? static_cast<double>(overCount) / totalPixels : 0.0;
     double underRatio = totalPixels > 0 ? static_cast<double>(underCount) / totalPixels : 0.0;
