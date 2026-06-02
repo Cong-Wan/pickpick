@@ -7,137 +7,93 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D1D806B9CF4F4CB6B168A3F4 /* testMain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5FCCB0F1ADD24C3BAC8CAA6F; };
-		390A141DFBAA4595A7D0334E /* configLoaderTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A2EE229C2724978BBCCD901; };
-		A10000000000000000000009 /* gpuSupportTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000C; };
-		A1000000000000000000000A /* imageAnalyzerBackendTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D; };
-		4A7FF3DB4A2143A2B61B7174 /* imageAnalyzerTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D7D6233187374E61927FE454; };
-		A1000000000000000000000B /* perfTimerTests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000E; };
-		A1000000000000000000000F /* baselineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010; };
-		A10000000000000000000014 /* appRunnerProgressBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016; };
-		A10000000000000000000015 /* appRunnerProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017; };
-		A1000000000000000000001A /* reviewStateJsonBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001C; };
-		A1000000000000000000001B /* reviewStateJsonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001D; };
-		A10000000000000000000020 /* photoModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000022; };
-		A10000000000000000000021 /* photoGroupingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000023; };
-		A10000000000000000000024 /* photoAnalyzerBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000026; };
-		A10000000000000000000025 /* photoAnalyzerBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027; };
-		A10000000000000000000028 /* photoAnalyzerBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002A; };
-		A10000000000000000000029 /* mainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002B; };
-		A1000000000000000000002C /* mainWindowControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002D; };
-		A10000000000000000000040 /* startViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000042; };
-		A10000000000000000000041 /* progressViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000043; };
-		A10000000000000000000044 /* startProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000045; };
-		A10000000000000000000046 /* photoThumbnailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000050; };
-		A10000000000000000000047 /* groupGridViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000051; };
-		A10000000000000000000048 /* metalPhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000052; };
-		A10000000000000000000049 /* jsonReviewStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000053; };
-		A1000000000000000000004A /* photoBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000054; };
-		A1000000000000000000004B /* duplicateCompareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000055; };
-		A1000000000000000000004C /* groupGridTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000056; };
-		A1000000000000000000004D /* displaySourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000057; };
-		A1000000000000000000004E /* photoBrowserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000058; };
-		A1000000000000000000004F /* duplicateCompareTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000059; };
-		A1000000000000000000005A /* appIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000005B; };
-		A10000000000000000000030 /* taskState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F2554B820E6450384435CF1; };
-		A10000000000000000000031 /* configLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6FABC1AF34A2400EABB56DD3; };
-		A10000000000000000000032 /* fileScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5E320B565AB2414B97D311B4; };
-		A10000000000000000000033 /* jsonManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49AE7CD90F63498B8D7A83D3; };
-		A10000000000000000000034 /* resumePlanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49DA5498DB9A4FED905CBACE; };
-		A10000000000000000000035 /* threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 658EF623F49F4E8BA73BF670; };
-		A10000000000000000000036 /* rawConverter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15EDE1DAC1404C96B23F5602; };
-		A10000000000000000000037 /* imageAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAD190DAD67B4AA1B4E5E90A; };
-		A10000000000000000000038 /* appRunner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AE65D91F993140EC9176F938; };
-		A10000000000000000000039 /* macImageAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005; };
-		A1000000000000000000003A /* gpuSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006; };
-		88DCC893FC624A2087B49DC5 /* taskState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 703942AC0593451B98A8D65F; };
-		C32E0AF602CE46B886ADCCF3 /* configLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AA69733F7184F559F4E3773; };
-		907741988F7F4F8EBE786674 /* fileScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AC8DCC74E21A4967979839AE; };
-		3799FC9948054DFB96C51AA0 /* jsonManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 11CA3B5B5DB44130B87D0746; };
-		BCD572C60E754BBBA511220E /* resumePlanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0C0672C5D2F4C5B8AE7DB42; };
-		A76797A1E91643A2AC8B1E2A /* threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C436A86835A3415D8ABE383A; };
-		32C633F01AAC42F4BDF74068 /* rawConverter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F2E8E12934E540C0B4420F5B; };
-		934AD4F746284922AD9628BB /* imageAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3D84AE4C73D74AEBAD670871; };
-		5145714F6BAE4099AB0AD1AC /* appRunner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CF3BE81B0BCF41EAB06427F4; };
-		A10000000000000000000001 /* macImageAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005; };
-		A10000000000000000000002 /* gpuSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006; };
-		A10000000000000000000003 /* macImageAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000007; };
-		A10000000000000000000004 /* gpuSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008; };
-
-		6AD029932C234022929744B2 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CBFD07FF7E2F464E8E4F405A; };
-		E445CCDC0FF14B34A028B934 /* taskState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F2554B820E6450384435CF1; };
-		7968CFF164734D93A3EDC4B6 /* configLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6FABC1AF34A2400EABB56DD3; };
-		3C2CDB74DF39451398CCB802 /* fileScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5E320B565AB2414B97D311B4; };
-		9941EDA579DC4662B1BA1DB9 /* jsonManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49AE7CD90F63498B8D7A83D3; };
-		CED0B665F71341B6B4D1001B /* resumePlanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49DA5498DB9A4FED905CBACE; };
-		B84C9CC29F1E4535B4B6A666 /* threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 658EF623F49F4E8BA73BF670; };
-		BE83762DF1204F5FA17F1918 /* rawConverter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15EDE1DAC1404C96B23F5602; };
-		847F76F611DE46119F6B51D4 /* imageAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAD190DAD67B4AA1B4E5E90A; };
-		51F2D3135A414442BF8DBB5A /* appRunner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AE65D91F993140EC9176F938; };
+		32C633F01AAC42F4BDF74068 /* cpp/src/rawConverter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F2E8E12934E540C0B4420F5B /* cpp/src/rawConverter.cpp */; };
+		3799FC9948054DFB96C51AA0 /* cpp/src/jsonManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 11CA3B5B5DB44130B87D0746 /* cpp/src/jsonManager.cpp */; };
+		3C2CDB74DF39451398CCB802 /* src/fileScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5E320B565AB2414B97D311B4 /* src/fileScanner.cpp */; };
+		5145714F6BAE4099AB0AD1AC /* cpp/src/appRunner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CF3BE81B0BCF41EAB06427F4 /* cpp/src/appRunner.cpp */; };
+		51F2D3135A414442BF8DBB5A /* src/appRunner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AE65D91F993140EC9176F938 /* src/appRunner.cpp */; };
+		6AD029932C234022929744B2 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CBFD07FF7E2F464E8E4F405A /* main.cpp */; };
+		7968CFF164734D93A3EDC4B6 /* src/configLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6FABC1AF34A2400EABB56DD3 /* src/configLoader.cpp */; };
+		847F76F611DE46119F6B51D4 /* src/imageAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAD190DAD67B4AA1B4E5E90A /* src/imageAnalyzer.cpp */; };
+		88DCC893FC624A2087B49DC5 /* cpp/src/taskState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 703942AC0593451B98A8D65F /* cpp/src/taskState.cpp */; };
+		907741988F7F4F8EBE786674 /* cpp/src/fileScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AC8DCC74E21A4967979839AE /* cpp/src/fileScanner.cpp */; };
+		934AD4F746284922AD9628BB /* cpp/src/imageAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3D84AE4C73D74AEBAD670871 /* cpp/src/imageAnalyzer.cpp */; };
+		9941EDA579DC4662B1BA1DB9 /* src/jsonManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49AE7CD90F63498B8D7A83D3 /* src/jsonManager.cpp */; };
+		A10000000000000000000001 /* src/macImageAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005 /* src/macImageAnalyzer.mm */; };
+		A10000000000000000000002 /* src/gpuSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* src/gpuSupport.mm */; };
+		A10000000000000000000003 /* cpp/src/macImageAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000007 /* cpp/src/macImageAnalyzer.mm */; };
+		A10000000000000000000004 /* cpp/src/gpuSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* cpp/src/gpuSupport.mm */; };
+		A10000000000000000000020 /* rawViewer/photoModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000022 /* rawViewer/photoModels.swift */; };
+		A10000000000000000000024 /* rawViewer/photoAnalyzerBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000026 /* rawViewer/photoAnalyzerBridge.mm */; };
+		A10000000000000000000028 /* rawViewer/photoAnalyzerBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002A /* rawViewer/photoAnalyzerBridge.swift */; };
+		A10000000000000000000029 /* rawViewer/mainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002B /* rawViewer/mainWindowController.swift */; };
+		A10000000000000000000030 /* src/taskState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F2554B820E6450384435CF1 /* src/taskState.cpp */; };
+		A10000000000000000000031 /* src/configLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6FABC1AF34A2400EABB56DD3 /* src/configLoader.cpp */; };
+		A10000000000000000000032 /* src/fileScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5E320B565AB2414B97D311B4 /* src/fileScanner.cpp */; };
+		A10000000000000000000033 /* src/jsonManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49AE7CD90F63498B8D7A83D3 /* src/jsonManager.cpp */; };
+		A10000000000000000000034 /* src/resumePlanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49DA5498DB9A4FED905CBACE /* src/resumePlanner.cpp */; };
+		A10000000000000000000035 /* src/threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 658EF623F49F4E8BA73BF670 /* src/threadPool.cpp */; };
+		A10000000000000000000036 /* src/rawConverter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15EDE1DAC1404C96B23F5602 /* src/rawConverter.cpp */; };
+		A10000000000000000000037 /* src/imageAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAD190DAD67B4AA1B4E5E90A /* src/imageAnalyzer.cpp */; };
+		A10000000000000000000038 /* src/appRunner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AE65D91F993140EC9176F938 /* src/appRunner.cpp */; };
+		A10000000000000000000039 /* src/macImageAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005 /* src/macImageAnalyzer.mm */; };
+		A1000000000000000000003A /* src/gpuSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* src/gpuSupport.mm */; };
+		A10000000000000000000040 /* rawViewer/startViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000042 /* rawViewer/startViewController.swift */; };
+		A10000000000000000000041 /* rawViewer/progressViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000043 /* rawViewer/progressViewController.swift */; };
+		A10000000000000000000046 /* rawViewer/photoThumbnailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000050 /* rawViewer/photoThumbnailCache.swift */; };
+		A10000000000000000000047 /* rawViewer/groupGridViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000051 /* rawViewer/groupGridViewController.swift */; };
+		A10000000000000000000048 /* rawViewer/metalPhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000052 /* rawViewer/metalPhotoView.swift */; };
+		A10000000000000000000049 /* rawViewer/jsonReviewStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000053 /* rawViewer/jsonReviewStateStore.swift */; };
+		A1000000000000000000004A /* rawViewer/photoBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000054 /* rawViewer/photoBrowserViewController.swift */; };
+		A1000000000000000000004B /* rawViewer/duplicateCompareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000055 /* rawViewer/duplicateCompareViewController.swift */; };
+		A76797A1E91643A2AC8B1E2A /* cpp/src/threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C436A86835A3415D8ABE383A /* cpp/src/threadPool.cpp */; };
+		B84C9CC29F1E4535B4B6A666 /* src/threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 658EF623F49F4E8BA73BF670 /* src/threadPool.cpp */; };
+		BCD572C60E754BBBA511220E /* cpp/src/resumePlanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0C0672C5D2F4C5B8AE7DB42 /* cpp/src/resumePlanner.cpp */; };
+		BE83762DF1204F5FA17F1918 /* src/rawConverter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15EDE1DAC1404C96B23F5602 /* src/rawConverter.cpp */; };
+		C32E0AF602CE46B886ADCCF3 /* cpp/src/configLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AA69733F7184F559F4E3773 /* cpp/src/configLoader.cpp */; };
+		CED0B665F71341B6B4D1001B /* src/resumePlanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49DA5498DB9A4FED905CBACE /* src/resumePlanner.cpp */; };
+		E445CCDC0FF14B34A028B934 /* src/taskState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F2554B820E6450384435CF1 /* src/taskState.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		D8DB71302FC92FEA00F93F82 /* rawViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rawViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CBFD07FF7E2F464E8E4F405A /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		1F2554B820E6450384435CF1 /* taskState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/taskState.cpp; sourceTree = "<group>"; };
-		6FABC1AF34A2400EABB56DD3 /* configLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/configLoader.cpp; sourceTree = "<group>"; };
-		5E320B565AB2414B97D311B4 /* fileScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/fileScanner.cpp; sourceTree = "<group>"; };
-		49AE7CD90F63498B8D7A83D3 /* jsonManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/jsonManager.cpp; sourceTree = "<group>"; };
-		49DA5498DB9A4FED905CBACE /* resumePlanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/resumePlanner.cpp; sourceTree = "<group>"; };
-		658EF623F49F4E8BA73BF670 /* threadPool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/threadPool.cpp; sourceTree = "<group>"; };
-		15EDE1DAC1404C96B23F5602 /* rawConverter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/rawConverter.cpp; sourceTree = "<group>"; };
-		FAD190DAD67B4AA1B4E5E90A /* imageAnalyzer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/imageAnalyzer.cpp; sourceTree = "<group>"; };
-		A10000000000000000000005 /* macImageAnalyzer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/macImageAnalyzer.mm; sourceTree = "<group>"; };
-		A10000000000000000000006 /* gpuSupport.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/gpuSupport.mm; sourceTree = "<group>"; };
-		AE65D91F993140EC9176F938 /* appRunner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/appRunner.cpp; sourceTree = "<group>"; };
+		11CA3B5B5DB44130B87D0746 /* cpp/src/jsonManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/jsonManager.cpp; sourceTree = "<group>"; };
+		15EDE1DAC1404C96B23F5602 /* src/rawConverter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/rawConverter.cpp; sourceTree = "<group>"; };
 		1A09E7E71F19468D8B698756 /* PhotoAnalyzerCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PhotoAnalyzerCLI; sourceTree = BUILT_PRODUCTS_DIR; };
-		5FCCB0F1ADD24C3BAC8CAA6F /* testMain.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/testMain.cpp; sourceTree = "<group>"; };
-		7A2EE229C2724978BBCCD901 /* configLoaderTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/configLoaderTests.cpp; sourceTree = "<group>"; };
-		A1000000000000000000000C /* gpuSupportTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/gpuSupportTests.cpp; sourceTree = "<group>"; };
-		A1000000000000000000000D /* imageAnalyzerBackendTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/imageAnalyzerBackendTests.cpp; sourceTree = "<group>"; };
-		D7D6233187374E61927FE454 /* imageAnalyzerTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/imageAnalyzerTests.cpp; sourceTree = "<group>"; };
-		A1000000000000000000000E /* perfTimerTests.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/tests/perfTimerTests.cpp; sourceTree = "<group>"; };
-		703942AC0593451B98A8D65F /* taskState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/taskState.cpp; sourceTree = "<group>"; };
-		1AA69733F7184F559F4E3773 /* configLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/configLoader.cpp; sourceTree = "<group>"; };
-		AC8DCC74E21A4967979839AE /* fileScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/fileScanner.cpp; sourceTree = "<group>"; };
-		11CA3B5B5DB44130B87D0746 /* jsonManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/jsonManager.cpp; sourceTree = "<group>"; };
-		C0C0672C5D2F4C5B8AE7DB42 /* resumePlanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/resumePlanner.cpp; sourceTree = "<group>"; };
-		C436A86835A3415D8ABE383A /* threadPool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/threadPool.cpp; sourceTree = "<group>"; };
-		F2E8E12934E540C0B4420F5B /* rawConverter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/rawConverter.cpp; sourceTree = "<group>"; };
-		3D84AE4C73D74AEBAD670871 /* imageAnalyzer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/imageAnalyzer.cpp; sourceTree = "<group>"; };
-		A10000000000000000000007 /* macImageAnalyzer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = cpp/src/macImageAnalyzer.mm; sourceTree = "<group>"; };
-		A10000000000000000000008 /* gpuSupport.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = cpp/src/gpuSupport.mm; sourceTree = "<group>"; };
-		CF3BE81B0BCF41EAB06427F4 /* appRunner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/appRunner.cpp; sourceTree = "<group>"; };
-		A10000000000000000000010 /* baselineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = baselineTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000016 /* appRunnerProgressBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = appRunnerProgressBridge.mm; sourceTree = "<group>"; };
-		A10000000000000000000017 /* appRunnerProgressTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = appRunnerProgressTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000018 /* appRunnerProgressBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = appRunnerProgressBridge.h; sourceTree = "<group>"; };
-		A10000000000000000000019 /* rawViewerTestsBridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = rawViewerTestsBridgingHeader.h; sourceTree = "<group>"; };
-		A1000000000000000000001C /* reviewStateJsonBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = reviewStateJsonBridge.mm; sourceTree = "<group>"; };
-		A1000000000000000000001D /* reviewStateJsonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = reviewStateJsonTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000001E /* reviewStateJsonBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = reviewStateJsonBridge.h; sourceTree = "<group>"; };
-		A10000000000000000000022 /* photoModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/photoModels.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000023 /* photoGroupingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = photoGroupingTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000026 /* photoAnalyzerBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = rawViewer/photoAnalyzerBridge.mm; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000027 /* photoAnalyzerBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = photoAnalyzerBridgeTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000002A /* photoAnalyzerBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/photoAnalyzerBridge.swift; sourceTree = SOURCE_ROOT; };
-		A1000000000000000000002B /* mainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/mainWindowController.swift; sourceTree = SOURCE_ROOT; };
-		A1000000000000000000002D /* mainWindowControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mainWindowControllerTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000042 /* startViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/startViewController.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000043 /* progressViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/progressViewController.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000045 /* startProgressTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = startProgressTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000050 /* photoThumbnailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/photoThumbnailCache.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000051 /* groupGridViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/groupGridViewController.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000052 /* metalPhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/metalPhotoView.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000053 /* jsonReviewStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/jsonReviewStateStore.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000054 /* photoBrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/photoBrowserViewController.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000055 /* duplicateCompareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/duplicateCompareViewController.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000056 /* groupGridTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = groupGridTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000057 /* displaySourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = displaySourceTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000058 /* photoBrowserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = photoBrowserTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000059 /* duplicateCompareTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = duplicateCompareTests.swift; sourceTree = "<group>"; };
-		A1000000000000000000005B /* appIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = appIntegrationTests.swift; sourceTree = "<group>"; };
+		1AA69733F7184F559F4E3773 /* cpp/src/configLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/configLoader.cpp; sourceTree = "<group>"; };
+		1F2554B820E6450384435CF1 /* src/taskState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/taskState.cpp; sourceTree = "<group>"; };
+		3D84AE4C73D74AEBAD670871 /* cpp/src/imageAnalyzer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/imageAnalyzer.cpp; sourceTree = "<group>"; };
+		49AE7CD90F63498B8D7A83D3 /* src/jsonManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/jsonManager.cpp; sourceTree = "<group>"; };
+		49DA5498DB9A4FED905CBACE /* src/resumePlanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/resumePlanner.cpp; sourceTree = "<group>"; };
+		5E320B565AB2414B97D311B4 /* src/fileScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/fileScanner.cpp; sourceTree = "<group>"; };
+		658EF623F49F4E8BA73BF670 /* src/threadPool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/threadPool.cpp; sourceTree = "<group>"; };
+		6FABC1AF34A2400EABB56DD3 /* src/configLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/configLoader.cpp; sourceTree = "<group>"; };
+		703942AC0593451B98A8D65F /* cpp/src/taskState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/taskState.cpp; sourceTree = "<group>"; };
+		A10000000000000000000005 /* src/macImageAnalyzer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/macImageAnalyzer.mm; sourceTree = "<group>"; };
+		A10000000000000000000006 /* src/gpuSupport.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/gpuSupport.mm; sourceTree = "<group>"; };
+		A10000000000000000000007 /* cpp/src/macImageAnalyzer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = cpp/src/macImageAnalyzer.mm; sourceTree = "<group>"; };
+		A10000000000000000000008 /* cpp/src/gpuSupport.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = cpp/src/gpuSupport.mm; sourceTree = "<group>"; };
+		A10000000000000000000022 /* rawViewer/photoModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/photoModels.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000026 /* rawViewer/photoAnalyzerBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = rawViewer/photoAnalyzerBridge.mm; sourceTree = SOURCE_ROOT; };
+		A1000000000000000000002A /* rawViewer/photoAnalyzerBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/photoAnalyzerBridge.swift; sourceTree = SOURCE_ROOT; };
+		A1000000000000000000002B /* rawViewer/mainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/mainWindowController.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000042 /* rawViewer/startViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/startViewController.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000043 /* rawViewer/progressViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/progressViewController.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000050 /* rawViewer/photoThumbnailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/photoThumbnailCache.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000051 /* rawViewer/groupGridViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/groupGridViewController.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000052 /* rawViewer/metalPhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/metalPhotoView.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000053 /* rawViewer/jsonReviewStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/jsonReviewStateStore.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000054 /* rawViewer/photoBrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/photoBrowserViewController.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000055 /* rawViewer/duplicateCompareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/duplicateCompareViewController.swift; sourceTree = SOURCE_ROOT; };
+		AC8DCC74E21A4967979839AE /* cpp/src/fileScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/fileScanner.cpp; sourceTree = "<group>"; };
+		AE65D91F993140EC9176F938 /* src/appRunner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/appRunner.cpp; sourceTree = "<group>"; };
 		BB32040B54904569BDB64035 /* rawViewerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rawViewerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0C0672C5D2F4C5B8AE7DB42 /* cpp/src/resumePlanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/resumePlanner.cpp; sourceTree = "<group>"; };
+		C436A86835A3415D8ABE383A /* cpp/src/threadPool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/threadPool.cpp; sourceTree = "<group>"; };
+		CBFD07FF7E2F464E8E4F405A /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		CF3BE81B0BCF41EAB06427F4 /* cpp/src/appRunner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/appRunner.cpp; sourceTree = "<group>"; };
+		D8DB71302FC92FEA00F93F82 /* rawViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rawViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F2E8E12934E540C0B4420F5B /* cpp/src/rawConverter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/rawConverter.cpp; sourceTree = "<group>"; };
+		FAD190DAD67B4AA1B4E5E90A /* src/imageAnalyzer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/imageAnalyzer.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -149,7 +105,7 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		D8DB712D2FC92FEA00F93F82 /* Frameworks */ = {
+		5D22961DA10749A287C56954 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -163,7 +119,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		5D22961DA10749A287C56954 /* Frameworks */ = {
+		D8DB712D2FC92FEA00F93F82 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -173,13 +129,70 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4AE33933EEF34E19AF7037C3 /* cpp */ = {
+			isa = PBXGroup;
+			children = (
+				CBFD07FF7E2F464E8E4F405A /* main.cpp */,
+				1F2554B820E6450384435CF1 /* src/taskState.cpp */,
+				6FABC1AF34A2400EABB56DD3 /* src/configLoader.cpp */,
+				5E320B565AB2414B97D311B4 /* src/fileScanner.cpp */,
+				49AE7CD90F63498B8D7A83D3 /* src/jsonManager.cpp */,
+				49DA5498DB9A4FED905CBACE /* src/resumePlanner.cpp */,
+				658EF623F49F4E8BA73BF670 /* src/threadPool.cpp */,
+				15EDE1DAC1404C96B23F5602 /* src/rawConverter.cpp */,
+				FAD190DAD67B4AA1B4E5E90A /* src/imageAnalyzer.cpp */,
+				A10000000000000000000005 /* src/macImageAnalyzer.mm */,
+				A10000000000000000000006 /* src/gpuSupport.mm */,
+				AE65D91F993140EC9176F938 /* src/appRunner.cpp */,
+			);
+			path = cpp;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000013 /* rawViewerTests */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = rawViewerTests;
+			path = /Users/wilbur/project/rawViewer/rawViewerTests;
+			sourceTree = "<absolute>";
+		};
+		D88B9DDD2FCEC9AB0023E637 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000022 /* rawViewer/photoModels.swift */,
+				A10000000000000000000026 /* rawViewer/photoAnalyzerBridge.mm */,
+				A1000000000000000000002A /* rawViewer/photoAnalyzerBridge.swift */,
+				A1000000000000000000002B /* rawViewer/mainWindowController.swift */,
+				A10000000000000000000042 /* rawViewer/startViewController.swift */,
+				A10000000000000000000043 /* rawViewer/progressViewController.swift */,
+				A10000000000000000000050 /* rawViewer/photoThumbnailCache.swift */,
+				A10000000000000000000051 /* rawViewer/groupGridViewController.swift */,
+				A10000000000000000000052 /* rawViewer/metalPhotoView.swift */,
+				A10000000000000000000053 /* rawViewer/jsonReviewStateStore.swift */,
+				A10000000000000000000054 /* rawViewer/photoBrowserViewController.swift */,
+				A10000000000000000000055 /* rawViewer/duplicateCompareViewController.swift */,
+				703942AC0593451B98A8D65F /* cpp/src/taskState.cpp */,
+				1AA69733F7184F559F4E3773 /* cpp/src/configLoader.cpp */,
+				AC8DCC74E21A4967979839AE /* cpp/src/fileScanner.cpp */,
+				11CA3B5B5DB44130B87D0746 /* cpp/src/jsonManager.cpp */,
+				C0C0672C5D2F4C5B8AE7DB42 /* cpp/src/resumePlanner.cpp */,
+				C436A86835A3415D8ABE383A /* cpp/src/threadPool.cpp */,
+				F2E8E12934E540C0B4420F5B /* cpp/src/rawConverter.cpp */,
+				3D84AE4C73D74AEBAD670871 /* cpp/src/imageAnalyzer.cpp */,
+				A10000000000000000000007 /* cpp/src/macImageAnalyzer.mm */,
+				A10000000000000000000008 /* cpp/src/gpuSupport.mm */,
+				CF3BE81B0BCF41EAB06427F4 /* cpp/src/appRunner.cpp */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		D8DB71272FC92FEA00F93F82 = {
 			isa = PBXGroup;
 			children = (
 				D8DB71322FC92FEA00F93F82 /* rawViewer */,
-				A10000000000000000000013 /* rawViewerTests */,
 				4AE33933EEF34E19AF7037C3 /* cpp */,
 				D8DB71312FC92FEA00F93F82 /* Products */,
+				D88B9DDD2FCEC9AB0023E637 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -193,100 +206,9 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A10000000000000000000013 /* rawViewerTests */ = {
-			isa = PBXGroup;
-			children = (
-				A10000000000000000000010 /* baselineTests.swift */,
-				A10000000000000000000016 /* appRunnerProgressBridge.mm */,
-				A10000000000000000000018 /* appRunnerProgressBridge.h */,
-				A10000000000000000000017 /* appRunnerProgressTests.swift */,
-				A10000000000000000000019 /* rawViewerTestsBridgingHeader.h */,
-				A1000000000000000000001C /* reviewStateJsonBridge.mm */,
-				A1000000000000000000001E /* reviewStateJsonBridge.h */,
-				A1000000000000000000001D /* reviewStateJsonTests.swift */,
-				A10000000000000000000023 /* photoGroupingTests.swift */,
-				A10000000000000000000027 /* photoAnalyzerBridgeTests.swift */,
-				A1000000000000000000002D /* mainWindowControllerTests.swift */,
-				A10000000000000000000045 /* startProgressTests.swift */,
-				A10000000000000000000056 /* groupGridTests.swift */,
-				A10000000000000000000057 /* displaySourceTests.swift */,
-				A10000000000000000000058 /* photoBrowserTests.swift */,
-				A10000000000000000000059 /* duplicateCompareTests.swift */,
-				A1000000000000000000005B /* appIntegrationTests.swift */,
-			);
-			path = rawViewerTests;
-			sourceTree = "<group>";
-		};
-		4AE33933EEF34E19AF7037C3 /* cpp */ = {
-			isa = PBXGroup;
-			children = (
-				CBFD07FF7E2F464E8E4F405A /* main.cpp */,
-				1F2554B820E6450384435CF1 /* taskState.cpp */,
-				6FABC1AF34A2400EABB56DD3 /* configLoader.cpp */,
-				5E320B565AB2414B97D311B4 /* fileScanner.cpp */,
-				49AE7CD90F63498B8D7A83D3 /* jsonManager.cpp */,
-				49DA5498DB9A4FED905CBACE /* resumePlanner.cpp */,
-				658EF623F49F4E8BA73BF670 /* threadPool.cpp */,
-				15EDE1DAC1404C96B23F5602 /* rawConverter.cpp */,
-				FAD190DAD67B4AA1B4E5E90A /* imageAnalyzer.cpp */,
-				A10000000000000000000005 /* macImageAnalyzer.mm */,
-				A10000000000000000000006 /* gpuSupport.mm */,
-				AE65D91F993140EC9176F938 /* appRunner.cpp */,
-			);
-			path = cpp;
-			sourceTree = "<group>";
-		};
-		C552CDD826034EDE8D5977BA /* tests */ = {
-			isa = PBXGroup;
-			children = (
-				5FCCB0F1ADD24C3BAC8CAA6F /* testMain.cpp */,
-				7A2EE229C2724978BBCCD901 /* configLoaderTests.cpp */,
-				A1000000000000000000000C /* gpuSupportTests.cpp */,
-				A1000000000000000000000D /* imageAnalyzerBackendTests.cpp */,
-				D7D6233187374E61927FE454 /* imageAnalyzerTests.cpp */,
-				A1000000000000000000000E /* perfTimerTests.cpp */,
-				703942AC0593451B98A8D65F /* taskState.cpp */,
-				1AA69733F7184F559F4E3773 /* configLoader.cpp */,
-				AC8DCC74E21A4967979839AE /* fileScanner.cpp */,
-				11CA3B5B5DB44130B87D0746 /* jsonManager.cpp */,
-				C0C0672C5D2F4C5B8AE7DB42 /* resumePlanner.cpp */,
-				C436A86835A3415D8ABE383A /* threadPool.cpp */,
-				F2E8E12934E540C0B4420F5B /* rawConverter.cpp */,
-				3D84AE4C73D74AEBAD670871 /* imageAnalyzer.cpp */,
-				A10000000000000000000007 /* macImageAnalyzer.mm */,
-				A10000000000000000000008 /* gpuSupport.mm */,
-				CF3BE81B0BCF41EAB06427F4 /* appRunner.cpp */,
-			);
-			name = tests;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D8DB712F2FC92FEA00F93F82 /* rawViewer */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = D8DB713B2FC92FEB00F93F82 /* Build configuration list for PBXNativeTarget "rawViewer" */;
-			buildPhases = (
-				D8DB712C2FC92FEA00F93F82 /* Sources */,
-				D8DB712D2FC92FEA00F93F82 /* Frameworks */,
-				D8DB712E2FC92FEA00F93F82 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				D8DB71322FC92FEA00F93F82 /* rawViewer */,
-				A10000000000000000000013 /* rawViewerTests */,
-				4AE33933EEF34E19AF7037C3 /* cpp */,
-			);
-			name = rawViewer;
-			packageProductDependencies = (
-			);
-			productName = rawViewer;
-			productReference = D8DB71302FC92FEA00F93F82 /* rawViewer.app */;
-			productType = "com.apple.product-type.application";
-		};
 		28E1281724674CF8AE843240 /* PhotoAnalyzerCLI */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F41A89906BE14F78B2C96B05 /* Build configuration list for PBXNativeTarget "PhotoAnalyzerCLI" */;
@@ -323,6 +245,30 @@
 			productReference = BB32040B54904569BDB64035 /* rawViewerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		D8DB712F2FC92FEA00F93F82 /* rawViewer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D8DB713B2FC92FEB00F93F82 /* Build configuration list for PBXNativeTarget "rawViewer" */;
+			buildPhases = (
+				D8DB712C2FC92FEA00F93F82 /* Sources */,
+				D8DB712D2FC92FEA00F93F82 /* Frameworks */,
+				D8DB712E2FC92FEA00F93F82 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4AE33933EEF34E19AF7037C3 /* cpp */,
+				A10000000000000000000013 /* rawViewerTests */,
+				D8DB71322FC92FEA00F93F82 /* rawViewer */,
+			);
+			name = rawViewer;
+			packageProductDependencies = (
+			);
+			productName = rawViewer;
+			productReference = D8DB71302FC92FEA00F93F82 /* rawViewer.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -334,11 +280,11 @@
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					D8DB712F2FC92FEA00F93F82 = {
+						8FA2C25097464193AF022F3D = {
+							CreatedOnToolsVersion = 26.3;
+						};
 						CreatedOnToolsVersion = 26.3;
-									8FA2C25097464193AF022F3D = {
-					CreatedOnToolsVersion = 26.3;
-				};
-			};
+					};
 				};
 			};
 			buildConfigurationList = D8DB712B2FC92FEA00F93F82 /* Build configuration list for PBXProject "rawViewer" */;
@@ -373,40 +319,22 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		D8DB712C2FC92FEA00F93F82 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				A10000000000000000000030 /* taskState.cpp in Sources */,
-				A10000000000000000000031 /* configLoader.cpp in Sources */,
-				A10000000000000000000032 /* fileScanner.cpp in Sources */,
-				A10000000000000000000033 /* jsonManager.cpp in Sources */,
-				A10000000000000000000034 /* resumePlanner.cpp in Sources */,
-				A10000000000000000000035 /* threadPool.cpp in Sources */,
-				A10000000000000000000036 /* rawConverter.cpp in Sources */,
-				A10000000000000000000037 /* imageAnalyzer.cpp in Sources */,
-				A10000000000000000000038 /* appRunner.cpp in Sources */,
-				A10000000000000000000039 /* macImageAnalyzer.mm in Sources */,
-				A1000000000000000000003A /* gpuSupport.mm in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		3388AFF50D3D48FF9D23CD9F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				6AD029932C234022929744B2 /* main.cpp in Sources */,
-				E445CCDC0FF14B34A028B934 /* taskState.cpp in Sources */,
-				7968CFF164734D93A3EDC4B6 /* configLoader.cpp in Sources */,
-				3C2CDB74DF39451398CCB802 /* fileScanner.cpp in Sources */,
-				9941EDA579DC4662B1BA1DB9 /* jsonManager.cpp in Sources */,
-				CED0B665F71341B6B4D1001B /* resumePlanner.cpp in Sources */,
-				B84C9CC29F1E4535B4B6A666 /* threadPool.cpp in Sources */,
-				BE83762DF1204F5FA17F1918 /* rawConverter.cpp in Sources */,
-				847F76F611DE46119F6B51D4 /* imageAnalyzer.cpp in Sources */,
-				A10000000000000000000001 /* macImageAnalyzer.mm in Sources */,
-				A10000000000000000000002 /* gpuSupport.mm in Sources */,
-				51F2D3135A414442BF8DBB5A /* appRunner.cpp in Sources */,
+				E445CCDC0FF14B34A028B934 /* src/taskState.cpp in Sources */,
+				7968CFF164734D93A3EDC4B6 /* src/configLoader.cpp in Sources */,
+				3C2CDB74DF39451398CCB802 /* src/fileScanner.cpp in Sources */,
+				9941EDA579DC4662B1BA1DB9 /* src/jsonManager.cpp in Sources */,
+				CED0B665F71341B6B4D1001B /* src/resumePlanner.cpp in Sources */,
+				B84C9CC29F1E4535B4B6A666 /* src/threadPool.cpp in Sources */,
+				BE83762DF1204F5FA17F1918 /* src/rawConverter.cpp in Sources */,
+				847F76F611DE46119F6B51D4 /* src/imageAnalyzer.cpp in Sources */,
+				A10000000000000000000001 /* src/macImageAnalyzer.mm in Sources */,
+				A10000000000000000000002 /* src/gpuSupport.mm in Sources */,
+				51F2D3135A414442BF8DBB5A /* src/appRunner.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -414,49 +342,295 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1000000000000000000000F /* baselineTests.swift in Sources */,
-				A10000000000000000000015 /* appRunnerProgressTests.swift in Sources */,
-				A10000000000000000000014 /* appRunnerProgressBridge.mm in Sources */,
-				A1000000000000000000001B /* reviewStateJsonTests.swift in Sources */,
-				A1000000000000000000001A /* reviewStateJsonBridge.mm in Sources */,
-				A10000000000000000000020 /* photoModels.swift in Sources */,
-				A10000000000000000000021 /* photoGroupingTests.swift in Sources */,
-				A10000000000000000000024 /* photoAnalyzerBridge.mm in Sources */,
-				A10000000000000000000025 /* photoAnalyzerBridgeTests.swift in Sources */,
-				A10000000000000000000028 /* photoAnalyzerBridge.swift in Sources */,
-				A10000000000000000000029 /* mainWindowController.swift in Sources */,
-				A1000000000000000000002C /* mainWindowControllerTests.swift in Sources */,
-				A10000000000000000000040 /* startViewController.swift in Sources */,
-				A10000000000000000000041 /* progressViewController.swift in Sources */,
-				A10000000000000000000044 /* startProgressTests.swift in Sources */,
-				A10000000000000000000046 /* photoThumbnailCache.swift in Sources */,
-				A10000000000000000000047 /* groupGridViewController.swift in Sources */,
-				A10000000000000000000048 /* metalPhotoView.swift in Sources */,
-				A10000000000000000000049 /* jsonReviewStateStore.swift in Sources */,
-				A1000000000000000000004A /* photoBrowserViewController.swift in Sources */,
-				A1000000000000000000004B /* duplicateCompareViewController.swift in Sources */,
-				A1000000000000000000004C /* groupGridTests.swift in Sources */,
-				A1000000000000000000004D /* displaySourceTests.swift in Sources */,
-				A1000000000000000000004E /* photoBrowserTests.swift in Sources */,
-				A1000000000000000000004F /* duplicateCompareTests.swift in Sources */,
-				A1000000000000000000005A /* appIntegrationTests.swift in Sources */,
-				88DCC893FC624A2087B49DC5 /* taskState.cpp in Sources */,
-				C32E0AF602CE46B886ADCCF3 /* configLoader.cpp in Sources */,
-				907741988F7F4F8EBE786674 /* fileScanner.cpp in Sources */,
-				3799FC9948054DFB96C51AA0 /* jsonManager.cpp in Sources */,
-				BCD572C60E754BBBA511220E /* resumePlanner.cpp in Sources */,
-				A76797A1E91643A2AC8B1E2A /* threadPool.cpp in Sources */,
-				32C633F01AAC42F4BDF74068 /* rawConverter.cpp in Sources */,
-				934AD4F746284922AD9628BB /* imageAnalyzer.cpp in Sources */,
-				A10000000000000000000003 /* macImageAnalyzer.mm in Sources */,
-				A10000000000000000000004 /* gpuSupport.mm in Sources */,
-				5145714F6BAE4099AB0AD1AC /* appRunner.cpp in Sources */,
+				A10000000000000000000020 /* rawViewer/photoModels.swift in Sources */,
+				A10000000000000000000024 /* rawViewer/photoAnalyzerBridge.mm in Sources */,
+				A10000000000000000000028 /* rawViewer/photoAnalyzerBridge.swift in Sources */,
+				A10000000000000000000029 /* rawViewer/mainWindowController.swift in Sources */,
+				A10000000000000000000040 /* rawViewer/startViewController.swift in Sources */,
+				A10000000000000000000041 /* rawViewer/progressViewController.swift in Sources */,
+				A10000000000000000000046 /* rawViewer/photoThumbnailCache.swift in Sources */,
+				A10000000000000000000047 /* rawViewer/groupGridViewController.swift in Sources */,
+				A10000000000000000000048 /* rawViewer/metalPhotoView.swift in Sources */,
+				A10000000000000000000049 /* rawViewer/jsonReviewStateStore.swift in Sources */,
+				A1000000000000000000004A /* rawViewer/photoBrowserViewController.swift in Sources */,
+				A1000000000000000000004B /* rawViewer/duplicateCompareViewController.swift in Sources */,
+				88DCC893FC624A2087B49DC5 /* cpp/src/taskState.cpp in Sources */,
+				C32E0AF602CE46B886ADCCF3 /* cpp/src/configLoader.cpp in Sources */,
+				907741988F7F4F8EBE786674 /* cpp/src/fileScanner.cpp in Sources */,
+				3799FC9948054DFB96C51AA0 /* cpp/src/jsonManager.cpp in Sources */,
+				BCD572C60E754BBBA511220E /* cpp/src/resumePlanner.cpp in Sources */,
+				A76797A1E91643A2AC8B1E2A /* cpp/src/threadPool.cpp in Sources */,
+				32C633F01AAC42F4BDF74068 /* cpp/src/rawConverter.cpp in Sources */,
+				934AD4F746284922AD9628BB /* cpp/src/imageAnalyzer.cpp in Sources */,
+				A10000000000000000000003 /* cpp/src/macImageAnalyzer.mm in Sources */,
+				A10000000000000000000004 /* cpp/src/gpuSupport.mm in Sources */,
+				5145714F6BAE4099AB0AD1AC /* cpp/src/appRunner.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D8DB712C2FC92FEA00F93F82 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000030 /* src/taskState.cpp in Sources */,
+				A10000000000000000000031 /* src/configLoader.cpp in Sources */,
+				A10000000000000000000032 /* src/fileScanner.cpp in Sources */,
+				A10000000000000000000033 /* src/jsonManager.cpp in Sources */,
+				A10000000000000000000034 /* src/resumePlanner.cpp in Sources */,
+				A10000000000000000000035 /* src/threadPool.cpp in Sources */,
+				A10000000000000000000036 /* src/rawConverter.cpp in Sources */,
+				A10000000000000000000037 /* src/imageAnalyzer.cpp in Sources */,
+				A10000000000000000000038 /* src/appRunner.cpp in Sources */,
+				A10000000000000000000039 /* src/macImageAnalyzer.mm in Sources */,
+				A1000000000000000000003A /* src/gpuSupport.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		07204A31C14B405AB4457E4C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/cpp/include",
+					"$(PROJECT_DIR)/3rdPart/json",
+					"$(PROJECT_DIR)/3rdPart/yaml/include",
+					"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
+					"$(PROJECT_DIR)/3rdPart/libraw/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/3rdPart/opencv/lib",
+					"$(PROJECT_DIR)/3rdPart/libraw/lib",
+					"$(PROJECT_DIR)/3rdPart/yaml/lib",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = (
+					"-lopencv_core",
+					"-lopencv_imgcodecs",
+					"-lopencv_imgproc",
+					"-lraw",
+					"-lyaml-cpp",
+					"-lc++",
+					"-framework",
+					Accelerate,
+					"-framework",
+					OpenCL,
+					"-framework",
+					Metal,
+					"-framework",
+					CoreImage,
+					"-framework",
+					CoreGraphics,
+					"-lz",
+					"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
+					"-llibpng",
+					"-llibjpeg-turbo",
+					"-llibtiff",
+					"-llibwebp",
+					"-llibopenjp2",
+					"-lIlmImf",
+					"-lzlib",
+					"-littnotify",
+					"-ltegra_hal",
+					"-lkleidicv_hal",
+					"-lkleidicv_thread",
+					"-lkleidicv",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		41760C872A7B41F4A8BCB150 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/cpp/include",
+					"$(PROJECT_DIR)/3rdPart/json",
+					"$(PROJECT_DIR)/3rdPart/yaml/include",
+					"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
+					"$(PROJECT_DIR)/3rdPart/libraw/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/3rdPart/opencv/lib",
+					"$(PROJECT_DIR)/3rdPart/libraw/lib",
+					"$(PROJECT_DIR)/3rdPart/yaml/lib",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = (
+					"-lopencv_core",
+					"-lopencv_imgcodecs",
+					"-lopencv_imgproc",
+					"-lraw",
+					"-lyaml-cpp",
+					"-lc++",
+					"-framework",
+					Accelerate,
+					"-framework",
+					OpenCL,
+					"-framework",
+					Metal,
+					"-framework",
+					CoreImage,
+					"-framework",
+					CoreGraphics,
+					"-lz",
+					"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
+					"-llibpng",
+					"-llibjpeg-turbo",
+					"-llibtiff",
+					"-llibwebp",
+					"-llibopenjp2",
+					"-lIlmImf",
+					"-lzlib",
+					"-littnotify",
+					"-ltegra_hal",
+					"-lkleidicv_hal",
+					"-lkleidicv_thread",
+					"-lkleidicv",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		91FD9F604DEC4E94BC16A4FA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/cpp/include",
+					"$(PROJECT_DIR)/3rdPart/json",
+					"$(PROJECT_DIR)/3rdPart/yaml/include",
+					"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
+					"$(PROJECT_DIR)/3rdPart/libraw/include",
+				);
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/3rdPart/opencv/lib",
+					"$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
+					"$(PROJECT_DIR)/3rdPart/libraw/lib",
+					"$(PROJECT_DIR)/3rdPart/yaml/lib",
+				);
+				OTHER_LDFLAGS = (
+					"-lopencv_core",
+					"-lopencv_imgcodecs",
+					"-lopencv_imgproc",
+					"-lraw",
+					"-lyaml-cpp",
+					"-lc++",
+					"-framework",
+					Accelerate,
+					"-framework",
+					OpenCL,
+					"-framework",
+					Metal,
+					"-framework",
+					CoreImage,
+					"-framework",
+					CoreGraphics,
+					"-lz",
+					"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
+					"-llibpng",
+					"-llibjpeg-turbo",
+					"-llibtiff",
+					"-llibwebp",
+					"-llibopenjp2",
+					"-lIlmImf",
+					"-lzlib",
+					"-littnotify",
+					"-ltegra_hal",
+					"-lkleidicv_hal",
+					"-lkleidicv_thread",
+					"-lkleidicv",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.rawViewerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = rawViewerTests/rawViewerTestsBridgingHeader.h;
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = xctest;
+			};
+			name = Debug;
+		};
+		B5DADD81867B47FAA4249629 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/cpp/include",
+					"$(PROJECT_DIR)/3rdPart/json",
+					"$(PROJECT_DIR)/3rdPart/yaml/include",
+					"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
+					"$(PROJECT_DIR)/3rdPart/libraw/include",
+				);
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/3rdPart/opencv/lib",
+					"$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
+					"$(PROJECT_DIR)/3rdPart/libraw/lib",
+					"$(PROJECT_DIR)/3rdPart/yaml/lib",
+				);
+				OTHER_LDFLAGS = (
+					"-lopencv_core",
+					"-lopencv_imgcodecs",
+					"-lopencv_imgproc",
+					"-lraw",
+					"-lyaml-cpp",
+					"-lc++",
+					"-framework",
+					Accelerate,
+					"-framework",
+					OpenCL,
+					"-framework",
+					Metal,
+					"-framework",
+					CoreImage,
+					"-framework",
+					CoreGraphics,
+					"-lz",
+					"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
+					"-llibpng",
+					"-llibjpeg-turbo",
+					"-llibtiff",
+					"-llibwebp",
+					"-llibopenjp2",
+					"-lIlmImf",
+					"-lzlib",
+					"-littnotify",
+					"-ltegra_hal",
+					"-lkleidicv_hal",
+					"-lkleidicv_thread",
+					"-lkleidicv",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.rawViewerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = rawViewerTests/rawViewerTestsBridgingHeader.h;
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = xctest;
+			};
+			name = Release;
+		};
 		D8DB71392FC92FEB00F93F82 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -648,8 +822,8 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_OBJC_BRIDGING_HEADER = rawViewer/rawViewerBridgingHeader.h;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = rawViewer/rawViewerBridgingHeader.h;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -728,252 +902,10 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_OBJC_BRIDGING_HEADER = rawViewer/rawViewerBridgingHeader.h;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = rawViewer/rawViewerBridgingHeader.h;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		41760C872A7B41F4A8BCB150 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = (
-				"$(PROJECT_DIR)/cpp/include",
-				"$(PROJECT_DIR)/3rdPart/json",
-				"$(PROJECT_DIR)/3rdPart/yaml/include",
-				"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
-				"$(PROJECT_DIR)/3rdPart/libraw/include",
-				);
-				LIBRARY_SEARCH_PATHS = (
-				"$(PROJECT_DIR)/3rdPart/opencv/lib",
-				"$(PROJECT_DIR)/3rdPart/libraw/lib",
-				"$(PROJECT_DIR)/3rdPart/yaml/lib",
-				);
-				OTHER_LDFLAGS = (
-				"-lopencv_core",
-				"-lopencv_imgcodecs",
-				"-lopencv_imgproc",
-				"-lraw",
-				"-lyaml-cpp",
-				"-lc++",
-				"-framework",
-				Accelerate,
-				"-framework",
-				OpenCL,
-				"-framework",
-				Metal,
-				"-framework",
-				CoreImage,
-				"-framework",
-				CoreGraphics,
-				"-lz",
-				"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-				"-llibpng",
-				"-llibjpeg-turbo",
-				"-llibtiff",
-				"-llibwebp",
-				"-llibopenjp2",
-				"-lIlmImf",
-				"-lzlib",
-				"-littnotify",
-				"-ltegra_hal",
-				"-lkleidicv_hal",
-				"-lkleidicv_thread",
-				"-lkleidicv",
-				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				ONLY_ACTIVE_ARCH = YES;
-				ARCHS = arm64;
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		07204A31C14B405AB4457E4C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = (
-				"$(PROJECT_DIR)/cpp/include",
-				"$(PROJECT_DIR)/3rdPart/json",
-				"$(PROJECT_DIR)/3rdPart/yaml/include",
-				"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
-				"$(PROJECT_DIR)/3rdPart/libraw/include",
-				);
-				LIBRARY_SEARCH_PATHS = (
-				"$(PROJECT_DIR)/3rdPart/opencv/lib",
-				"$(PROJECT_DIR)/3rdPart/libraw/lib",
-				"$(PROJECT_DIR)/3rdPart/yaml/lib",
-				);
-				OTHER_LDFLAGS = (
-				"-lopencv_core",
-				"-lopencv_imgcodecs",
-				"-lopencv_imgproc",
-				"-lraw",
-				"-lyaml-cpp",
-				"-lc++",
-				"-framework",
-				Accelerate,
-				"-framework",
-				OpenCL,
-				"-framework",
-				Metal,
-				"-framework",
-				CoreImage,
-				"-framework",
-				CoreGraphics,
-				"-lz",
-				"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-				"-llibpng",
-				"-llibjpeg-turbo",
-				"-llibtiff",
-				"-llibwebp",
-				"-llibopenjp2",
-				"-lIlmImf",
-				"-lzlib",
-				"-littnotify",
-				"-ltegra_hal",
-				"-lkleidicv_hal",
-				"-lkleidicv_thread",
-				"-lkleidicv",
-				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				ONLY_ACTIVE_ARCH = YES;
-				ARCHS = arm64;
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
-		91FD9F604DEC4E94BC16A4FA /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/cpp/include",
-					"$(PROJECT_DIR)/3rdPart/json",
-					"$(PROJECT_DIR)/3rdPart/yaml/include",
-					"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
-					"$(PROJECT_DIR)/3rdPart/libraw/include",
-				);
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@loader_path/Frameworks",
-					"@executable_path/../Frameworks",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/3rdPart/opencv/lib",
-					"$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-					"$(PROJECT_DIR)/3rdPart/libraw/lib",
-					"$(PROJECT_DIR)/3rdPart/yaml/lib",
-				);
-				OTHER_LDFLAGS = (
-					"-lopencv_core",
-					"-lopencv_imgcodecs",
-					"-lopencv_imgproc",
-					"-lraw",
-					"-lyaml-cpp",
-					"-lc++",
-					"-framework",
-					Accelerate,
-					"-framework",
-					OpenCL,
-					"-framework",
-					Metal,
-					"-framework",
-					CoreImage,
-					"-framework",
-					CoreGraphics,
-					"-lz",
-					"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-					"-llibpng",
-					"-llibjpeg-turbo",
-					"-llibtiff",
-					"-llibwebp",
-					"-llibopenjp2",
-					"-lIlmImf",
-					"-lzlib",
-					"-littnotify",
-					"-ltegra_hal",
-					"-lkleidicv_hal",
-					"-lkleidicv_thread",
-					"-lkleidicv",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.rawViewerTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_OBJC_BRIDGING_HEADER = rawViewerTests/rawViewerTestsBridgingHeader.h;
-				SWIFT_VERSION = 5.0;
-				WRAPPER_EXTENSION = xctest;
-			};
-			name = Debug;
-		};
-		B5DADD81867B47FAA4249629 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/cpp/include",
-					"$(PROJECT_DIR)/3rdPart/json",
-					"$(PROJECT_DIR)/3rdPart/yaml/include",
-					"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
-					"$(PROJECT_DIR)/3rdPart/libraw/include",
-				);
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@loader_path/Frameworks",
-					"@executable_path/../Frameworks",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/3rdPart/opencv/lib",
-					"$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-					"$(PROJECT_DIR)/3rdPart/libraw/lib",
-					"$(PROJECT_DIR)/3rdPart/yaml/lib",
-				);
-				OTHER_LDFLAGS = (
-					"-lopencv_core",
-					"-lopencv_imgcodecs",
-					"-lopencv_imgproc",
-					"-lraw",
-					"-lyaml-cpp",
-					"-lc++",
-					"-framework",
-					Accelerate,
-					"-framework",
-					OpenCL,
-					"-framework",
-					Metal,
-					"-framework",
-					CoreImage,
-					"-framework",
-					CoreGraphics,
-					"-lz",
-					"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-					"-llibpng",
-					"-llibjpeg-turbo",
-					"-llibtiff",
-					"-llibwebp",
-					"-llibopenjp2",
-					"-lIlmImf",
-					"-lzlib",
-					"-littnotify",
-					"-ltegra_hal",
-					"-lkleidicv_hal",
-					"-lkleidicv_thread",
-					"-lkleidicv",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.rawViewerTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_OBJC_BRIDGING_HEADER = rawViewerTests/rawViewerTestsBridgingHeader.h;
-				SWIFT_VERSION = 5.0;
-				WRAPPER_EXTENSION = xctest;
 			};
 			name = Release;
 		};
@@ -998,20 +930,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F41A89906BE14F78B2C96B05 /* Build configuration list for PBXNativeTarget "PhotoAnalyzerCLI" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				41760C872A7B41F4A8BCB150 /* Debug */,
-				07204A31C14B405AB4457E4C /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		F27453D2C9F041F4854BEBCB /* Build configuration list for PBXNativeTarget "rawViewerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				91FD9F604DEC4E94BC16A4FA /* Debug */,
 				B5DADD81867B47FAA4249629 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F41A89906BE14F78B2C96B05 /* Build configuration list for PBXNativeTarget "PhotoAnalyzerCLI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				41760C872A7B41F4A8BCB150 /* Debug */,
+				07204A31C14B405AB4457E4C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
