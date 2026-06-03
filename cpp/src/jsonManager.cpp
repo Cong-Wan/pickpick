@@ -1,11 +1,12 @@
 /*
  * Author: wilbur
- * Version: 1.3
- * Date: 2026-06-02
- * Description: 实现 .cache/analysis.json 的完整读写、App review 字段持久化、临时文件 rename 覆盖，并记录分析 backend；使用共享 summary counts 统计
+ * Version: 1.5
+ * Date: 2026-06-03
+ * Description: 实现 .cache/analysis.json 的完整读写、App review 字段持久化、拍摄时间写入、按 3 秒阈值生成重复组、临时文件 rename 覆盖，并记录分析 backend；使用共享 summary counts 统计；接入 photoMetadataReader 自动读取拍摄时间
  */
 
 #include "jsonManager.h"
+#include "photoMetadataReader.h"
 #include <nlohmann/json.hpp>
 #include <filesystem>
 #include <fstream>
@@ -13,6 +14,8 @@
 #include <iostream>
 #include <chrono>
 #include <ctime>
+#include <iomanip>
+#include <algorithm>
 
 using json = nlohmann::json;
 
@@ -34,6 +37,91 @@ static json configToJson(const BlurDetectionConfig& blur, const ExposureDetectio
     j["exposure_detection"]["overexpose_ratio_limit"] = exp.overexposeRatioLimit;
     j["exposure_detection"]["underexpose_ratio_limit"] = exp.underexposeRatioLimit;
     return j;
+}
+
+struct timeGroupCandidate {
+    std::string photoKey;
+    std::string photoId;
+    int64_t epochSeconds = 0;
+};
+
+static bool parseIsoUtcSeconds(const std::string& isoUtc, int64_t& epochSeconds) {
+    std::tm tmUtc = {};
+    std::istringstream input(isoUtc);
+    input >> std::get_time(&tmUtc, "%Y-%m-%dT%H:%M:%SZ");
+    if (input.fail()) {
+        return false;
+    }
+    tmUtc.tm_isdst = 0;
+    std::time_t parsed = timegm(&tmUtc);
+    if (parsed == static_cast<std::time_t>(-1)) {
+        return false;
+    }
+    epochSeconds = static_cast<int64_t>(parsed);
+    return true;
+}
+
+static void ensureShootingTimeFields(json& photos) {
+    for (auto& [key, val] : photos.items()) {
+        if (!val.contains("shooting_time")) {
+            val["shooting_time"] = nullptr;
+        }
+        if (!val.contains("shooting_time_source") || val["shooting_time_source"].is_null()) {
+            val["shooting_time_source"] = "none";
+        }
+    }
+}
+
+static void recomputeTimeDuplicateGroups(json& photos) {
+    constexpr int64_t kDuplicateThresholdSeconds = 3;
+    std::vector<timeGroupCandidate> candidates;
+
+    for (auto& [key, val] : photos.items()) {
+        val["review_group_id"] = "";
+        if (!val.contains("shooting_time") || !val["shooting_time"].is_string()) {
+            continue;
+        }
+
+        int64_t epochSeconds = 0;
+        if (!parseIsoUtcSeconds(val["shooting_time"].get<std::string>(), epochSeconds)) {
+            continue;
+        }
+
+        timeGroupCandidate candidate;
+        candidate.photoKey = key;
+        candidate.photoId = (val.contains("photo_id") && !val["photo_id"].is_null()) ? val["photo_id"].get<std::string>() : key;
+        candidate.epochSeconds = epochSeconds;
+        candidates.push_back(candidate);
+    }
+
+    std::sort(candidates.begin(), candidates.end(), [](const timeGroupCandidate& lhs, const timeGroupCandidate& rhs) {
+        if (lhs.epochSeconds != rhs.epochSeconds) {
+            return lhs.epochSeconds < rhs.epochSeconds;
+        }
+        return lhs.photoId < rhs.photoId;
+    });
+
+    int groupIndex = 1;
+    size_t index = 0;
+    while (index < candidates.size()) {
+        size_t groupStart = index;
+        int64_t groupStartEpoch = candidates[groupStart].epochSeconds;
+        index++;
+        while (index < candidates.size() && candidates[index].epochSeconds - groupStartEpoch <= kDuplicateThresholdSeconds) {
+            index++;
+        }
+
+        size_t groupSize = index - groupStart;
+        if (groupSize < 2) {
+            continue;
+        }
+
+        std::ostringstream groupId;
+        groupId << "dup_" << std::setw(3) << std::setfill('0') << groupIndex++;
+        for (size_t i = groupStart; i < index; ++i) {
+            photos[candidates[i].photoKey]["review_group_id"] = groupId.str();
+        }
+    }
 }
 
 class JsonManager::Impl {
@@ -110,7 +198,7 @@ void JsonManager::init(const std::string& folderPath, const std::string& configP
 
     if (!impl_->root_.contains("schema_version")) {
         impl_->root_ = json::object();
-        impl_->root_["schema_version"] = "1.3";
+        impl_->root_["schema_version"] = "1.4";
         impl_->root_["folder_path"] = folderPath;
         impl_->root_["config_path"] = configPath;
         impl_->root_["created_at"] = utcNow();
@@ -119,6 +207,7 @@ void JsonManager::init(const std::string& folderPath, const std::string& configP
         impl_->root_["photos"] = json::object();
     }
 
+    impl_->root_["schema_version"] = "1.4";
     impl_->root_["folder_path"] = folderPath;
     impl_->root_["config_path"] = configPath;
     impl_->initialized_ = true;
@@ -126,6 +215,7 @@ void JsonManager::init(const std::string& folderPath, const std::string& configP
 
 void JsonManager::mergeScannedPairs(const std::vector<PhotoPair>& pairs) {
     impl_->ensureInit();
+    photoMetadataReader metadataReader;
     for (const auto& pair : pairs) {
         auto& p = impl_->photo(pair.photoId);
         if (!p.contains("photo_id")) {
@@ -146,6 +236,8 @@ void JsonManager::mergeScannedPairs(const std::vector<PhotoPair>& pairs) {
             p["review_group_id"] = "";
             p["template_photo_id"] = "";
             p["trashed_at"] = "";
+            p["shooting_time"] = nullptr;
+            p["shooting_time_source"] = "none";
             p["created_at"] = utcNow();
         }
         if (!p.contains("review_status") || p["review_status"].is_null()) {
@@ -160,6 +252,12 @@ void JsonManager::mergeScannedPairs(const std::vector<PhotoPair>& pairs) {
         if (!p.contains("trashed_at") || p["trashed_at"].is_null()) {
             p["trashed_at"] = "";
         }
+        if (!p.contains("shooting_time")) {
+            p["shooting_time"] = nullptr;
+        }
+        if (!p.contains("shooting_time_source") || p["shooting_time_source"].is_null()) {
+            p["shooting_time_source"] = "none";
+        }
         // Update paths
         if (pair.hasJpg) {
             p["file_name"] = std::filesystem::path(pair.jpgPath).filename().string();
@@ -169,8 +267,21 @@ void JsonManager::mergeScannedPairs(const std::vector<PhotoPair>& pairs) {
             p["raw_file_name"] = std::filesystem::path(pair.rawPath).filename().string();
             p["raw_file_path"] = pair.rawPath;
         }
+
+        shootingTimeResult shootingTime = metadataReader.readBestShootingTime(
+            pair.hasRaw ? pair.rawPath : "",
+            pair.hasJpg ? pair.jpgPath : "");
+        if (shootingTime.found) {
+            p["shooting_time"] = shootingTime.isoUtc;
+            p["shooting_time_source"] = shootingTime.source;
+        } else {
+            p["shooting_time"] = nullptr;
+            p["shooting_time_source"] = "none";
+        }
         p["updated_at"] = utcNow();
     }
+    ensureShootingTimeFields(impl_->root_["photos"]);
+    recomputeTimeDuplicateGroups(impl_->root_["photos"]);
     impl_->updateSummary();
 }
 

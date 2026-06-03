@@ -1,15 +1,14 @@
 /*
  * Author: wilbur
- * Version: 1.2
- * Date: 2026-06-01
- * Description: 使用 LibRaw + OpenCV 将 RW2/CR2 转 JPG；使用相机白平衡、sRGB 输出、8-bit 数据；通过 RGB-to-BGR 转换确保 OpenCV 正确写入
+ * Version: 1.4
+ * Date: 2026-06-03
+ * Description: 使用 LibRaw 解码 RW2/CR2，并通过 ImageIO 一次性写出带基础 TIFF/EXIF 元信息的 JPG；接入 jpgWriter 模块替代 OpenCV imwrite
  */
 
 #include "rawConverter.h"
 #include "perfTimer.h"
-#include "rawJpgMat.h"
+#include "jpgWriter.h"
 #include <libraw.h>
-#include <opencv2/opencv.hpp>
 #include <filesystem>
 #include <fstream>
 
@@ -73,25 +72,37 @@ RawConvertResult RawConverter::convert(const RawConvertTask& task, const AppConf
         return result;
     }
 
-    cv::Mat mat;
-    try {
-        mat = makeJpgWriteMatFromDecodedImage(img->height, img->width, img->colors, img->data);
-    } catch (const std::exception& e) {
-        result.success = false;
-        result.error = "Unsupported decoded RAW image: " + std::string(e.what());
-        rawProcessor.dcraw_clear_mem(img);
-        return result;
+    jpgMetadata metadata;
+    metadata.quality = config.rawConversion.jpgQuality;
+    metadata.timestamp = static_cast<int64_t>(rawProcessor.imgdata.other.timestamp);
+    metadata.make = rawProcessor.imgdata.idata.make;
+    metadata.model = rawProcessor.imgdata.idata.model;
+    metadata.software = rawProcessor.imgdata.idata.software;
+    metadata.isoSpeed = rawProcessor.imgdata.other.iso_speed;
+    metadata.exposureTime = rawProcessor.imgdata.other.shutter;
+    metadata.fNumber = rawProcessor.imgdata.other.aperture;
+    metadata.focalLength = rawProcessor.imgdata.other.focal_len;
+    metadata.lensModel = rawProcessor.imgdata.lens.Lens;
+    if (rawProcessor.imgdata.lens.FocalLengthIn35mmFormat > 0) {
+        metadata.focalLength35mm = rawProcessor.imgdata.lens.FocalLengthIn35mmFormat;
+    } else if (rawProcessor.imgdata.lens.makernotes.FocalLengthIn35mmFormat > 0.0f) {
+        metadata.focalLength35mm = static_cast<int>(rawProcessor.imgdata.lens.makernotes.FocalLengthIn35mmFormat + 0.5f);
     }
+    if (rawProcessor.imgdata.shootinginfo.ExposureProgram > 0) {
+        metadata.exposureProgram = rawProcessor.imgdata.shootinginfo.ExposureProgram;
+    }
+    metadata.flash = rawProcessor.imgdata.color.flash_used > 0.0f ? 1 : 0;
+    metadata.hasFlash = true;
 
-    std::vector<int> params = {cv::IMWRITE_JPEG_QUALITY, config.rawConversion.jpgQuality};
+    std::string writeError;
     phaseTimer.reset();
-    bool written = cv::imwrite(task.outputJpgPath, mat, params);
+    bool written = writeJpgWithImageIo(task.outputJpgPath, img->width, img->height, img->colors, img->data, metadata, writeError);
     result.writeJpgMs = phaseTimer.elapsedMs();
     rawProcessor.dcraw_clear_mem(img);
 
     if (!written) {
         result.success = false;
-        result.error = "OpenCV imwrite failed: " + task.outputJpgPath;
+        result.error = "ImageIO write failed: " + writeError;
         return result;
     }
 

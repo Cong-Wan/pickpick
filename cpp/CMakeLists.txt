@@ -1,7 +1,7 @@
 # Author: wilbur
-# Version: 1.7
-# Date: 2026-06-02
-# Description: CMake build for rawViewer project；新增 macOS Metal-backed 图片分析源和 framework 链接；为 OBJCXX 目标开启 ARC，注册 objcRuntimeTests，并为测试目标启用 Metal diagnostics
+# Version: 1.10
+# Date: 2026-06-03
+# Description: CMake build for rawViewer project；新增 macOS Metal-backed 图片分析源、metadata reader、ImageIO JPG writer 和 framework 链接；为 OBJCXX 目标开启 ARC，注册 objcRuntimeTests，并为测试目标启用 Metal diagnostics；同步新增 jpgWriter 与 photoMetadataReader 源文件
 
 cmake_minimum_required(VERSION 3.16)
 project(rawViewer LANGUAGES CXX OBJCXX)
@@ -74,7 +74,9 @@ set(SOURCES
     src/gpuSupport.mm
     src/imageAnalyzer.cpp
     src/jsonManager.cpp
+    src/jpgWriter.mm
     src/macImageAnalyzer.mm
+    src/photoMetadataReader.mm
     src/rawConverter.cpp
     src/rawJpgMat.cpp
     src/resumePlanner.cpp
@@ -114,8 +116,10 @@ target_link_libraries(rawViewer PRIVATE
 if(APPLE)
     find_library(FOUNDATION_LIBRARY Foundation)
     find_library(APPKIT_LIBRARY AppKit)
+    find_library(IMAGEIO_LIBRARY ImageIO)
     find_library(COREGRAPHICS_LIBRARY CoreGraphics)
     find_library(COREIMAGE_LIBRARY CoreImage)
+    find_library(CORESERVICES_LIBRARY CoreServices)
     find_library(METAL_LIBRARY Metal)
     find_library(MPS_LIBRARY MetalPerformanceShaders)
     find_library(OPENCL_LIBRARY OpenCL)
@@ -123,8 +127,10 @@ if(APPLE)
     target_link_libraries(rawViewer PRIVATE
         ${FOUNDATION_LIBRARY}
         ${APPKIT_LIBRARY}
+        ${IMAGEIO_LIBRARY}
         ${COREGRAPHICS_LIBRARY}
         ${COREIMAGE_LIBRARY}
+        ${CORESERVICES_LIBRARY}
         ${METAL_LIBRARY}
         ${MPS_LIBRARY}
         ${OPENCL_LIBRARY}

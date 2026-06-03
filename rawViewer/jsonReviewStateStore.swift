@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-02
-Description: 提供 Swift 侧 review 状态更新接口，确保 JSON 更新成功后再记录操作并推进 UI
+Version: 1.2
+Date: 2026-06-03
+Description: 提供 Swift 侧 review 状态更新接口，确保 JSON 更新成功后再记录操作并推进 UI；提取 ISO8601DateFormatter 避免重复创建
 */
 
 import Foundation
@@ -59,6 +59,8 @@ public final class jsonReviewStateStore: jsonReviewStateStoring {
     }
 }
 
+private let isoFormatter = ISO8601DateFormatter()
+
 private func isoNow() -> String {
-    ISO8601DateFormatter().string(from: Date())
+    isoFormatter.string(from: Date())
 }

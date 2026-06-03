@@ -46,6 +46,10 @@
 		A10000000000000000000049 /* rawViewer/jsonReviewStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000053 /* rawViewer/jsonReviewStateStore.swift */; };
 		A1000000000000000000004A /* rawViewer/photoBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000054 /* rawViewer/photoBrowserViewController.swift */; };
 		A1000000000000000000004B /* rawViewer/duplicateCompareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000055 /* rawViewer/duplicateCompareViewController.swift */; };
+		A10000000000000000000064 /* rawViewer/main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000066 /* rawViewer/main.swift */; };
+		A10000000000000000000065 /* rawViewer/appDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000067 /* rawViewer/appDelegate.swift */; };
+		A10000000000000000000062 /* src/jpgWriter.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000060 /* src/jpgWriter.mm */; };
+		A10000000000000000000063 /* src/photoMetadataReader.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000061 /* src/photoMetadataReader.mm */; };
 		A76797A1E91643A2AC8B1E2A /* cpp/src/threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C436A86835A3415D8ABE383A /* cpp/src/threadPool.cpp */; };
 		B84C9CC29F1E4535B4B6A666 /* src/threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 658EF623F49F4E8BA73BF670 /* src/threadPool.cpp */; };
 		BCD572C60E754BBBA511220E /* cpp/src/resumePlanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0C0672C5D2F4C5B8AE7DB42 /* cpp/src/resumePlanner.cpp */; };
@@ -84,6 +88,10 @@
 		A10000000000000000000053 /* rawViewer/jsonReviewStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/jsonReviewStateStore.swift; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000054 /* rawViewer/photoBrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/photoBrowserViewController.swift; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000055 /* rawViewer/duplicateCompareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/duplicateCompareViewController.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000066 /* rawViewer/main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/main.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000067 /* rawViewer/appDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/appDelegate.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000060 /* src/jpgWriter.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/jpgWriter.mm; sourceTree = "<group>"; };
+		A10000000000000000000061 /* src/photoMetadataReader.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/photoMetadataReader.mm; sourceTree = "<group>"; };
 		AC8DCC74E21A4967979839AE /* cpp/src/fileScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/fileScanner.cpp; sourceTree = "<group>"; };
 		AE65D91F993140EC9176F938 /* src/appRunner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/appRunner.cpp; sourceTree = "<group>"; };
 		BB32040B54904569BDB64035 /* rawViewerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rawViewerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -144,6 +152,8 @@
 				A10000000000000000000005 /* src/macImageAnalyzer.mm */,
 				A10000000000000000000006 /* src/gpuSupport.mm */,
 				AE65D91F993140EC9176F938 /* src/appRunner.cpp */,
+				A10000000000000000000060 /* src/jpgWriter.mm */,
+				A10000000000000000000061 /* src/photoMetadataReader.mm */,
 			);
 			path = cpp;
 			sourceTree = "<group>";
@@ -171,6 +181,8 @@
 				A10000000000000000000053 /* rawViewer/jsonReviewStateStore.swift */,
 				A10000000000000000000054 /* rawViewer/photoBrowserViewController.swift */,
 				A10000000000000000000055 /* rawViewer/duplicateCompareViewController.swift */,
+				A10000000000000000000066 /* rawViewer/main.swift */,
+				A10000000000000000000067 /* rawViewer/appDelegate.swift */,
 				703942AC0593451B98A8D65F /* cpp/src/taskState.cpp */,
 				1AA69733F7184F559F4E3773 /* cpp/src/configLoader.cpp */,
 				AC8DCC74E21A4967979839AE /* cpp/src/fileScanner.cpp */,
@@ -182,6 +194,7 @@
 				A10000000000000000000007 /* cpp/src/macImageAnalyzer.mm */,
 				A10000000000000000000008 /* cpp/src/gpuSupport.mm */,
 				CF3BE81B0BCF41EAB06427F4 /* cpp/src/appRunner.cpp */,
+				A10000000000000000000013 /* rawViewerTests */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -354,6 +367,8 @@
 				A10000000000000000000049 /* rawViewer/jsonReviewStateStore.swift in Sources */,
 				A1000000000000000000004A /* rawViewer/photoBrowserViewController.swift in Sources */,
 				A1000000000000000000004B /* rawViewer/duplicateCompareViewController.swift in Sources */,
+				A10000000000000000000064 /* rawViewer/main.swift in Sources */,
+				A10000000000000000000065 /* rawViewer/appDelegate.swift in Sources */,
 				88DCC893FC624A2087B49DC5 /* cpp/src/taskState.cpp in Sources */,
 				C32E0AF602CE46B886ADCCF3 /* cpp/src/configLoader.cpp in Sources */,
 				907741988F7F4F8EBE786674 /* cpp/src/fileScanner.cpp in Sources */,
@@ -383,6 +398,8 @@
 				A10000000000000000000038 /* src/appRunner.cpp in Sources */,
 				A10000000000000000000039 /* src/macImageAnalyzer.mm in Sources */,
 				A1000000000000000000003A /* src/gpuSupport.mm in Sources */,
+				A10000000000000000000062 /* src/jpgWriter.mm in Sources */,
+				A10000000000000000000063 /* src/photoMetadataReader.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -504,6 +521,7 @@
 		91FD9F604DEC4E94BC16A4FA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = arm64;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -569,6 +587,7 @@
 		B5DADD81867B47FAA4249629 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = arm64;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -752,6 +771,7 @@
 		D8DB713C2FC92FEB00F93F82 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -832,6 +852,7 @@
 		D8DB713D2FC92FEB00F93F82 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;

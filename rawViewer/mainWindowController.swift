@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-02
-Description: 协调 AppKit 主窗口状态切换，缓存当前文件夹，并在无缓存 JSON 时启动真实分析流程
+Version: 1.2
+Date: 2026-06-03
+Description: 修复零参数初始化器继承歧义导致的 window 为 nil 问题
 */
 
 import AppKit
@@ -23,6 +23,10 @@ public final class mainWindowController: NSWindowController {
     public private(set) var currentFolderUrl: URL?
     public var analyzer: photoAnalyzerBridge
 
+    public convenience init() {
+        self.init(analyzer: photoAnalyzerBridge())
+    }
+
     public convenience init(analyzer: photoAnalyzerBridge = photoAnalyzerBridge()) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1100, height: 760),
@@ -32,8 +36,10 @@ public final class mainWindowController: NSWindowController {
         )
         window.title = "rawViewer"
         window.minSize = NSSize(width: 760, height: 520)
+        window.center()
         self.init(window: window)
         self.analyzer = analyzer
+        NSLog("🔥 mainWindowController init done, window=%@", window)
         showStart()
     }
 
@@ -55,6 +61,8 @@ public final class mainWindowController: NSWindowController {
             self?.startAnalysis(folderUrl: url)
         }
         window?.contentViewController = controller
+        window?.makeKeyAndOrderFront(nil)
+        NSLog("🔥 showStart done, window.isVisible=%@", window?.isVisible ?? false ? "YES" : "NO")
     }
 
     public func startAnalysis(folderUrl: URL) {

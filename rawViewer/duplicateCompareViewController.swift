@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.0
-Date: 2026-06-02
-Description: 实现重复照片双图比较状态机、keep/pass/template 决策和最小 AppKit 比较界面
+Version: 1.1
+Date: 2026-06-03
+Description: 实现重复照片双图比较状态机、keep/pass/template 决策和最小 AppKit 比较界面；修复数组越界边界条件
 */
 
 import AppKit
@@ -29,7 +29,7 @@ public final class duplicateCompareState {
         }
         try store.mark(photoId: right.photoId, status: .trashed)
         photos.remove(at: candidateIndex)
-        candidateIndex = min(1, photos.count)
+        candidateIndex = min(1, max(0, photos.count - 1))
         try finishIfSingleRemaining()
     }
 
@@ -42,7 +42,7 @@ public final class duplicateCompareState {
         photos.remove(at: mainIndex)
         if let newMainIndex = photos.firstIndex(where: { $0.photoId == right.photoId }) {
             mainIndex = newMainIndex
-            candidateIndex = min(newMainIndex + 1, photos.count)
+            candidateIndex = min(newMainIndex + 1, max(0, photos.count - 1))
         }
         try finishIfSingleRemaining()
     }
