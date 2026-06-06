@@ -46,10 +46,11 @@
 		A10000000000000000000049 /* rawViewer/jsonReviewStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000053 /* rawViewer/jsonReviewStateStore.swift */; };
 		A1000000000000000000004A /* rawViewer/photoBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000054 /* rawViewer/photoBrowserViewController.swift */; };
 		A1000000000000000000004B /* rawViewer/duplicateCompareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000055 /* rawViewer/duplicateCompareViewController.swift */; };
-		A10000000000000000000064 /* rawViewer/main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000066 /* rawViewer/main.swift */; };
-		A10000000000000000000065 /* rawViewer/appDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000067 /* rawViewer/appDelegate.swift */; };
 		A10000000000000000000062 /* src/jpgWriter.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000060 /* src/jpgWriter.mm */; };
 		A10000000000000000000063 /* src/photoMetadataReader.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000061 /* src/photoMetadataReader.mm */; };
+		A10000000000000000000064 /* rawViewer/main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000066 /* rawViewer/main.swift */; };
+		A10000000000000000000065 /* rawViewer/appDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000067 /* rawViewer/appDelegate.swift */; };
+		A10000000000000000000071 /* groupCollectionViewItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000072 /* groupCollectionViewItem.swift */; };
 		A76797A1E91643A2AC8B1E2A /* cpp/src/threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C436A86835A3415D8ABE383A /* cpp/src/threadPool.cpp */; };
 		B84C9CC29F1E4535B4B6A666 /* src/threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 658EF623F49F4E8BA73BF670 /* src/threadPool.cpp */; };
 		BCD572C60E754BBBA511220E /* cpp/src/resumePlanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C0C0672C5D2F4C5B8AE7DB42 /* cpp/src/resumePlanner.cpp */; };
@@ -88,10 +89,11 @@
 		A10000000000000000000053 /* rawViewer/jsonReviewStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/jsonReviewStateStore.swift; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000054 /* rawViewer/photoBrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/photoBrowserViewController.swift; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000055 /* rawViewer/duplicateCompareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/duplicateCompareViewController.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000066 /* rawViewer/main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/main.swift; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000067 /* rawViewer/appDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/appDelegate.swift; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000060 /* src/jpgWriter.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/jpgWriter.mm; sourceTree = "<group>"; };
 		A10000000000000000000061 /* src/photoMetadataReader.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/photoMetadataReader.mm; sourceTree = "<group>"; };
+		A10000000000000000000066 /* rawViewer/main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/main.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000067 /* rawViewer/appDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = rawViewer/appDelegate.swift; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000072 /* groupCollectionViewItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = groupCollectionViewItem.swift; sourceTree = SOURCE_ROOT; };
 		AC8DCC74E21A4967979839AE /* cpp/src/fileScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cpp/src/fileScanner.cpp; sourceTree = "<group>"; };
 		AE65D91F993140EC9176F938 /* src/appRunner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/appRunner.cpp; sourceTree = "<group>"; };
 		BB32040B54904569BDB64035 /* rawViewerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rawViewerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -177,6 +179,7 @@
 				A10000000000000000000043 /* rawViewer/progressViewController.swift */,
 				A10000000000000000000050 /* rawViewer/photoThumbnailCache.swift */,
 				A10000000000000000000051 /* rawViewer/groupGridViewController.swift */,
+				A10000000000000000000072 /* groupCollectionViewItem.swift */,
 				A10000000000000000000052 /* rawViewer/metalPhotoView.swift */,
 				A10000000000000000000053 /* rawViewer/jsonReviewStateStore.swift */,
 				A10000000000000000000054 /* rawViewer/photoBrowserViewController.swift */,
@@ -363,6 +366,7 @@
 				A10000000000000000000041 /* rawViewer/progressViewController.swift in Sources */,
 				A10000000000000000000046 /* rawViewer/photoThumbnailCache.swift in Sources */,
 				A10000000000000000000047 /* rawViewer/groupGridViewController.swift in Sources */,
+				A10000000000000000000071 /* groupCollectionViewItem.swift in Sources */,
 				A10000000000000000000048 /* rawViewer/metalPhotoView.swift in Sources */,
 				A10000000000000000000049 /* rawViewer/jsonReviewStateStore.swift in Sources */,
 				A1000000000000000000004A /* rawViewer/photoBrowserViewController.swift in Sources */,

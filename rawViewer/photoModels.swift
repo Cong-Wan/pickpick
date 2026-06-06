@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.0
-Date: 2026-06-02
-Description: 定义照片、分组、进度和显示源模型，并提供可见分组与偏好持久化辅助逻辑
+Version: 1.2
+Date: 2026-06-06
+Description: 定义照片、分组、进度、显示源与网格路由模型，并提供可见分组与偏好持久化辅助逻辑；makeVisiblePhotoGroups 中 non-duplicate 分组排除 reviewGroupId 非空的照片
 */
 
 import Foundation
@@ -96,6 +96,11 @@ public enum photoGroupKind: Equatable {
     }
 }
 
+public enum groupRoute: Equatable {
+    case browser
+    case duplicateCompare
+}
+
 public struct photoGroup: Equatable, Identifiable {
     public var id: String {
         switch kind {
@@ -120,10 +125,10 @@ public func makeVisiblePhotoGroups(from photos: [photoItem]) -> [photoGroup] {
     let visiblePhotos = photos.filter { $0.reviewStatus != .passed && $0.reviewStatus != .trashed }
     var groups: [photoGroup] = []
 
-    appendGroup(.overexposed, photos: visiblePhotos.filter { $0.exposureStatus == "overexposed" }, into: &groups)
-    appendGroup(.underexposed, photos: visiblePhotos.filter { $0.exposureStatus == "underexposed" }, into: &groups)
-    appendGroup(.blurry, photos: visiblePhotos.filter(\.isBlurry), into: &groups)
-    appendGroup(.normal, photos: visiblePhotos.filter { !$0.isBlurry && $0.exposureStatus == "normal" }, into: &groups)
+    appendGroup(.overexposed, photos: visiblePhotos.filter { $0.exposureStatus == "overexposed" && $0.reviewGroupId.isEmpty }, into: &groups)
+    appendGroup(.underexposed, photos: visiblePhotos.filter { $0.exposureStatus == "underexposed" && $0.reviewGroupId.isEmpty }, into: &groups)
+    appendGroup(.blurry, photos: visiblePhotos.filter { $0.isBlurry && $0.reviewGroupId.isEmpty }, into: &groups)
+    appendGroup(.normal, photos: visiblePhotos.filter { !$0.isBlurry && $0.exposureStatus == "normal" && $0.reviewGroupId.isEmpty }, into: &groups)
 
     let duplicateGroupIds = Array(Set(visiblePhotos.map(\.reviewGroupId).filter { !$0.isEmpty })).sorted()
     for reviewGroupId in duplicateGroupIds {

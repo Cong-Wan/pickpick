@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.2
-Date: 2026-06-03
-Description: 提供 Swift 侧 review 状态更新接口，确保 JSON 更新成功后再记录操作并推进 UI；提取 ISO8601DateFormatter 避免重复创建
+Version: 1.3
+Date: 2026-06-06
+Description: 提供 Swift 侧 review 状态更新接口，新增 clearReviewGroupId 方法用于 Duplicate 完成后清空 reviewGroupId
 */
 
 import Foundation
@@ -15,6 +15,7 @@ public enum reviewOperation: Equatable {
 public protocol jsonReviewStateStoring: AnyObject {
     func mark(photoId: String, status: reviewStatus) throws
     func setTemplate(reviewGroupId: String, templatePhotoId: String) throws
+    func clearReviewGroupId(photoId: String) throws
 }
 
 public final class jsonReviewStateStore: jsonReviewStateStoring {
@@ -44,6 +45,14 @@ public final class jsonReviewStateStore: jsonReviewStateStoring {
             }
         }
         operations.append(.template(reviewGroupId: reviewGroupId, templatePhotoId: templatePhotoId))
+    }
+
+    public func clearReviewGroupId(photoId: String) throws {
+        try updateJson { photos in
+            guard var photo = photos[photoId] as? [String: Any] else { return }
+            photo["review_group_id"] = ""
+            photos[photoId] = photo
+        }
     }
 
     private func updateJson(_ mutate: (inout [String: Any]) -> Void) throws {

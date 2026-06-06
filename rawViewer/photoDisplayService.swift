@@ -1,0 +1,97 @@
+/*
+Author: wilbur
+Version: 1.1
+Date: 2026-06-06
+Description: JPG/RAW display 图加载服务，独立缓存 JPG(20) 和 RAW(10)，拒绝超大 RAW 文件；闭包内重新生成 key 避免捕获非 Sendable NSString
+*/
+
+import AppKit
+import CoreImage
+
+public final class photoDisplayService {
+    private let jpgCache = NSCache<NSString, photoCachedImage>()
+    private let rawCache = NSCache<NSString, photoCachedImage>()
+    private let fileManager: FileManager
+
+    public init(fileManager: FileManager = .default) {
+        self.fileManager = fileManager
+        jpgCache.countLimit = 20
+        rawCache.countLimit = 10
+    }
+
+    public func loadDisplayJpg(for photo: photoItem) async -> photoImageResult {
+        let key = "\(photo.photoId)|displayJpg" as NSString
+        if let cached = jpgCache.object(forKey: key) {
+            return .image(cached.image)
+        }
+
+        let photoId = photo.photoId
+        let jpgPath = photo.jpgPath
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self else {
+                    continuation.resume(returning: .unavailable("Service deallocated"))
+                    return
+                }
+                let key = "\(photoId)|displayJpg" as NSString
+                let result = self.loadJpg(jpgPath: jpgPath)
+                if case .image(let image) = result {
+                    self.jpgCache.setObject(photoCachedImage(image: image), forKey: key)
+                }
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
+    public func loadDisplayRaw(for photo: photoItem) async -> photoImageResult {
+        let key = "\(photo.photoId)|displayRaw" as NSString
+        if let cached = rawCache.object(forKey: key) {
+            return .image(cached.image)
+        }
+
+        let photoId = photo.photoId
+        let rawPath = photo.rawPath
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self else {
+                    continuation.resume(returning: .unavailable("Service deallocated"))
+                    return
+                }
+                let key = "\(photoId)|displayRaw" as NSString
+                let result = self.loadRaw(rawPath: rawPath)
+                if case .image(let image) = result {
+                    self.rawCache.setObject(photoCachedImage(image: image), forKey: key)
+                }
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
+    private func loadJpg(jpgPath: String) -> photoImageResult {
+        guard fileManager.fileExists(atPath: jpgPath) else {
+            return .unavailable("Missing JPG")
+        }
+        guard let image = CIImage(contentsOf: URL(fileURLWithPath: jpgPath)) else {
+            return .unavailable("Cannot decode JPG")
+        }
+        return .image(image)
+    }
+
+    private func loadRaw(rawPath: String?) -> photoImageResult {
+        guard let rawPath, !rawPath.isEmpty else {
+            return .unavailable("RAW missing")
+        }
+        guard fileManager.fileExists(atPath: rawPath) else {
+            return .unavailable("Missing RAW")
+        }
+        if let attrs = try? fileManager.attributesOfItem(atPath: rawPath),
+           let fileSize = attrs[.size] as? UInt64, fileSize > 1_000_000_000 {
+            return .unavailable("RAW too large")
+        }
+        guard let filter = CIFilter(imageURL: URL(fileURLWithPath: rawPath), options: nil),
+              let image = filter.outputImage else {
+            return .unavailable("Cannot decode RAW")
+        }
+        return .image(image)
+    }
+}
