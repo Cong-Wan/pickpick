@@ -12,4 +12,5 @@ clip-vit-large-patch14/
 /tests/
 build/
 3rdparty/opencv-src/
+docs/recipe/layout/
 
