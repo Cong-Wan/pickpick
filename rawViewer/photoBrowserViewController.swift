@@ -27,15 +27,15 @@ public final class photoBrowserViewController: NSViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
-    public convenience init(group: photoGroup, store: jsonReviewStateStoring, imageService: photoImageService = photoImageService()) {
+    public convenience init(group: photoGroup, store: jsonReviewStateStoring, trashService: photoTrashServicing = photoTrashService(), imageService: photoImageService = photoImageService()) {
         let initialSource = displaySourceStore().current
-        let viewModel = photoBrowserViewModel(photos: group.photos, store: store, displaySource: initialSource)
+        let viewModel = photoBrowserViewModel(photos: group.photos, store: store, trashService: trashService, displaySource: initialSource)
         self.init(viewModel: viewModel, imageService: imageService)
         self.groupTitle = group.kind.title
     }
 
     required init?(coder: NSCoder) {
-        self.viewModel = photoBrowserViewModel(photos: [], store: jsonReviewStateStore())
+        self.viewModel = photoBrowserViewModel(photos: [], store: jsonReviewStateStore(), trashService: photoTrashService())
         self.imageService = photoImageService()
         self.groupTitle = "Browser"
         super.init(coder: coder)

@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.0
+Version: 1.2
 Date: 2026-06-06
-Description: 导航协调器，持有 records/groups 作为全 app 数据单一来源，管理 screenState 状态机，路由分发到各 VC
+Description: 导航协调器，持有 records/groups 作为全 app 数据单一来源，管理 screenState 状态机，路由分发到各 VC；持有 trashService 实例并注入到各 ViewModel；加载 records 后自动调用 trashService 清理已标记为 trash 的照片文件
 */
 
 import AppKit
@@ -25,12 +25,14 @@ public final class appCoordinator: appCoordinating {
     private weak var window: NSWindow?
     private let analyzer: photoAnalyzerBridge
     private let imageService: photoImageService
+    private let trashService: photoTrashServicing
     public private(set) var currentFolderUrl: URL?
 
-    public init(window: NSWindow, analyzer: photoAnalyzerBridge, imageService: photoImageService = photoImageService()) {
+    public init(window: NSWindow, analyzer: photoAnalyzerBridge, imageService: photoImageService = photoImageService(), trashService: photoTrashServicing = photoTrashService()) {
         self.window = window
         self.analyzer = analyzer
         self.imageService = imageService
+        self.trashService = trashService
     }
 
     public func startAnalysis(folderUrl: URL) {
@@ -45,6 +47,7 @@ public final class appCoordinator: appCoordinating {
                 if FileManager.default.fileExists(atPath: folderUrl.appendingPathComponent(".cache/analysis.json").path) {
                     let loadedRecords = try analyzer.loadAnalysisResult(folderUrl: folderUrl)
                     self.records = loadedRecords
+                    self.trashService.cleanupTrashedPhotos(self.records)
                     self.showGroups()
                     return
                 }
@@ -52,6 +55,7 @@ public final class appCoordinator: appCoordinating {
                     progressController.update(progress: progress)
                 }
                 self.records = try analyzer.loadAnalysisResult(folderUrl: folderUrl)
+                self.trashService.cleanupTrashedPhotos(self.records)
                 self.showGroups()
             } catch {
                 self.screenState = .error(error.localizedDescription)
@@ -100,6 +104,7 @@ public final class appCoordinator: appCoordinating {
         let viewModel = photoBrowserViewModel(
             photos: group.photos,
             store: store,
+            trashService: trashService,
             displaySource: displaySourceStore().current
         )
         let browser = photoBrowserViewController(viewModel: viewModel, imageService: imageService)
@@ -112,7 +117,7 @@ public final class appCoordinator: appCoordinating {
     public func showDuplicate(group: photoGroup) {
         screenState = .duplicateCompare
         let store = jsonReviewStateStore(folderUrl: currentFolderUrl)
-        let viewModel = duplicateCompareViewModel(photos: group.photos, store: store)
+        let viewModel = duplicateCompareViewModel(photos: group.photos, store: store, trashService: trashService)
         let duplicate = duplicateCompareViewController(viewModel: viewModel, imageService: imageService)
         duplicate.onBack = { [weak self] in
             self?.showGroups()

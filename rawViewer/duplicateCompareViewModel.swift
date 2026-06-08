@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.3
+Version: 1.4
 Date: 2026-06-08
-Description: 修复 keepBoth：保留当前两张后从 photos 数组移除，根据剩余数量自动收尾或继续比较
+Description: 注入 photoTrashService，keepLeft/keepRight 在标记 JSON 前先将文件移入废纸篓
 */
 
 import Foundation
@@ -17,10 +17,12 @@ public final class duplicateCompareViewModel {
     public private(set) var mainIndex: Int = 0
     public private(set) var candidateIndex: Int = 1
     private let store: jsonReviewStateStoring
+    private let trashService: photoTrashServicing
 
-    public init(photos: [photoItem], store: jsonReviewStateStoring) {
+    public init(photos: [photoItem], store: jsonReviewStateStoring, trashService: photoTrashServicing) {
         self.photos = photos
         self.store = store
+        self.trashService = trashService
     }
 
     public var mainPhoto: photoItem? { photos.indices.contains(mainIndex) ? photos[mainIndex] : nil }
@@ -32,6 +34,7 @@ public final class duplicateCompareViewModel {
             try markFinalKept(left)
             return .finished
         }
+        try trashService.trash(right)
         try store.mark(photoId: right.photoId, status: .trashed)
         photos.removeAll { $0.photoId == right.photoId }
         if photos.count == 1 {
@@ -49,6 +52,7 @@ public final class duplicateCompareViewModel {
             try markFinalKept(left)
             return .finished
         }
+        try trashService.trash(left)
         try store.mark(photoId: left.photoId, status: .trashed)
         photos.removeAll { $0.photoId == left.photoId }
         if photos.count == 1 {

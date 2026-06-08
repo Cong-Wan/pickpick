@@ -27,7 +27,7 @@ public final class duplicateCompareViewController: NSViewController {
     }
 
     required init?(coder: NSCoder) {
-        self.viewModel = duplicateCompareViewModel(photos: [], store: jsonReviewStateStore())
+        self.viewModel = duplicateCompareViewModel(photos: [], store: jsonReviewStateStore(), trashService: photoTrashService())
         self.imageService = photoImageService()
         super.init(coder: coder)
     }
