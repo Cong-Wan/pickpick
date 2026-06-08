@@ -49,12 +49,12 @@
 		A10000000000000000000061 /* src/photoMetadataReader.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/photoMetadataReader.mm; sourceTree = "<group>"; };
 		AE65D91F993140EC9176F938 /* src/appRunner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/appRunner.cpp; sourceTree = "<group>"; };
 		CBFD07FF7E2F464E8E4F405A /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		D8DB71302FC92FEA00F93F82 /* rawViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rawViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D8DB71302FC92FEA00F93F82 /* pickpick.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pickpick.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAD190DAD67B4AA1B4E5E90A /* src/imageAnalyzer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/imageAnalyzer.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		D8DB71322FC92FEA00F93F82 /* rawViewer */ = {
+		D8DB71322FC92FEA00F93F82 /* pickpick */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = rawViewer;
 			sourceTree = "<group>";
@@ -103,7 +103,7 @@
 		D8DB71272FC92FEA00F93F82 = {
 			isa = PBXGroup;
 			children = (
-				D8DB71322FC92FEA00F93F82 /* rawViewer */,
+				D8DB71322FC92FEA00F93F82 /* pickpick */,
 				4AE33933EEF34E19AF7037C3 /* cpp */,
 				D8DB71312FC92FEA00F93F82 /* Products */,
 			);
@@ -112,7 +112,7 @@
 		D8DB71312FC92FEA00F93F82 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D8DB71302FC92FEA00F93F82 /* rawViewer.app */,
+				D8DB71302FC92FEA00F93F82 /* pickpick.app */,
 				1A09E7E71F19468D8B698756 /* PhotoAnalyzerCLI */,
 			);
 			name = Products;
@@ -139,9 +139,9 @@
 			productReference = 1A09E7E71F19468D8B698756 /* PhotoAnalyzerCLI */;
 			productType = "com.apple.product-type.tool";
 		};
-		D8DB712F2FC92FEA00F93F82 /* rawViewer */ = {
+		D8DB712F2FC92FEA00F93F82 /* pickpick */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D8DB713B2FC92FEB00F93F82 /* Build configuration list for PBXNativeTarget "rawViewer" */;
+			buildConfigurationList = D8DB713B2FC92FEB00F93F82 /* Build configuration list for PBXNativeTarget "pickpick" */;
 			buildPhases = (
 				D8DB712C2FC92FEA00F93F82 /* Sources */,
 				D8DB712D2FC92FEA00F93F82 /* Frameworks */,
@@ -153,13 +153,13 @@
 			);
 			fileSystemSynchronizedGroups = (
 				4AE33933EEF34E19AF7037C3 /* cpp */,
-				D8DB71322FC92FEA00F93F82 /* rawViewer */,
+				D8DB71322FC92FEA00F93F82 /* pickpick */,
 			);
-			name = rawViewer;
+			name = pickpick;
 			packageProductDependencies = (
 			);
-			productName = rawViewer;
-			productReference = D8DB71302FC92FEA00F93F82 /* rawViewer.app */;
+			productName = pickpick;
+			productReference = D8DB71302FC92FEA00F93F82 /* pickpick.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -177,7 +177,7 @@
 					};
 				};
 			};
-			buildConfigurationList = D8DB712B2FC92FEA00F93F82 /* Build configuration list for PBXProject "rawViewer" */;
+			buildConfigurationList = D8DB712B2FC92FEA00F93F82 /* Build configuration list for PBXProject "pickpick" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -191,7 +191,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				D8DB712F2FC92FEA00F93F82 /* rawViewer */,
+				D8DB712F2FC92FEA00F93F82 /* pickpick */,
 				28E1281724674CF8AE843240 /* PhotoAnalyzerCLI */,
 			);
 		};
@@ -548,7 +548,7 @@
 					"-lkleidicv_thread",
 					"-lkleidicv",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.rawViewer;
+				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.pickpick;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -629,7 +629,7 @@
 					"-lkleidicv_thread",
 					"-lkleidicv",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.rawViewer;
+				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.pickpick;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -645,7 +645,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D8DB712B2FC92FEA00F93F82 /* Build configuration list for PBXProject "rawViewer" */ = {
+		D8DB712B2FC92FEA00F93F82 /* Build configuration list for PBXProject "pickpick" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D8DB71392FC92FEB00F93F82 /* Debug */,
@@ -654,7 +654,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D8DB713B2FC92FEB00F93F82 /* Build configuration list for PBXNativeTarget "rawViewer" */ = {
+		D8DB713B2FC92FEB00F93F82 /* Build configuration list for PBXNativeTarget "pickpick" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D8DB713C2FC92FEB00F93F82 /* Debug */,
