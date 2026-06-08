@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.2
-Date: 2026-06-06
-Description: duplicate compare ViewModel，markFinalKept 和 keepBoth 均新增 clearReviewGroupId 调用
+Version: 1.3
+Date: 2026-06-08
+Description: 修复 keepBoth：保留当前两张后从 photos 数组移除，根据剩余数量自动收尾或继续比较
 */
 
 import Foundation
@@ -69,10 +69,26 @@ public final class duplicateCompareViewModel {
             try store.mark(photoId: right.photoId, status: .kept)
             try store.clearReviewGroupId(photoId: right.photoId)
         }
-        if let groupId = mainPhoto?.reviewGroupId, !groupId.isEmpty {
-            try store.setTemplate(reviewGroupId: groupId, templatePhotoId: templatePhotoId)
+
+        let keptIds = Set([mainPhoto, candidatePhoto].compactMap { $0?.photoId })
+        photos.removeAll { keptIds.contains($0.photoId) }
+
+        switch photos.count {
+        case 0:
+            return .finished
+        case 1:
+            if let last = photos.first {
+                try markFinalKept(last)
+            }
+            return .finished
+        default:
+            if let groupId = mainPhoto?.reviewGroupId, !groupId.isEmpty {
+                try store.setTemplate(reviewGroupId: groupId, templatePhotoId: templatePhotoId)
+            }
+            mainIndex = 0
+            candidateIndex = min(1, photos.count - 1)
+            return .continueComparing
         }
-        return .finished
     }
 
     private func markFinalKept(_ photo: photoItem) throws {

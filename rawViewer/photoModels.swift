@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.2
-Date: 2026-06-06
-Description: 定义照片、分组、进度、显示源与网格路由模型，并提供可见分组与偏好持久化辅助逻辑；makeVisiblePhotoGroups 中 non-duplicate 分组排除 reviewGroupId 非空的照片
+Version: 1.3
+Date: 2026-06-08
+Description: 修复 makeVisiblePhotoGroups 中单张 orphan 重复分组的问题：仅当 reviewGroupId 下可见照片数 >= 2 时才创建 duplicate 分组，否则 orphan 归入常规分组
 */
 
 import Foundation
@@ -125,13 +125,21 @@ public func makeVisiblePhotoGroups(from photos: [photoItem]) -> [photoGroup] {
     let visiblePhotos = photos.filter { $0.reviewStatus != .passed && $0.reviewStatus != .trashed }
     var groups: [photoGroup] = []
 
-    appendGroup(.overexposed, photos: visiblePhotos.filter { $0.exposureStatus == "overexposed" && $0.reviewGroupId.isEmpty }, into: &groups)
-    appendGroup(.underexposed, photos: visiblePhotos.filter { $0.exposureStatus == "underexposed" && $0.reviewGroupId.isEmpty }, into: &groups)
-    appendGroup(.blurry, photos: visiblePhotos.filter { $0.isBlurry && $0.reviewGroupId.isEmpty }, into: &groups)
-    appendGroup(.normal, photos: visiblePhotos.filter { !$0.isBlurry && $0.exposureStatus == "normal" && $0.reviewGroupId.isEmpty }, into: &groups)
+    let groupCounts = Dictionary(grouping: visiblePhotos, by: \.reviewGroupId)
+        .filter { !$0.key.isEmpty }
+        .mapValues { $0.count }
+    let validDuplicateIds = Set(groupCounts.filter { $0.value >= 2 }.keys)
 
-    let duplicateGroupIds = Array(Set(visiblePhotos.map(\.reviewGroupId).filter { !$0.isEmpty })).sorted()
-    for reviewGroupId in duplicateGroupIds {
+    func isInValidDuplicateGroup(_ photo: photoItem) -> Bool {
+        !photo.reviewGroupId.isEmpty && validDuplicateIds.contains(photo.reviewGroupId)
+    }
+
+    appendGroup(.overexposed, photos: visiblePhotos.filter { $0.exposureStatus == "overexposed" && !isInValidDuplicateGroup($0) }, into: &groups)
+    appendGroup(.underexposed, photos: visiblePhotos.filter { $0.exposureStatus == "underexposed" && !isInValidDuplicateGroup($0) }, into: &groups)
+    appendGroup(.blurry, photos: visiblePhotos.filter { $0.isBlurry && !isInValidDuplicateGroup($0) }, into: &groups)
+    appendGroup(.normal, photos: visiblePhotos.filter { !$0.isBlurry && $0.exposureStatus == "normal" && !isInValidDuplicateGroup($0) }, into: &groups)
+
+    for reviewGroupId in validDuplicateIds.sorted() {
         appendGroup(.duplicate(reviewGroupId: reviewGroupId), photos: visiblePhotos.filter { $0.reviewGroupId == reviewGroupId }, into: &groups)
     }
 
