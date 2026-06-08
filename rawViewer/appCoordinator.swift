@@ -51,7 +51,18 @@ public final class appCoordinator: appCoordinating {
                     self.showGroups()
                     return
                 }
-                _ = try await analyzer.startAnalysis(folderUrl: folderUrl, configUrl: folderUrl.appendingPathComponent("config.yaml")) { progress in
+                let userConfigUrl = folderUrl.appendingPathComponent("config.yaml")
+                let configUrl: URL
+                if FileManager.default.fileExists(atPath: userConfigUrl.path) {
+                    configUrl = userConfigUrl
+                } else if let bundled = Bundle.main.url(forResource: "config", withExtension: "yaml") {
+                    configUrl = bundled
+                } else {
+                    self.screenState = .error("config.yaml not found in bundle")
+                    self.showError(message: "config.yaml not found in bundle")
+                    return
+                }
+                _ = try await analyzer.startAnalysis(folderUrl: folderUrl, configUrl: configUrl) { progress in
                     progressController.update(progress: progress)
                 }
                 self.records = try analyzer.loadAnalysisResult(folderUrl: folderUrl)
