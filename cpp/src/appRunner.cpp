@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.5
- * Date: 2026-06-02
- * Description: 实现扫描、JSON 合并、两阶段线程池执行、即时 JSON 保存、最终摘要输出、App 进度回调；写入转换和分析阶段性能日志；分析阶段日志使用 double 毫秒，显示小数毫秒；使用共享 summary counts 统计
+ * Version: 1.6
+ * Date: 2026-06-09
+ * Description: 修复线程池阶段进度阻塞不更新的 bug；分析器改为 IAnalyzer 接口注入；写入转换和分析阶段性能日志；分析阶段日志使用 double 毫秒，显示小数毫秒；使用共享 summary counts 统计
  */
 
 #include "appRunner.h"
@@ -14,6 +14,7 @@
 #include "resumePlanner.h"
 #include "threadPool.h"
 #include <iostream>
+#include <cassert>
 #include <chrono>
 #include <fstream>
 #include <filesystem>
@@ -61,11 +62,12 @@ void emitStageProgress(const RunOptions& options,
 
 AppRunner::AppRunner()
     : convertFn_([](const RawConvertTask& t, const AppConfig& c) { return RawConverter().convert(t, c); }),
-      analyzeFn_([](const AnalyzeTask& t, const AppConfig& c) { return ImageAnalyzer().analyze(t, c); }) {
+      analyzer_(std::make_unique<ImageAnalyzer>()) {
 }
 
-AppRunner::AppRunner(RawConvertFn converter, AnalyzeFn analyzer)
-    : convertFn_(converter), analyzeFn_(analyzer) {
+AppRunner::AppRunner(RawConvertFn converter, std::unique_ptr<IAnalyzer> analyzer)
+    : convertFn_(converter), analyzer_(std::move(analyzer)) {
+    assert(analyzer_ != nullptr && "analyzer must not be null");
 }
 
 RawConvertResult AppRunner::convertWithRetry(const RawConvertTask& task, const AppConfig& config) {
@@ -92,12 +94,12 @@ RawConvertResult AppRunner::convertWithRetry(const RawConvertTask& task, const A
 }
 
 AnalyzeResult AppRunner::analyzeWithRetry(const AnalyzeTask& task, const AppConfig& config) {
-    AnalyzeResult result = analyzeFn_(task, config);
+    AnalyzeResult result = analyzer_->analyze(task, config);
     result.photoId = task.photoId;
     result.jpgPath = task.jpgPath;
     result.attempts = 1;
     if (!result.success) {
-        AnalyzeResult retry = analyzeFn_(task, config);
+        AnalyzeResult retry = analyzer_->analyze(task, config);
         retry.photoId = task.photoId;
         retry.jpgPath = task.jpgPath;
         retry.attempts = 2;
@@ -159,9 +161,8 @@ RunSummary AppRunner::run(const RunOptions& options) {
             pool.pushTask(task);
         }
 
-        pool.waitUntilFinished();
-        RawConvertResult rcResult;
-        while (pool.tryPopResult(rcResult)) {
+        for (int i = 0; i < rawTotalCount; ++i) {
+            RawConvertResult rcResult = pool.waitPopResult();
             jsonManager.updateRawConversionResult(rcResult);
             jsonManager.atomicSave();
             rawCompletedCount++;
@@ -228,9 +229,8 @@ RunSummary AppRunner::run(const RunOptions& options) {
             pool.pushTask(task);
         }
 
-        pool.waitUntilFinished();
-        AnalyzeResult anaResult;
-        while (pool.tryPopResult(anaResult)) {
+        for (int i = 0; i < analysisTotalCount; ++i) {
+            AnalyzeResult anaResult = pool.waitPopResult();
             jsonManager.updateAnalysisResult(anaResult);
             jsonManager.atomicSave();
             analysisCompletedCount++;

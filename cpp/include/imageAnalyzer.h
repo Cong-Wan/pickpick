@@ -1,15 +1,15 @@
 /*
  * Author: wilbur
- * Version: 1.0
- * Date: 2026-05-29
- * Description: 声明 JPG 分析接口、拉普拉斯统计、直方图统计、分析结果结构
+ * Version: 1.1
+ * Date: 2026-06-09
+ * Description: 声明 JPG 分析接口；实现 IAnalyzer 纯虚接口
  */
 
 #pragma once
 
-#include "taskState.h"
+#include "iAnalyzer.h"
 
-class ImageAnalyzer {
+class ImageAnalyzer : public IAnalyzer {
 public:
-    AnalyzeResult analyze(const AnalyzeTask& task, const AppConfig& config) const;
+    AnalyzeResult analyze(const AnalyzeTask& task, const AppConfig& config) override;
 };

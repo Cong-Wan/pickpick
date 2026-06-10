@@ -1,14 +1,16 @@
 /*
  * Author: wilbur
- * Version: 1.1
- * Date: 2026-06-01
- * Description: 声明端到端流程编排器、进度回调模型，允许测试注入 fake converter/analyzer
+ * Version: 1.2
+ * Date: 2026-06-09
+ * Description: 声明端到端流程编排器、进度回调模型；分析器改为 IAnalyzer 接口注入
  */
 
 #pragma once
 
 #include "taskState.h"
+#include "iAnalyzer.h"
 #include <functional>
+#include <memory>
 
 enum class RunPhase {
     Scanning,
@@ -48,10 +50,9 @@ struct RunSummary {
 class AppRunner {
 public:
     using RawConvertFn = std::function<RawConvertResult(const RawConvertTask&, const AppConfig&)>;
-    using AnalyzeFn = std::function<AnalyzeResult(const AnalyzeTask&, const AppConfig&)>;
 
     AppRunner();
-    explicit AppRunner(RawConvertFn converter, AnalyzeFn analyzer);
+    explicit AppRunner(RawConvertFn converter, std::unique_ptr<IAnalyzer> analyzer);
 
     RunSummary run(const RunOptions& options);
 
@@ -60,5 +61,5 @@ public:
 
 private:
     RawConvertFn convertFn_;
-    AnalyzeFn analyzeFn_;
+    std::unique_ptr<IAnalyzer> analyzer_;
 };

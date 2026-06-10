@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 2.0
-Date: 2026-06-03
-Description: 分组卡片 view，叠放 JPG 缩略图异步加载；通过 imageService 拉取前 3 张缩略图，加载失败保留占位背景
+Version: 2.1
+Date: 2026-06-10
+Description: 修复分组卡片预览图内存泄漏：将 loadImage(kind: .thumbnail) 改为 loadThumbnail，走 CGImageSource 降采样路径，避免加载完整原图
 */
 
 import AppKit
@@ -70,17 +70,12 @@ public final class groupCardView: NSView {
             let photo = previewPhotos[i]
             let targetView = imgView
             let task = Task { [weak self] in
-                let result = await imageService.loadImage(for: photo, kind: .thumbnail(width: 160, height: 110))
+                let image = await imageService.loadThumbnail(for: photo, maxWidth: 160, maxHeight: 110)
                 if Task.isCancelled { return }
                 await MainActor.run {
                     guard let self = self, self.previewImageViews.contains(targetView) else { return }
-                    if case .image(let ciImage) = result {
-                        let rep = NSCIImageRep(ciImage: ciImage)
-                        let nsImage = NSImage(size: rep.size)
-                        nsImage.addRepresentation(rep)
-                        targetView.image = nsImage
-                    }
-                    // .unavailable 时保留 darkGray 占位背景（已在 setupView 设置）
+                    targetView.image = image
+                    // image 为 nil 时保留 darkGray 占位背景（已在 setupView 设置）
                 }
             }
             loadTasks.append(task)
