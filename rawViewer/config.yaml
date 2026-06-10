@@ -38,6 +38,14 @@ raw_conversion:
   # 取值范围 0~100；值越高文件越大、细节保留越多。
   jpg_quality: 100
 
+  # 按 RAW 格式（扩展名小写）配置转换参数。
+  # 未列出的格式使用默认值：gamma0=0.45 gamma1=4.5 no_auto_bright=0 bright=1.0 saturation_boost=1.0
+  raw_profiles:
+    .rw2:
+      no_auto_bright: 1
+      bright: 1.0
+      lut_path: luts/Natural+.cube
+
 image_processing:
   # M-series macOS only. Image analysis uses Metal GPU exclusively.
   # CPU / auto fallback is intentionally not supported.

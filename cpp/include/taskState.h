@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.7
- * Date: 2026-06-02
- * Description: 定义状态枚举、照片状态、App review 状态、配置结构、任务结构、结果结构、字符串转换函数、共享 summary counts 结构；分析结果时间字段改为 double 毫秒以支持亚毫秒精度
+ * Version: 1.8
+ * Date: 2026-06-10
+ * Description: 定义状态枚举、照片状态、App review 状态、配置结构、任务结构、结果结构、字符串转换函数、共享 summary counts 结构；新增 RawProfile 按 RAW 扩展名配置转换参数和 .cube LUT 路径
  */
 
 #pragma once
@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <unordered_map>
 
 enum class StageStatus {
     Pending,
@@ -50,8 +51,24 @@ struct ExposureDetectionConfig {
     double underexposeRatioLimit = 0.05;
 };
 
+struct RawProfile {
+    float gamma0 = 0.45f;
+    float gamma1 = 4.5f;
+    int noAutoBright = 0;
+    float bright = 1.0f;
+    std::string lutPath;   // .cube 3D LUT 文件路径（相对于可执行文件），空则不应用 LUT
+};
+
 struct RawConversionConfig {
     int jpgQuality = 95;
+    std::unordered_map<std::string, RawProfile> profiles;
+
+    const RawProfile& getProfile(const std::string& rawExtension) const {
+        auto it = profiles.find(rawExtension);
+        if (it != profiles.end()) return it->second;
+        static const RawProfile defaultProfile;
+        return defaultProfile;
+    }
 };
 
 struct ThreadPoolConfig {

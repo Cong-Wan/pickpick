@@ -1,8 +1,8 @@
 /*
  * Author: wilbur
- * Version: 1.1
- * Date: 2026-06-01
- * Description: 使用 yaml-cpp 读取 config.yaml，缺字段或非法值时抛出明确错误；补充图片处理 backend 配置解析
+ * Version: 1.2
+ * Date: 2026-06-10
+ * Description: 使用 yaml-cpp 读取 config.yaml，缺字段或非法值时抛出明确错误；新增 raw_profiles 按扩展名配置 RAW 转换参数和 LUT 路径
  */
 
 #include "configLoader.h"
@@ -81,6 +81,22 @@ AppConfig ConfigLoader::loadFromFile(const std::string& configPath) const {
     checkMissing(rawConv, "raw_conversion");
     checkRangeInt(rawConv["jpg_quality"], "raw_conversion.jpg_quality", 0, 100);
     config.rawConversion.jpgQuality = rawConv["jpg_quality"].as<int>();
+
+    // raw_profiles: 按扩展名配置 RAW 转换参数（可选，缺省用默认值）
+    auto rawProfiles = rawConv["raw_profiles"];
+    if (rawProfiles && rawProfiles.IsMap()) {
+        for (auto it = rawProfiles.begin(); it != rawProfiles.end(); ++it) {
+            std::string ext = it->first.as<std::string>();
+            auto node = it->second;
+            RawProfile profile;
+            if (node["gamma0"]) profile.gamma0 = node["gamma0"].as<float>();
+            if (node["gamma1"]) profile.gamma1 = node["gamma1"].as<float>();
+            if (node["no_auto_bright"]) profile.noAutoBright = node["no_auto_bright"].as<int>();
+            if (node["bright"]) profile.bright = node["bright"].as<float>();
+            if (node["lut_path"]) profile.lutPath = node["lut_path"].as<std::string>();
+            config.rawConversion.profiles[ext] = profile;
+        }
+    }
 
     auto tp = root["thread_pool"];
     checkMissing(tp, "thread_pool");

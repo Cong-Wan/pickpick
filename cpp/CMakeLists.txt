@@ -1,7 +1,7 @@
 # Author: wilbur
-# Version: 1.10
-# Date: 2026-06-03
-# Description: CMake build for rawViewer project；新增 macOS Metal-backed 图片分析源、metadata reader、ImageIO JPG writer 和 framework 链接；为 OBJCXX 目标开启 ARC，注册 objcRuntimeTests，并为测试目标启用 Metal diagnostics；同步新增 jpgWriter 与 photoMetadataReader 源文件
+# Version: 1.11
+# Date: 2026-06-10
+# Description: CMake build for rawViewer project；新增 testRawConvert 单张测试工具、luts 目录自动复制、RAW profile 配置支持
 
 cmake_minimum_required(VERSION 3.16)
 project(rawViewer LANGUAGES CXX OBJCXX)
@@ -94,6 +94,13 @@ add_custom_command(TARGET rawViewer POST_BUILD
         $<TARGET_FILE_DIR:rawViewer>/gpuImageKernels.metal
 )
 
+# 复制 luts 目录到 build 输出
+add_custom_command(TARGET rawViewer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/luts
+        $<TARGET_FILE_DIR:rawViewer>/luts
+)
+
 target_compile_options(rawViewer PRIVATE
     $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>
 )
@@ -172,3 +179,30 @@ if(RAWVIEWER_BUILD_TESTS)
         )
     endif()
 endif()
+
+# --- Single RAW convert test tool ---
+add_executable(testRawConvert
+    src/testRawConvert.cpp
+    src/configLoader.cpp
+    src/rawConverter.cpp
+    src/jpgWriter.mm
+    src/taskState.cpp
+)
+
+target_include_directories(testRawConvert PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_compile_options(testRawConvert PRIVATE
+    $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>
+)
+
+target_link_libraries(testRawConvert PRIVATE
+    yaml-cpp
+    libraw
+    ${IMAGEIO_LIBRARY}
+    ${COREGRAPHICS_LIBRARY}
+    ${CORESERVICES_LIBRARY}
+    ${FOUNDATION_LIBRARY}
+    z
+)
