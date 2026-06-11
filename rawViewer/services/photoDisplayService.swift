@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-06
-Description: JPG/RAW display 图加载服务，独立缓存 JPG(20) 和 RAW(10)，拒绝超大 RAW 文件；闭包内重新生成 key 避免捕获非 Sendable NSString
+Version: 1.2
+Date: 2026-06-11
+Description: JPG/RAW display 图加载服务，独立缓存 JPG(20) 和 RAW(10)，加载前按文件类型校验，避免 RAW-only 照片被当作 JPG 显示
 */
 
 import AppKit
@@ -21,6 +21,10 @@ public final class photoDisplayService {
     }
 
     public func loadDisplayJpg(for photo: photoItem) async -> photoImageResult {
+        guard photo.hasExistingJpgFile(fileManager: fileManager) else {
+            return .unavailable("JPG missing")
+        }
+
         let key = "\(photo.photoId)|displayJpg" as NSString
         if let cached = jpgCache.object(forKey: key) {
             return .image(cached.image)
@@ -45,6 +49,10 @@ public final class photoDisplayService {
     }
 
     public func loadDisplayRaw(for photo: photoItem) async -> photoImageResult {
+        guard photo.hasExistingRawFile(fileManager: fileManager) else {
+            return .unavailable("RAW missing")
+        }
+
         let key = "\(photo.photoId)|displayRaw" as NSString
         if let cached = rawCache.object(forKey: key) {
             return .image(cached.image)

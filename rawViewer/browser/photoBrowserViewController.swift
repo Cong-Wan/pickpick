@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.0
-Date: 2026-06-06
-Description: 浏览器控制器，使用 photoMetalViewController 替代直接 metalPhotoView；loadCurrentPhoto 先 reset() 清空 zoom/pan
+Version: 3.2
+Date: 2026-06-11
+Description: 浏览器控制器，按当前照片 JPG/RAW 文件存在性禁用对应 segment，并在 source fallback 时写入本地日志
 */
 
 import AppKit
@@ -134,6 +134,7 @@ public final class photoBrowserViewController: NSViewController {
     private func loadCurrentPhoto() {
         loadTask?.cancel()
         mainPhotoController.reset()
+        updateSourceControlAvailability()
 
         guard let photo = viewModel.currentPhoto else {
             return
@@ -152,6 +153,36 @@ public final class photoBrowserViewController: NSViewController {
         }
     }
 
+    private func updateSourceControlAvailability() {
+        guard let photo = viewModel.currentPhoto else {
+            sourceControl.setEnabled(false, forSegment: 0)
+            sourceControl.setEnabled(false, forSegment: 1)
+            sourceControl.selectedSegment = -1
+            return
+        }
+
+        let hasJpg = photo.hasExistingJpgFile()
+        let hasRaw = photo.hasExistingRawFile()
+        sourceControl.setEnabled(hasJpg, forSegment: 0)
+        sourceControl.setEnabled(hasRaw, forSegment: 1)
+
+        if viewModel.displaySource == .jpg, !hasJpg, hasRaw {
+            appFileLogger.log("JPG source unavailable, switching to RAW page=browser photoId=\(photo.photoId)", level: .warning)
+            displaySourceStore().current = .raw
+            viewModel.setDisplaySource(.raw)
+        } else if viewModel.displaySource == .raw, !hasRaw, hasJpg {
+            appFileLogger.log("RAW source unavailable, switching to JPG page=browser photoId=\(photo.photoId)", level: .warning)
+            displaySourceStore().current = .jpg
+            viewModel.setDisplaySource(.jpg)
+        }
+
+        if hasJpg || hasRaw {
+            sourceControl.selectedSegment = viewModel.displaySource == .jpg ? 0 : 1
+        } else {
+            sourceControl.selectedSegment = -1
+        }
+    }
+
     private func show(pair: photoDisplayPair, source: displaySource) {
         let selected: photoImageResult
         switch source {
@@ -162,11 +193,28 @@ public final class photoBrowserViewController: NSViewController {
             mainPhotoController.load(image: image)
             return
         }
+
+        if source == .raw, case .unavailable(let rawReason) = pair.raw {
+            if case .image(let jpgImage) = pair.jpg {
+                appFileLogger.log("RAW unavailable, fallback to JPG page=browser photoId=\(pair.photoId) reason=\(rawReason)", level: .warning)
+                mainPhotoController.load(image: jpgImage)
+                return
+            }
+            appFileLogger.log("RAW unavailable and JPG unavailable page=browser photoId=\(pair.photoId) rawReason=\(rawReason) jpgReason=\(unavailableReason(pair.jpg))", level: .error)
+        }
+
         if case .image(let jpgImage) = pair.jpg {
             mainPhotoController.load(image: jpgImage)
             return
         }
         mainPhotoController.showError("No image available")
+    }
+
+    private func unavailableReason(_ result: photoImageResult) -> String {
+        if case .unavailable(let message) = result {
+            return message
+        }
+        return "unknown"
     }
 
     @objc private func backClicked() {
@@ -184,6 +232,22 @@ public final class photoBrowserViewController: NSViewController {
 
     @objc private func sourceChanged(_ sender: NSSegmentedControl) {
         let source: displaySource = (sender.selectedSegment == 0) ? .jpg : .raw
+        guard let photo = viewModel.currentPhoto else {
+            sender.selectedSegment = -1
+            return
+        }
+
+        if source == .jpg, !photo.hasExistingJpgFile() {
+            appFileLogger.log("JPG selection rejected page=browser photoId=\(photo.photoId) reason=jpgFileUnavailable", level: .warning)
+            updateSourceControlAvailability()
+            return
+        }
+        if source == .raw, !photo.hasExistingRawFile() {
+            appFileLogger.log("RAW selection rejected page=browser photoId=\(photo.photoId) reason=rawFileUnavailable", level: .warning)
+            updateSourceControlAvailability()
+            return
+        }
+
         displaySourceStore().current = source
         viewModel.setDisplaySource(source)
         loadCurrentPhoto()

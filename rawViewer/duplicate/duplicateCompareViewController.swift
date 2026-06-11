@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.1
-Date: 2026-06-08
-Description: 重复照片双图比较界面，使用 photoMetalViewController 替代直接 metalPhotoView；loadPhotos 时先 reset() 两个 controller；修复 keepBothClicked：2 张时不弹窗，使用 ViewModel 返回值驱动结果
+Version: 3.3
+Date: 2026-06-11
+Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment，并在单侧 fallback 时写入本地日志
 */
 
 import AppKit
@@ -15,6 +15,7 @@ public final class duplicateCompareViewController: NSViewController {
     public var onFinished: (() -> Void)?
 
     private let sourceStore = displaySourceStore()
+    private var sourceControl = NSSegmentedControl(labels: ["JPG", "RAW"], trackingMode: .selectOne, target: nil, action: nil)
     private var leftPhotoController: photoMetalViewController!
     private var rightPhotoController: photoMetalViewController!
     private var leftLoadTask: Task<Void, Never>?
@@ -65,7 +66,8 @@ public final class duplicateCompareViewController: NSViewController {
         let keepBothBtn = NSButton(title: "Keep both", target: self, action: #selector(keepBothClicked(_:)))
         keepBothBtn.translatesAutoresizingMaskIntoConstraints = false
 
-        let sourceControl = NSSegmentedControl(labels: ["JPG", "RAW"], trackingMode: .selectOne, target: self, action: #selector(sourceChanged(_:)))
+        sourceControl.target = self
+        sourceControl.action = #selector(sourceChanged(_:))
         sourceControl.selectedSegment = sourceStore.current == .jpg ? 0 : 1
         sourceControl.translatesAutoresizingMaskIntoConstraints = false
 
@@ -126,6 +128,8 @@ public final class duplicateCompareViewController: NSViewController {
         rightLoadTask?.cancel()
         leftPhotoController.reset()
         rightPhotoController.reset()
+        updateSourceControlAvailability()
+        let selectedSource = sourceStore.current
 
         if let left = viewModel.mainPhoto {
             let photoId = left.photoId
@@ -135,7 +139,7 @@ public final class duplicateCompareViewController: NSViewController {
                 if Task.isCancelled { return }
                 await MainActor.run {
                     guard self.viewModel.mainPhoto?.photoId == photoId else { return }
-                    self.show(pair: pair, source: self.sourceStore.current, isLeft: true)
+                    self.show(pair: pair, source: selectedSource, isLeft: true)
                 }
             }
         }
@@ -148,10 +152,43 @@ public final class duplicateCompareViewController: NSViewController {
                 if Task.isCancelled { return }
                 await MainActor.run {
                     guard self.viewModel.candidatePhoto?.photoId == photoId else { return }
-                    self.show(pair: pair, source: self.sourceStore.current, isLeft: false)
+                    self.show(pair: pair, source: selectedSource, isLeft: false)
                 }
             }
         }
+    }
+
+    private func updateSourceControlAvailability() {
+        let canSelectJpg = canSelectJpgForCurrentPair()
+        let canSelectRaw = canSelectRawForCurrentPair()
+        sourceControl.setEnabled(canSelectJpg, forSegment: 0)
+        sourceControl.setEnabled(canSelectRaw, forSegment: 1)
+
+        if sourceStore.current == .jpg, !canSelectJpg, canSelectRaw {
+            appFileLogger.log("JPG source unavailable, switching to RAW page=duplicate", level: .warning)
+            sourceStore.current = .raw
+        } else if sourceStore.current == .raw, !canSelectRaw, canSelectJpg {
+            appFileLogger.log("RAW source unavailable, switching to JPG page=duplicate", level: .warning)
+            sourceStore.current = .jpg
+        }
+
+        if canSelectJpg || canSelectRaw {
+            sourceControl.selectedSegment = sourceStore.current == .jpg ? 0 : 1
+        } else {
+            sourceControl.selectedSegment = -1
+        }
+    }
+
+    private func canSelectJpgForCurrentPair() -> Bool {
+        let leftHasJpg = viewModel.mainPhoto?.hasExistingJpgFile() == true
+        let rightHasJpg = viewModel.candidatePhoto?.hasExistingJpgFile() == true
+        return leftHasJpg || rightHasJpg
+    }
+
+    private func canSelectRawForCurrentPair() -> Bool {
+        let leftHasRaw = viewModel.mainPhoto?.hasExistingRawFile() == true
+        let rightHasRaw = viewModel.candidatePhoto?.hasExistingRawFile() == true
+        return leftHasRaw || rightHasRaw
     }
 
     private func show(pair: photoDisplayPair, source: displaySource, isLeft: Bool) {
@@ -165,11 +202,29 @@ public final class duplicateCompareViewController: NSViewController {
             controller.load(image: image)
             return
         }
+
+        if source == .raw, case .unavailable(let rawReason) = pair.raw {
+            let side = isLeft ? "left" : "right"
+            if case .image(let jpgImage) = pair.jpg {
+                appFileLogger.log("RAW unavailable, fallback to JPG page=duplicate side=\(side) photoId=\(pair.photoId) reason=\(rawReason)", level: .warning)
+                controller.load(image: jpgImage)
+                return
+            }
+            appFileLogger.log("RAW unavailable and JPG unavailable page=duplicate side=\(side) photoId=\(pair.photoId) rawReason=\(rawReason) jpgReason=\(unavailableReason(pair.jpg))", level: .error)
+        }
+
         if case .image(let jpgImage) = pair.jpg {
             controller.load(image: jpgImage)
             return
         }
         controller.showError("No image available")
+    }
+
+    private func unavailableReason(_ result: photoImageResult) -> String {
+        if case .unavailable(let message) = result {
+            return message
+        }
+        return "unknown"
     }
 
     @objc private func backClicked() {
@@ -186,7 +241,18 @@ public final class duplicateCompareViewController: NSViewController {
     }
 
     @objc private func sourceChanged(_ sender: NSSegmentedControl) {
-        sourceStore.current = (sender.selectedSegment == 0) ? .jpg : .raw
+        let source: displaySource = (sender.selectedSegment == 0) ? .jpg : .raw
+        if source == .jpg, !canSelectJpgForCurrentPair() {
+            appFileLogger.log("JPG selection rejected page=duplicate reason=noJpgFileInPair", level: .warning)
+            updateSourceControlAvailability()
+            return
+        }
+        if source == .raw, !canSelectRawForCurrentPair() {
+            appFileLogger.log("RAW selection rejected page=duplicate reason=noRawFileInPair", level: .warning)
+            updateSourceControlAvailability()
+            return
+        }
+        sourceStore.current = source
         loadPhotos()
     }
 

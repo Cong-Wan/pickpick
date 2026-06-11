@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.4
+Version: 1.6
 Date: 2026-06-11
-Description: 修复 makeVisiblePhotoGroups 中单张 orphan 重复分组的问题，并让 photoItem 支持 Codable 以简化 analysisStore 持久化 schema
+Description: 修复 makeVisiblePhotoGroups 中单张 orphan 重复分组的问题，让 photoItem 支持 Codable，并新增 JPG/RAW 文件存在性判断
 */
 
 import Foundation
@@ -92,6 +92,21 @@ public struct photoItem: Codable, Equatable, Identifiable {
         self.templatePhotoId = templatePhotoId
         self.analysisSource = analysisSource
         self.dynamicRange = dynamicRange
+    }
+}
+
+public extension photoItem {
+    func hasExistingJpgFile(fileManager: FileManager = .default) -> Bool {
+        let ext = URL(fileURLWithPath: jpgPath).pathExtension.lowercased()
+        guard ["jpg", "jpeg"].contains(ext) else { return false }
+        return fileManager.fileExists(atPath: jpgPath)
+    }
+
+    func hasExistingRawFile(fileManager: FileManager = .default) -> Bool {
+        guard let rawPath, !rawPath.isEmpty else { return false }
+        let ext = URL(fileURLWithPath: rawPath).pathExtension.lowercased()
+        guard ["rw2", "cr2"].contains(ext) else { return false }
+        return fileManager.fileExists(atPath: rawPath)
     }
 }
 
