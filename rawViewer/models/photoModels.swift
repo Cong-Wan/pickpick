@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.6
+Version: 1.8
 Date: 2026-06-11
-Description: 修复 makeVisiblePhotoGroups 中单张 orphan 重复分组的问题，让 photoItem 支持 Codable，并新增 JPG/RAW 文件存在性判断
+Description: 新增照片展示旋转角度持久化，并保持旧 analysis.json 解码兼容；补充 reviewStatus 解码同名遮蔽说明
 */
 
 import Foundation
@@ -10,6 +10,33 @@ import Foundation
 public enum displaySource: String, Codable, Equatable {
     case jpg
     case raw
+}
+
+public enum photoRotationDirection: Equatable {
+    case left
+    case right
+
+    public var deltaDegrees: Int {
+        switch self {
+        case .left: return 270
+        case .right: return 90
+        }
+    }
+}
+
+public func normalizedRotationDegrees(_ value: Int) -> Int {
+    let normalized = value % 360
+    let positive = normalized < 0 ? normalized + 360 : normalized
+    switch positive {
+    case 90, 180, 270:
+        return positive
+    default:
+        return 0
+    }
+}
+
+public func rotatedDegrees(_ current: Int, direction: photoRotationDirection) -> Int {
+    normalizedRotationDegrees(current + direction.deltaDegrees)
 }
 
 public enum reviewStatus: String, Codable, Equatable {
@@ -69,6 +96,7 @@ public struct photoItem: Codable, Equatable, Identifiable {
     public var templatePhotoId: String
     public var analysisSource: String
     public var dynamicRange: dynamicRangeData?
+    public var rotationDegrees: Int
 
     public init(
         photoId: String,
@@ -80,7 +108,8 @@ public struct photoItem: Codable, Equatable, Identifiable {
         reviewGroupId: String = "",
         templatePhotoId: String = "",
         analysisSource: String = "",
-        dynamicRange: dynamicRangeData? = nil
+        dynamicRange: dynamicRangeData? = nil,
+        rotationDegrees: Int = 0
     ) {
         self.photoId = photoId
         self.jpgPath = jpgPath
@@ -92,6 +121,54 @@ public struct photoItem: Codable, Equatable, Identifiable {
         self.templatePhotoId = templatePhotoId
         self.analysisSource = analysisSource
         self.dynamicRange = dynamicRange
+        self.rotationDegrees = normalizedRotationDegrees(rotationDegrees)
+    }
+
+    // reviewStatus 属性与 reviewStatus 类型同名，解码时使用 typealias 避免 Swift 名称遮蔽。
+    private typealias itemReviewStatus = reviewStatus
+
+    private enum codingKeys: String, CodingKey {
+        case photoId
+        case jpgPath
+        case rawPath
+        case isBlurry
+        case exposureStatus
+        case reviewStatus
+        case reviewGroupId
+        case templatePhotoId
+        case analysisSource
+        case dynamicRange
+        case rotationDegrees
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: codingKeys.self)
+        self.photoId = try container.decode(String.self, forKey: .photoId)
+        self.jpgPath = try container.decode(String.self, forKey: .jpgPath)
+        self.rawPath = try container.decodeIfPresent(String.self, forKey: .rawPath)
+        self.isBlurry = try container.decode(Bool.self, forKey: .isBlurry)
+        self.exposureStatus = try container.decode(String.self, forKey: .exposureStatus)
+        self.reviewStatus = try container.decode(itemReviewStatus.self, forKey: .reviewStatus)
+        self.reviewGroupId = try container.decode(String.self, forKey: .reviewGroupId)
+        self.templatePhotoId = try container.decode(String.self, forKey: .templatePhotoId)
+        self.analysisSource = try container.decode(String.self, forKey: .analysisSource)
+        self.dynamicRange = try container.decodeIfPresent(dynamicRangeData.self, forKey: .dynamicRange)
+        self.rotationDegrees = normalizedRotationDegrees(try container.decodeIfPresent(Int.self, forKey: .rotationDegrees) ?? 0)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: codingKeys.self)
+        try container.encode(photoId, forKey: .photoId)
+        try container.encode(jpgPath, forKey: .jpgPath)
+        try container.encodeIfPresent(rawPath, forKey: .rawPath)
+        try container.encode(isBlurry, forKey: .isBlurry)
+        try container.encode(exposureStatus, forKey: .exposureStatus)
+        try container.encode(reviewStatus, forKey: .reviewStatus)
+        try container.encode(reviewGroupId, forKey: .reviewGroupId)
+        try container.encode(templatePhotoId, forKey: .templatePhotoId)
+        try container.encode(analysisSource, forKey: .analysisSource)
+        try container.encodeIfPresent(dynamicRange, forKey: .dynamicRange)
+        try container.encode(normalizedRotationDegrees(rotationDegrees), forKey: .rotationDegrees)
     }
 }
 

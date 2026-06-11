@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-03
-Description: 浏览器视图模型：封装 photos/currentIndex/checkedPhotoIds/displaySource 状态，
+Version: 1.2
+Date: 2026-06-11
+Description: 浏览器视图模型：封装 photos/currentIndex/checkedPhotoIds/displaySource 状态，支持 Restore Normal 和展示旋转状态同步；
 并通过单调递增的 currentRequestId 让控制器在异步预加载完成时识别请求是否已被新的导航覆盖，
 避免在快速上下切换时把陈旧的 JPG/RAW 结果渲染到当前主图上；
 集成 photoTrashService，删除时先移入废纸篓再标记 JSON 状态
@@ -72,6 +72,36 @@ public final class photoBrowserViewModel {
             return currentPhoto.map { [$0] } ?? []
         }
         return photos.filter { checkedPhotoIds.contains($0.photoId) }
+    }
+
+    public func restoreNormalTargets() -> [photoItem] {
+        if checkedPhotoIds.isEmpty {
+            return currentPhoto.map { [$0] } ?? []
+        }
+        return photos.filter { checkedPhotoIds.contains($0.photoId) }
+    }
+
+    public func restoreNormalTargetsAndUpdateList() throws {
+        let targets = restoreNormalTargets()
+        let ids = Set(targets.map(\.photoId))
+        guard !ids.isEmpty else { return }
+
+        try store.restoreNormal(photoIds: ids)
+
+        photos.removeAll { ids.contains($0.photoId) }
+        checkedPhotoIds.subtract(ids)
+        currentIndex = min(currentIndex, max(photos.count - 1, 0))
+        currentRequestId += 1
+    }
+
+    @discardableResult
+    public func rotateCurrentPhoto(direction: photoRotationDirection) throws -> Int? {
+        guard let photo = currentPhoto else { return nil }
+        let newRotation = rotatedDegrees(photo.rotationDegrees, direction: direction)
+        try store.setRotations([photo.photoId: newRotation])
+        photos[currentIndex].rotationDegrees = newRotation
+        currentRequestId += 1
+        return newRotation
     }
 
     public func confirmDelete() throws {

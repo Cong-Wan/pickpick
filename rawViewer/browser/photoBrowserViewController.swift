@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.2
+Version: 3.4
 Date: 2026-06-11
-Description: 浏览器控制器，按当前照片 JPG/RAW 文件存在性禁用对应 segment，并在 source fallback 时写入本地日志
+Description: 浏览器控制器，按当前照片 JPG/RAW 文件存在性禁用对应 segment，新增 Restore Normal 与显示旋转按钮，并显式设置左侧布局填充分布
 */
 
 import AppKit
@@ -14,29 +14,34 @@ public final class photoBrowserViewController: NSViewController {
     public var onBack: (() -> Void)?
     public private(set) var groupTitle: String
 
+    private let groupKind: photoGroupKind?
     private var toolbarView = NSView()
     private var thumbnailView: photoThumbnailView!
     private var mainPhotoController: photoMetalViewController!
     private var sourceControl = NSSegmentedControl(labels: ["JPG", "RAW"], trackingMode: .selectOne, target: nil, action: nil)
+    private var restoreNormalButton: NSButton?
+    private var rotateLeftButton = NSButton(title: "⟲ 90°", target: nil, action: nil)
+    private var rotateRightButton = NSButton(title: "⟳ 90°", target: nil, action: nil)
     private var loadTask: Task<Void, Never>?
 
-    public init(viewModel: photoBrowserViewModel, imageService: photoImageService) {
+    public init(viewModel: photoBrowserViewModel, imageService: photoImageService, groupKind: photoGroupKind? = nil) {
         self.viewModel = viewModel
         self.imageService = imageService
-        self.groupTitle = "Browser"
+        self.groupKind = groupKind
+        self.groupTitle = groupKind?.title ?? "Browser"
         super.init(nibName: nil, bundle: nil)
     }
 
     public convenience init(group: photoGroup, store: jsonReviewStateStoring, trashService: photoTrashServicing = photoTrashService(), imageService: photoImageService = photoImageService()) {
         let initialSource = displaySourceStore().current
         let viewModel = photoBrowserViewModel(photos: group.photos, store: store, trashService: trashService, displaySource: initialSource)
-        self.init(viewModel: viewModel, imageService: imageService)
-        self.groupTitle = group.kind.title
+        self.init(viewModel: viewModel, imageService: imageService, groupKind: group.kind)
     }
 
     required init?(coder: NSCoder) {
         self.viewModel = photoBrowserViewModel(photos: [], store: jsonReviewStateStore(), trashService: photoTrashService())
         self.imageService = photoImageService()
+        self.groupKind = nil
         self.groupTitle = "Browser"
         super.init(coder: coder)
     }
@@ -46,6 +51,15 @@ public final class photoBrowserViewController: NSViewController {
     }
 
     public override var acceptsFirstResponder: Bool { true }
+
+    private var canRestoreNormal: Bool {
+        switch groupKind {
+        case .overexposed, .underexposed, .blurry:
+            return true
+        default:
+            return false
+        }
+    }
 
     public override func viewDidAppear() {
         super.viewDidAppear()
@@ -77,9 +91,21 @@ public final class photoBrowserViewController: NSViewController {
         let deleteButton = NSButton(title: "🗑", target: self, action: #selector(deleteClicked))
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
 
+        rotateLeftButton.target = self
+        rotateLeftButton.action = #selector(rotateLeftClicked)
+        rotateLeftButton.bezelStyle = .rounded
+        rotateLeftButton.translatesAutoresizingMaskIntoConstraints = false
+
+        rotateRightButton.target = self
+        rotateRightButton.action = #selector(rotateRightClicked)
+        rotateRightButton.bezelStyle = .rounded
+        rotateRightButton.translatesAutoresizingMaskIntoConstraints = false
+
         toolbarView.addSubview(backButton)
         toolbarView.addSubview(titleLabel)
         toolbarView.addSubview(sourceControl)
+        toolbarView.addSubview(rotateLeftButton)
+        toolbarView.addSubview(rotateRightButton)
         toolbarView.addSubview(deleteButton)
         NSLayoutConstraint.activate([
             toolbarView.heightAnchor.constraint(equalToConstant: 36),
@@ -88,7 +114,11 @@ public final class photoBrowserViewController: NSViewController {
             titleLabel.leadingAnchor.constraint(equalTo: backButton.trailingAnchor, constant: 12),
             titleLabel.centerYAnchor.constraint(equalTo: toolbarView.centerYAnchor),
             sourceControl.centerYAnchor.constraint(equalTo: toolbarView.centerYAnchor),
-            sourceControl.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -8),
+            sourceControl.trailingAnchor.constraint(equalTo: rotateLeftButton.leadingAnchor, constant: -8),
+            rotateLeftButton.centerYAnchor.constraint(equalTo: toolbarView.centerYAnchor),
+            rotateLeftButton.trailingAnchor.constraint(equalTo: rotateRightButton.leadingAnchor, constant: -6),
+            rotateRightButton.centerYAnchor.constraint(equalTo: toolbarView.centerYAnchor),
+            rotateRightButton.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -8),
             deleteButton.trailingAnchor.constraint(equalTo: toolbarView.trailingAnchor, constant: -12),
             deleteButton.centerYAnchor.constraint(equalTo: toolbarView.centerYAnchor)
         ])
@@ -99,9 +129,22 @@ public final class photoBrowserViewController: NSViewController {
         thumbnailView.setCheckedIds(viewModel.checkedPhotoIds)
         thumbnailView.setCurrentIndex(viewModel.currentIndex)
         thumbnailView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            thumbnailView.widthAnchor.constraint(equalToConstant: 150)
-        ])
+
+        let leftPanel = NSStackView()
+        leftPanel.orientation = .vertical
+        leftPanel.distribution = .fill
+        leftPanel.spacing = 6
+        leftPanel.translatesAutoresizingMaskIntoConstraints = false
+        leftPanel.widthAnchor.constraint(equalToConstant: 150).isActive = true
+
+        if canRestoreNormal {
+            let button = NSButton(title: "Restore Normal", target: self, action: #selector(restoreNormalClicked))
+            button.bezelStyle = .rounded
+            button.translatesAutoresizingMaskIntoConstraints = false
+            restoreNormalButton = button
+            leftPanel.addArrangedSubview(button)
+        }
+        leftPanel.addArrangedSubview(thumbnailView)
 
         // Main photo controller
         mainPhotoController = photoMetalViewController()
@@ -109,7 +152,7 @@ public final class photoBrowserViewController: NSViewController {
         mainPhotoController.view.translatesAutoresizingMaskIntoConstraints = false
 
         root.addSubview(toolbarView)
-        root.addSubview(thumbnailView)
+        root.addSubview(leftPanel)
         root.addSubview(mainPhotoController.view)
 
         NSLayoutConstraint.activate([
@@ -117,12 +160,12 @@ public final class photoBrowserViewController: NSViewController {
             toolbarView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             toolbarView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
 
-            thumbnailView.topAnchor.constraint(equalTo: toolbarView.bottomAnchor),
-            thumbnailView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
-            thumbnailView.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+            leftPanel.topAnchor.constraint(equalTo: toolbarView.bottomAnchor, constant: 6),
+            leftPanel.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            leftPanel.bottomAnchor.constraint(equalTo: root.bottomAnchor),
 
             mainPhotoController.view.topAnchor.constraint(equalTo: toolbarView.bottomAnchor),
-            mainPhotoController.view.leadingAnchor.constraint(equalTo: thumbnailView.trailingAnchor),
+            mainPhotoController.view.leadingAnchor.constraint(equalTo: leftPanel.trailingAnchor),
             mainPhotoController.view.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             mainPhotoController.view.bottomAnchor.constraint(equalTo: root.bottomAnchor)
         ])
@@ -135,6 +178,7 @@ public final class photoBrowserViewController: NSViewController {
         loadTask?.cancel()
         mainPhotoController.reset()
         updateSourceControlAvailability()
+        updateActionButtons()
 
         guard let photo = viewModel.currentPhoto else {
             return
@@ -151,6 +195,13 @@ public final class photoBrowserViewController: NSViewController {
                 self.show(pair: pair, source: selectedSource)
             }
         }
+    }
+
+    private func updateActionButtons() {
+        let hasPhoto = viewModel.currentPhoto != nil
+        restoreNormalButton?.isEnabled = hasPhoto && canRestoreNormal
+        rotateLeftButton.isEnabled = hasPhoto
+        rotateRightButton.isEnabled = hasPhoto
     }
 
     private func updateSourceControlAvailability() {
@@ -184,27 +235,28 @@ public final class photoBrowserViewController: NSViewController {
     }
 
     private func show(pair: photoDisplayPair, source: displaySource) {
+        let rotationDegrees = viewModel.currentPhoto?.rotationDegrees ?? 0
         let selected: photoImageResult
         switch source {
         case .jpg: selected = pair.jpg
         case .raw: selected = pair.raw
         }
         if case .image(let image) = selected {
-            mainPhotoController.load(image: image)
+            mainPhotoController.load(image: image, rotationDegrees: rotationDegrees)
             return
         }
 
         if source == .raw, case .unavailable(let rawReason) = pair.raw {
             if case .image(let jpgImage) = pair.jpg {
                 appFileLogger.log("RAW unavailable, fallback to JPG page=browser photoId=\(pair.photoId) reason=\(rawReason)", level: .warning)
-                mainPhotoController.load(image: jpgImage)
+                mainPhotoController.load(image: jpgImage, rotationDegrees: rotationDegrees)
                 return
             }
             appFileLogger.log("RAW unavailable and JPG unavailable page=browser photoId=\(pair.photoId) rawReason=\(rawReason) jpgReason=\(unavailableReason(pair.jpg))", level: .error)
         }
 
         if case .image(let jpgImage) = pair.jpg {
-            mainPhotoController.load(image: jpgImage)
+            mainPhotoController.load(image: jpgImage, rotationDegrees: rotationDegrees)
             return
         }
         mainPhotoController.showError("No image available")
@@ -251,6 +303,47 @@ public final class photoBrowserViewController: NSViewController {
         displaySourceStore().current = source
         viewModel.setDisplaySource(source)
         loadCurrentPhoto()
+    }
+
+    @objc private func restoreNormalClicked() {
+        let targets = viewModel.restoreNormalTargets()
+        guard !targets.isEmpty else { return }
+        let ids = targets.map(\.photoId)
+        do {
+            try viewModel.restoreNormalTargetsAndUpdateList()
+            thumbnailView.updatePhotos(viewModel.photos)
+            thumbnailView.setCheckedIds(viewModel.checkedPhotoIds)
+            if viewModel.photos.isEmpty {
+                onBack?()
+            } else {
+                thumbnailView.setCurrentIndex(viewModel.currentIndex)
+                loadCurrentPhoto()
+            }
+        } catch {
+            appFileLogger.log("operation failed page=browser action=restoreNormal targetCount=\(targets.count) photoIds=\(ids.joined(separator: ",")) error=\(error.localizedDescription)", level: .error)
+            showErrorAlert(message: error.localizedDescription)
+        }
+    }
+
+    @objc private func rotateLeftClicked() {
+        rotateCurrent(direction: .left, actionName: "rotateLeft")
+    }
+
+    @objc private func rotateRightClicked() {
+        rotateCurrent(direction: .right, actionName: "rotateRight")
+    }
+
+    private func rotateCurrent(direction: photoRotationDirection, actionName: String) {
+        guard let photo = viewModel.currentPhoto else { return }
+        let oldRotation = photo.rotationDegrees
+        let targetRotation = rotatedDegrees(oldRotation, direction: direction)
+        do {
+            _ = try viewModel.rotateCurrentPhoto(direction: direction)
+            loadCurrentPhoto()
+        } catch {
+            appFileLogger.log("operation failed page=browser action=\(actionName) photoId=\(photo.photoId) oldRotation=\(oldRotation) targetRotation=\(targetRotation) error=\(error.localizedDescription)", level: .error)
+            showErrorAlert(message: error.localizedDescription)
+        }
     }
 
     @objc private func deleteClicked() {

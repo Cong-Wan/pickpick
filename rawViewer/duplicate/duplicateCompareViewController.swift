@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.3
+Version: 3.4
 Date: 2026-06-11
-Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment，并在单侧 fallback 时写入本地日志
+Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment，并新增左右一起旋转
 */
 
 import AppKit
@@ -16,6 +16,8 @@ public final class duplicateCompareViewController: NSViewController {
 
     private let sourceStore = displaySourceStore()
     private var sourceControl = NSSegmentedControl(labels: ["JPG", "RAW"], trackingMode: .selectOne, target: nil, action: nil)
+    private var rotateLeftButton = NSButton(title: "⟲ 90°", target: nil, action: nil)
+    private var rotateRightButton = NSButton(title: "⟳ 90°", target: nil, action: nil)
     private var leftPhotoController: photoMetalViewController!
     private var rightPhotoController: photoMetalViewController!
     private var leftLoadTask: Task<Void, Never>?
@@ -71,10 +73,22 @@ public final class duplicateCompareViewController: NSViewController {
         sourceControl.selectedSegment = sourceStore.current == .jpg ? 0 : 1
         sourceControl.translatesAutoresizingMaskIntoConstraints = false
 
+        rotateLeftButton.target = self
+        rotateLeftButton.action = #selector(rotateLeftClicked)
+        rotateLeftButton.bezelStyle = .rounded
+        rotateLeftButton.translatesAutoresizingMaskIntoConstraints = false
+
+        rotateRightButton.target = self
+        rotateRightButton.action = #selector(rotateRightClicked)
+        rotateRightButton.bezelStyle = .rounded
+        rotateRightButton.translatesAutoresizingMaskIntoConstraints = false
+
         toolbar.addSubview(backButton)
         toolbar.addSubview(titleLabel)
         toolbar.addSubview(keepBothBtn)
         toolbar.addSubview(sourceControl)
+        toolbar.addSubview(rotateLeftButton)
+        toolbar.addSubview(rotateRightButton)
         NSLayoutConstraint.activate([
             toolbar.heightAnchor.constraint(equalToConstant: 36),
             backButton.leadingAnchor.constraint(equalTo: toolbar.leadingAnchor, constant: 12),
@@ -82,7 +96,11 @@ public final class duplicateCompareViewController: NSViewController {
             titleLabel.leadingAnchor.constraint(equalTo: backButton.trailingAnchor, constant: 12),
             titleLabel.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
             sourceControl.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
-            sourceControl.trailingAnchor.constraint(equalTo: keepBothBtn.leadingAnchor, constant: -8),
+            sourceControl.trailingAnchor.constraint(equalTo: rotateLeftButton.leadingAnchor, constant: -8),
+            rotateLeftButton.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
+            rotateLeftButton.trailingAnchor.constraint(equalTo: rotateRightButton.leadingAnchor, constant: -6),
+            rotateRightButton.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
+            rotateRightButton.trailingAnchor.constraint(equalTo: keepBothBtn.leadingAnchor, constant: -8),
             keepBothBtn.trailingAnchor.constraint(equalTo: toolbar.trailingAnchor, constant: -12),
             keepBothBtn.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor)
         ])
@@ -130,6 +148,7 @@ public final class duplicateCompareViewController: NSViewController {
         rightPhotoController.reset()
         updateSourceControlAvailability()
         let selectedSource = sourceStore.current
+        updateActionButtons()
 
         if let left = viewModel.mainPhoto {
             let photoId = left.photoId
@@ -156,6 +175,12 @@ public final class duplicateCompareViewController: NSViewController {
                 }
             }
         }
+    }
+
+    private func updateActionButtons() {
+        let hasPhoto = viewModel.mainPhoto != nil || viewModel.candidatePhoto != nil
+        rotateLeftButton.isEnabled = hasPhoto
+        rotateRightButton.isEnabled = hasPhoto
     }
 
     private func updateSourceControlAvailability() {
@@ -198,8 +223,11 @@ public final class duplicateCompareViewController: NSViewController {
         case .raw: selected = pair.raw
         }
         let controller: photoMetalViewController = isLeft ? leftPhotoController : rightPhotoController
+        let rotationDegrees = isLeft
+            ? (viewModel.mainPhoto?.rotationDegrees ?? 0)
+            : (viewModel.candidatePhoto?.rotationDegrees ?? 0)
         if case .image(let image) = selected {
-            controller.load(image: image)
+            controller.load(image: image, rotationDegrees: rotationDegrees)
             return
         }
 
@@ -207,14 +235,14 @@ public final class duplicateCompareViewController: NSViewController {
             let side = isLeft ? "left" : "right"
             if case .image(let jpgImage) = pair.jpg {
                 appFileLogger.log("RAW unavailable, fallback to JPG page=duplicate side=\(side) photoId=\(pair.photoId) reason=\(rawReason)", level: .warning)
-                controller.load(image: jpgImage)
+                controller.load(image: jpgImage, rotationDegrees: rotationDegrees)
                 return
             }
             appFileLogger.log("RAW unavailable and JPG unavailable page=duplicate side=\(side) photoId=\(pair.photoId) rawReason=\(rawReason) jpgReason=\(unavailableReason(pair.jpg))", level: .error)
         }
 
         if case .image(let jpgImage) = pair.jpg {
-            controller.load(image: jpgImage)
+            controller.load(image: jpgImage, rotationDegrees: rotationDegrees)
             return
         }
         controller.showError("No image available")
@@ -254,6 +282,39 @@ public final class duplicateCompareViewController: NSViewController {
         }
         sourceStore.current = source
         loadPhotos()
+    }
+
+    @objc private func rotateLeftClicked() {
+        rotateCurrentPair(direction: .left, actionName: "rotateLeft")
+    }
+
+    @objc private func rotateRightClicked() {
+        rotateCurrentPair(direction: .right, actionName: "rotateRight")
+    }
+
+    private func rotateCurrentPair(direction: photoRotationDirection, actionName: String) {
+        let left = viewModel.mainPhoto
+        let right = viewModel.candidatePhoto
+        guard left != nil || right != nil else { return }
+
+        let oldLeftRotation = left?.rotationDegrees
+        let oldRightRotation = right?.rotationDegrees
+        let targetLeftRotation = oldLeftRotation.map { rotatedDegrees($0, direction: direction) }
+        let targetRightRotation = oldRightRotation.map { rotatedDegrees($0, direction: direction) }
+
+        do {
+            _ = try viewModel.rotateCurrentPair(direction: direction)
+            loadPhotos()
+        } catch {
+            let leftId = left?.photoId ?? ""
+            let rightId = right?.photoId ?? ""
+            let oldLeft = oldLeftRotation.map(String.init) ?? ""
+            let targetLeft = targetLeftRotation.map(String.init) ?? ""
+            let oldRight = oldRightRotation.map(String.init) ?? ""
+            let targetRight = targetRightRotation.map(String.init) ?? ""
+            appFileLogger.log("operation failed page=duplicate action=\(actionName) leftPhotoId=\(leftId) rightPhotoId=\(rightId) oldLeftRotation=\(oldLeft) targetLeftRotation=\(targetLeft) oldRightRotation=\(oldRight) targetRightRotation=\(targetRight) error=\(error.localizedDescription)", level: .error)
+            showErrorAlert(message: error.localizedDescription)
+        }
     }
 
     @objc private func keepBothClicked(_ sender: NSButton) {

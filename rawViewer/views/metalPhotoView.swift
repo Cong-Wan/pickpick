@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.1
-Date: 2026-06-10
-Description: 仅用于显示的 MTKView 子类；接收外部传入的 CIImage 或错误信息、清除旧内容、提供缩放与平移交互；每帧显式清空 drawable 防止残影；修复双指缩放将 magnification 增量值误作绝对倍数的 bug
+Version: 3.2
+Date: 2026-06-11
+Description: 仅用于显示的 MTKView 子类；接收外部传入的 CIImage 或错误信息、清除旧内容、提供缩放与平移交互；新增展示层 90 度步进旋转
 */
 
 import AppKit
@@ -24,6 +24,7 @@ public final class metalPhotoView: MTKView {
     private let ciContext: CIContext?
 
     private var currentImage: CIImage?
+    private var rotationDegrees: Int = 0
     public private(set) var errorMessage: String?
     public private(set) var isShowingError: Bool = false
 
@@ -93,8 +94,9 @@ public final class metalPhotoView: MTKView {
 
     // MARK: - 状态切换 API
 
-    public func setImage(_ image: CIImage?) {
+    public func setImage(_ image: CIImage?, rotationDegrees: Int = 0) {
         currentImage = image
+        self.rotationDegrees = normalizedRotationDegrees(rotationDegrees)
         errorMessage = nil
         isShowingError = false
         needsDisplay = true
@@ -102,6 +104,7 @@ public final class metalPhotoView: MTKView {
 
     public func clearImage() {
         currentImage = nil
+        rotationDegrees = 0
         errorMessage = nil
         isShowingError = false
         needsDisplay = true
@@ -109,6 +112,7 @@ public final class metalPhotoView: MTKView {
 
     public func showError(_ message: String) {
         currentImage = nil
+        rotationDegrees = 0
         errorMessage = message
         isShowingError = true
         needsDisplay = true
@@ -148,6 +152,19 @@ public final class metalPhotoView: MTKView {
 
     // MARK: - 渲染
 
+    private func displayImage(from image: CIImage) -> CIImage {
+        switch normalizedRotationDegrees(rotationDegrees) {
+        case 90:
+            return image.oriented(forExifOrientation: 6)
+        case 180:
+            return image.oriented(forExifOrientation: 3)
+        case 270:
+            return image.oriented(forExifOrientation: 8)
+        default:
+            return image
+        }
+    }
+
     public override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
@@ -170,14 +187,23 @@ public final class metalPhotoView: MTKView {
         }
 
         if let image = currentImage {
-            let fitScale = min(Double(target.width) / image.extent.width, Double(target.height) / image.extent.height)
+            let imageToRender = displayImage(from: image)
+            let extent = imageToRender.extent
+            guard extent.width > 0, extent.height > 0,
+                  extent.width.isFinite, extent.height.isFinite else {
+                commandBuffer.present(drawable)
+                commandBuffer.commit()
+                return
+            }
+
+            let fitScale = min(Double(target.width) / extent.width, Double(target.height) / extent.height)
             let effectiveScale = fitScale * userZoom
-            let width = image.extent.width * effectiveScale
-            let height = image.extent.height * effectiveScale
-            let x = (Double(target.width) - width) / 2 + panOffset.x
-            let y = (Double(target.height) - height) / 2 + panOffset.y
+            let width = extent.width * effectiveScale
+            let height = extent.height * effectiveScale
+            let x = (Double(target.width) - width) / 2 + panOffset.x - extent.minX * effectiveScale
+            let y = (Double(target.height) - height) / 2 + panOffset.y - extent.minY * effectiveScale
             let transform = CGAffineTransform(translationX: x, y: y).scaledBy(x: effectiveScale, y: effectiveScale)
-            ciContext.render(image.transformed(by: transform), to: target, commandBuffer: commandBuffer, bounds: bounds, colorSpace: CGColorSpaceCreateDeviceRGB())
+            ciContext.render(imageToRender.transformed(by: transform), to: target, commandBuffer: commandBuffer, bounds: bounds, colorSpace: CGColorSpaceCreateDeviceRGB())
         }
 
         commandBuffer.present(drawable)

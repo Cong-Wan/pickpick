@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.4
-Date: 2026-06-08
-Description: 注入 photoTrashService，keepLeft/keepRight 在标记 JSON 前先将文件移入废纸篓
+Version: 1.5
+Date: 2026-06-11
+Description: 注入 photoTrashService，keepLeft/keepRight 在标记 JSON 前先将文件移入废纸篓；新增 duplicate 当前对比照片共同旋转
 */
 
 import Foundation
@@ -128,6 +128,28 @@ public final class duplicateCompareViewModel {
             candidateIndex = min(1, photos.count - 1)
             return .continueComparing
         }
+    }
+
+    @discardableResult
+    public func rotateCurrentPair(direction: photoRotationDirection) throws -> [String: Int] {
+        var rotations: [String: Int] = [:]
+        if let left = mainPhoto {
+            rotations[left.photoId] = rotatedDegrees(left.rotationDegrees, direction: direction)
+        }
+        if let right = candidatePhoto {
+            rotations[right.photoId] = rotatedDegrees(right.rotationDegrees, direction: direction)
+        }
+        guard !rotations.isEmpty else { return [:] }
+
+        try store.setRotations(rotations)
+
+        for index in photos.indices {
+            let photoId = photos[index].photoId
+            if let rotation = rotations[photoId] {
+                photos[index].rotationDegrees = rotation
+            }
+        }
+        return rotations
     }
 
     private func markFinalKept(_ photo: photoItem) throws {

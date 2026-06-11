@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-06
-Description: Metal 视图控制器，包装 metalPhotoView 并管理缩放/平移/加载/空态四态状态机；NSPanGestureRecognizer 提供拖动支持
+Version: 1.2
+Date: 2026-06-11
+Description: Metal 视图控制器，包装 metalPhotoView 并管理缩放/平移/加载/空态四态状态机；新增展示旋转角度传递
 */
 
 import AppKit
@@ -70,11 +70,11 @@ public final class photoMetalViewController: NSViewController {
 
     // MARK: - 状态 API
 
-    public func load(image: CIImage?) {
+    public func load(image: CIImage?, rotationDegrees: Int = 0) {
         errorLabel.isHidden = true
         errorLabel.stringValue = ""
         if let image {
-            metalView.setImage(image)
+            metalView.setImage(image, rotationDegrees: rotationDegrees)
             hasImage = true
         } else {
             metalView.clearImage()

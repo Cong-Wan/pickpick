@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.4
-Date: 2026-06-10
-Description: 导航协调器，持有 records/groups 作为全 app 数据单一来源，管理 screenState 状态机，路由分发到各 VC；持有 trashService 实例并注入到各 ViewModel；加载 records 后自动调用 trashService 清理已标记为 trash 的照片文件。v1.3: 迁移至 photoAnalyzing 协议，使用 analysisStore 替代直接文件操作
+Version: 1.5
+Date: 2026-06-11
+Description: 导航协调器，持有 records/groups 作为全 app 数据单一来源，管理 screenState 状态机，路由分发到各 VC；普通浏览页传递 group kind；持有 trashService 实例并注入到各 ViewModel
 */
 
 import AppKit
@@ -121,7 +121,7 @@ public final class appCoordinator: appCoordinating {
             trashService: trashService,
             displaySource: displaySourceStore().current
         )
-        let browser = photoBrowserViewController(viewModel: viewModel, imageService: imageService)
+        let browser = photoBrowserViewController(viewModel: viewModel, imageService: imageService, groupKind: group.kind)
         browser.onBack = { [weak self] in
             guard let self else { return }
             self.reloadDataIgnoringError()
