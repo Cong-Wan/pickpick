@@ -1,12 +1,11 @@
 /*
 Author: wilbur
-Version: 1.2
+Version: 1.3
 Date: 2026-06-11
-Description: 从 folderUrl/config.yaml → Bundle.main/config.yaml → 硬编码默认值三级降级加载 config；校验 ratio、blur threshold 和 Metal 并发边界，避免非法 YAML 导致崩溃或卡死
+Description: 从 folderUrl/config.yaml → Bundle.main/config.yaml → 硬编码默认值三级降级加载 config；校验 ratio、blur threshold 和 Metal 并发边界。v1.3 移除 Yams 依赖，内置极简 YAML 解析器
 */
 
 import Foundation
-import Yams
 
 public final class configLoader {
     public init() {}
@@ -26,11 +25,58 @@ public final class configLoader {
     /// 从指定 yaml 文件加载, 字段缺失或非法则回退默认值/安全边界
     public func load(from url: URL) throws -> analysisConfig {
         let text = try String(contentsOf: url, encoding: .utf8)
-        guard let raw = try Yams.load(yaml: text) as? [String: Any] else {
-            return analysisConfig.defaults
-        }
+        let raw = parseSimpleYaml(text)
         return parse(raw)
     }
+
+    // MARK: - 极简 YAML 解析器（仅支持两层嵌套的 key: value）
+
+    /// 解析简单 YAML 为 [String: Any] 字典，支持两层嵌套、# 注释、数值/字符串值
+    private func parseSimpleYaml(_ text: String) -> [String: Any] {
+        var root: [String: Any] = [:]
+        var currentSection: String?
+        var currentDict: [String: Any] = [:]
+
+        for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
+
+            if let colonIdx = trimmed.firstIndex(of: ":") {
+                let key = trimmed[..<colonIdx].trimmingCharacters(in: .whitespaces)
+                let afterColon = trimmed[trimmed.index(after: colonIdx)...]
+                    .trimmingCharacters(in: .whitespaces)
+
+                if afterColon.isEmpty {
+                    // 顶层 section 开头，保存上一个 section
+                    if let section = currentSection {
+                        root[section] = currentDict
+                    }
+                    currentSection = key
+                    currentDict = [:]
+                } else {
+                    // key: value 对
+                    currentDict[key] = parseValue(afterColon)
+                }
+            }
+        }
+        if let section = currentSection {
+            root[section] = currentDict
+        }
+        return root
+    }
+
+    private func parseValue(_ raw: String) -> Any {
+        if raw.hasPrefix("\"") && raw.hasSuffix("\"") {
+            return String(raw.dropFirst().dropLast())
+        }
+        if let d = Double(raw) { return d }
+        if let i = Int(raw) { return i }
+        if raw == "true" { return true }
+        if raw == "false" { return false }
+        return raw
+    }
+
+    // MARK: - 配置解析
 
     private func parse(_ root: [String: Any]) -> analysisConfig {
         let exposureNode = root["exposure_detection"] as? [String: Any] ?? [:]

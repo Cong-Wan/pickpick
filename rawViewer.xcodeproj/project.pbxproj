@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		D8CF00022FC92FEA00F93002 /* config.yaml in Resources */ = {isa = PBXBuildFile; fileRef = D8CF00032FC92FEA00F93003 /* config.yaml */; };
-		D8E174B22FDA4967006503AC /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = AA000001000000000000A002 /* Yams */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,7 +41,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D8E174B22FDA4967006503AC /* Yams in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,9 +82,6 @@
 				D8DB71322FC92FEA00F93F82 /* rawViewer */,
 			);
 			name = pickpick;
-			packageProductDependencies = (
-				AA000001000000000000A002 /* Yams */,
-			);
 			productName = pickpick;
 			productReference = D8DB71302FC92FEA00F93F82 /* pickpick.app */;
 			productType = "com.apple.product-type.application";
@@ -115,9 +110,6 @@
 			);
 			mainGroup = D8DB71272FC92FEA00F93F82;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				AA000001000000000000A001 /* XCLocalSwiftPackageReference "3rdPart/yams" */,
-			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D8DB71312FC92FEA00F93F82 /* Products */;
 			projectDirPath = "";
@@ -399,20 +391,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		AA000001000000000000A001 /* XCLocalSwiftPackageReference "3rdPart/yams" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = 3rdPart/yams;
-		};
-/* End XCLocalSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		AA000001000000000000A002 /* Yams */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA000001000000000000A001 /* XCLocalSwiftPackageReference "3rdPart/yams" */;
-			productName = Yams;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D8DB71282FC92FEA00F93F82 /* Project object */;
 }
