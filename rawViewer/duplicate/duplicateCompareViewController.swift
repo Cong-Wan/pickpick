@@ -176,6 +176,15 @@ public final class duplicateCompareViewController: NSViewController {
         onBack?()
     }
 
+    private func showErrorAlert(message: String) {
+        let alert = NSAlert()
+        alert.messageText = "Operation failed"
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
     @objc private func sourceChanged(_ sender: NSSegmentedControl) {
         sourceStore.current = (sender.selectedSegment == 0) ? .jpg : .raw
         loadPhotos()
@@ -186,8 +195,12 @@ public final class duplicateCompareViewController: NSViewController {
 
         // 若当前仅剩这两张照片（或更少），无需选择模板，直接保留并结束
         if viewModel.photos.count <= 2 {
-            let result = try? viewModel.keepBoth(templatePhotoId: left.photoId)
-            handleActionResult(result ?? .finished)
+            do {
+                let result = try viewModel.keepBoth(templatePhotoId: left.photoId)
+                handleActionResult(result)
+            } catch {
+                showErrorAlert(message: error.localizedDescription)
+            }
             return
         }
 
@@ -201,11 +214,19 @@ public final class duplicateCompareViewController: NSViewController {
 
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
-            let result = try? viewModel.keepBoth(templatePhotoId: left.photoId)
-            handleActionResult(result ?? .finished)
+            do {
+                let result = try viewModel.keepBoth(templatePhotoId: left.photoId)
+                handleActionResult(result)
+            } catch {
+                showErrorAlert(message: error.localizedDescription)
+            }
         } else if response == .alertSecondButtonReturn, let right = viewModel.candidatePhoto {
-            let result = try? viewModel.keepBoth(templatePhotoId: right.photoId)
-            handleActionResult(result ?? .finished)
+            do {
+                let result = try viewModel.keepBoth(templatePhotoId: right.photoId)
+                handleActionResult(result)
+            } catch {
+                showErrorAlert(message: error.localizedDescription)
+            }
         }
     }
 
@@ -221,12 +242,18 @@ public final class duplicateCompareViewController: NSViewController {
     public override func keyDown(with event: NSEvent) {
         switch event.keyCode {
         case 123: // Left arrow
-            if let result = try? viewModel.keepLeft() {
+            do {
+                let result = try viewModel.keepLeft()
                 handleActionResult(result)
+            } catch {
+                showErrorAlert(message: error.localizedDescription)
             }
         case 124: // Right arrow
-            if let result = try? viewModel.keepRight() {
+            do {
+                let result = try viewModel.keepRight()
                 handleActionResult(result)
+            } catch {
+                showErrorAlert(message: error.localizedDescription)
             }
         default:
             super.keyDown(with: event)

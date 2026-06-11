@@ -76,15 +76,17 @@ public final class photoBrowserViewModel {
 
     public func confirmDelete() throws {
         let targets = deleteTargets()
-        // First: trash all files
         for photo in targets {
             try trashService.trash(photo)
         }
-        // Then: mark JSON status
-        for photo in targets {
-            try store.mark(photoId: photo.photoId, status: .trashed)
-        }
+
         let ids = Set(targets.map(\.photoId))
+        try store.update { items in
+            for index in items.indices where ids.contains(items[index].photoId) {
+                items[index].reviewStatus = .trashed
+            }
+        }
+
         photos.removeAll { ids.contains($0.photoId) }
         checkedPhotoIds.subtract(ids)
         currentIndex = min(currentIndex, max(photos.count - 1, 0))

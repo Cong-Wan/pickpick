@@ -12,6 +12,7 @@ public final class photoDisplayService {
     private let jpgCache = NSCache<NSString, photoCachedImage>()
     private let rawCache = NSCache<NSString, photoCachedImage>()
     private let fileManager: FileManager
+    private let maxDisplayJpgPixels = 100_000_000
 
     public init(fileManager: FileManager = .default) {
         self.fileManager = fileManager
@@ -73,6 +74,15 @@ public final class photoDisplayService {
         }
         guard let image = CIImage(contentsOf: URL(fileURLWithPath: jpgPath)) else {
             return .unavailable("Cannot decode JPG")
+        }
+        let extent = image.extent
+        guard extent.width > 0, extent.height > 0,
+              extent.width.isFinite, extent.height.isFinite else {
+            return .unavailable("Invalid JPG extent")
+        }
+        let totalPixels = extent.width * extent.height
+        guard totalPixels <= CGFloat(maxDisplayJpgPixels) else {
+            return .unavailable("JPG too large")
         }
         return .image(image)
     }

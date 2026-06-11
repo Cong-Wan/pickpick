@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.3
-Date: 2026-06-08
-Description: 修复 makeVisiblePhotoGroups 中单张 orphan 重复分组的问题：仅当 reviewGroupId 下可见照片数 >= 2 时才创建 duplicate 分组，否则 orphan 归入常规分组
+Version: 1.4
+Date: 2026-06-11
+Description: 修复 makeVisiblePhotoGroups 中单张 orphan 重复分组的问题，并让 photoItem 支持 Codable 以简化 analysisStore 持久化 schema
 */
 
 import Foundation
@@ -21,8 +21,10 @@ public enum reviewStatus: String, Codable, Equatable {
 
 public enum analysisPhase: String, Codable, Equatable {
     case scanning
-    case rawConversion
-    case analysis
+    case exifReading
+    case rawAnalysis
+    case jpgAnalysis
+    case duplicateGrouping
     case organizing
     case completed
 }
@@ -41,7 +43,21 @@ public struct analysisProgress: Equatable {
     }
 }
 
-public struct photoItem: Equatable, Identifiable {
+public struct dynamicRangeData: Codable, Equatable {
+    public var sceneSpreadEv: Double
+    public var codeRangeEv: Double
+    public var blackLevel: Int
+    public var whiteLevel: Int
+
+    public init(sceneSpreadEv: Double, codeRangeEv: Double, blackLevel: Int, whiteLevel: Int) {
+        self.sceneSpreadEv = sceneSpreadEv
+        self.codeRangeEv = codeRangeEv
+        self.blackLevel = blackLevel
+        self.whiteLevel = whiteLevel
+    }
+}
+
+public struct photoItem: Codable, Equatable, Identifiable {
     public var id: String { photoId }
     public var photoId: String
     public var jpgPath: String
@@ -51,6 +67,8 @@ public struct photoItem: Equatable, Identifiable {
     public var reviewStatus: reviewStatus
     public var reviewGroupId: String
     public var templatePhotoId: String
+    public var analysisSource: String
+    public var dynamicRange: dynamicRangeData?
 
     public init(
         photoId: String,
@@ -60,7 +78,9 @@ public struct photoItem: Equatable, Identifiable {
         exposureStatus: String = "normal",
         reviewStatus: reviewStatus = .active,
         reviewGroupId: String = "",
-        templatePhotoId: String = ""
+        templatePhotoId: String = "",
+        analysisSource: String = "",
+        dynamicRange: dynamicRangeData? = nil
     ) {
         self.photoId = photoId
         self.jpgPath = jpgPath
@@ -70,6 +90,8 @@ public struct photoItem: Equatable, Identifiable {
         self.reviewStatus = reviewStatus
         self.reviewGroupId = reviewGroupId
         self.templatePhotoId = templatePhotoId
+        self.analysisSource = analysisSource
+        self.dynamicRange = dynamicRange
     }
 }
 

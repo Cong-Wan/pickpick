@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.0
-Date: 2026-06-06
-Description: 仅用于显示的 MTKView 子类；接收外部传入的 CIImage 或错误信息、清除旧内容、提供缩放与平移交互；每帧显式清空 drawable 防止残影
+Version: 3.1
+Date: 2026-06-10
+Description: 仅用于显示的 MTKView 子类；接收外部传入的 CIImage 或错误信息、清除旧内容、提供缩放与平移交互；每帧显式清空 drawable 防止残影；修复双指缩放将 magnification 增量值误作绝对倍数的 bug
 */
 
 import AppKit
@@ -32,6 +32,7 @@ public final class metalPhotoView: MTKView {
     private let maxZoom: Double = 10.0
     private let zoomStep: Double = 1.2
     private var pinchStartZoom: Double = 1.0
+    private var pinchStartMagnification: Double = 0.0
     private var panOffset: CGPoint = .zero
 
     public var onZoomChanged: ((Double) -> Void)?
@@ -72,12 +73,15 @@ public final class metalPhotoView: MTKView {
         switch gesture.state {
         case .began:
             pinchStartZoom = userZoom
+            pinchStartMagnification = Double(gesture.magnification)
         case .changed, .ended:
-            let newZoom = max(minZoom, min(maxZoom, pinchStartZoom * Double(gesture.magnification)))
+            let delta = Double(gesture.magnification) - pinchStartMagnification
+            let newZoom = max(minZoom, min(maxZoom, pinchStartZoom * (1.0 + delta)))
             userZoom = newZoom
             needsDisplay = true
             onZoomChanged?(userZoom)
         default:
+            pinchStartMagnification = 0.0
             break
         }
     }

@@ -13,8 +13,10 @@ public struct progressFormatter {
     public func phaseText(for phase: analysisPhase) -> String {
         switch phase {
         case .scanning: return "Scanning"
-        case .rawConversion: return "Converting RAW"
-        case .analysis: return "Analyzing"
+        case .exifReading: return "Reading EXIF"
+        case .rawAnalysis: return "Analyzing RAW"
+        case .jpgAnalysis: return "Analyzing JPG"
+        case .duplicateGrouping: return "Grouping Duplicates"
         case .organizing: return "Organizing"
         case .completed: return "Completed"
         }

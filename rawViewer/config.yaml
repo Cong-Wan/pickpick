@@ -1,61 +1,34 @@
-# Photo Analyzer runtime config
-# 所有阈值都会在每张照片分析成功后写入 analysis_config_snapshot，
-# 这样以后即使修改本文件，也能复查当时的判断依据。
-
-blur_detection:
-  # 拉普拉斯方差阈值。
-  # variance < laplacian_threshold 时判定为虚焦。
-  # 调大：更容易判定为虚焦；调小：更宽松。
-  laplacian_threshold: 10.0
-
-  # 拉普拉斯核大小，只允许正奇数，建议 3。
-  # 值越大，对边缘变化更敏感，但也可能放大噪声。
-  laplacian_kernel_size: 3
+# pickpick 默认分析参数
+# Swift 原生分析 schema 2.0
+# exposure_detection 中的像素阈值均为 0.0~1.0 ratio。
+# 本文件会被打包进 app bundle，文件夹内 config.yaml 优先级高于本文件。
 
 exposure_detection:
-  # 高亮像素阈值。
-  # 灰度亮度 > 该值的像素会计入高亮像素。
-  # 取值范围 0~255，建议先用 245。
-  overexpose_pixel_threshold: 245
+  # 高亮像素阈值，归一化 [0, 1]。
+  # RAW: pixel >= blackLevel + threshold * (whiteLevel - blackLevel) 计为高亮。
+  # JPG: gray > threshold * 255 计为高亮。
+  overexpose_pixel_threshold: 0.96
 
-  # 暗部像素阈值。
-  # 灰度亮度 < 该值的像素会计入暗部像素。
-  # 取值范围 0~255，建议先用 10。
-  underexpose_pixel_threshold: 10
+  # 暗部像素阈值，归一化 [0, 1]。
+  # RAW: pixel <= blackLevel + threshold * (whiteLevel - blackLevel) 计为暗部。
+  # JPG: gray < threshold * 255 计为暗部。
+  underexpose_pixel_threshold: 0.04
 
-  # 过曝比例阈值。
-  # 高亮像素占比 > 该值时判定为过曝。
-  # 0.05 表示超过 5% 像素属于高亮区域。
+  # 高亮像素占比超过该值时判定为过曝。
   overexpose_ratio_limit: 0.05
 
-  # 欠曝比例阈值。
-  # 暗部像素占比 > 该值时判定为欠曝。
-  # 0.05 表示超过 5% 像素属于暗部区域。
+  # 暗部像素占比超过该值时判定为欠曝。
   underexpose_ratio_limit: 0.05
 
-raw_conversion:
-  # RAW 转 JPG 的输出质量。
-  # 取值范围 0~100；值越高文件越大、细节保留越多。
-  jpg_quality: 100
+blur_detection:
+  # RAW Bayer Green Plane 拉普拉斯方差阈值。
+  # variance < 此值时判定为虚焦。
+  laplacian_threshold_raw: 5000.0
 
-  # 按 RAW 格式（扩展名小写）配置转换参数。
-  # 未列出的格式使用默认值：gamma0=0.45 gamma1=4.5 no_auto_bright=0 bright=1.0 saturation_boost=1.0
-  raw_profiles:
-    .rw2:
-      no_auto_bright: 1
-      bright: 1.0
-      lut_path: luts/Natural+.cube
+  # JPG 8-bit 灰度拉普拉斯方差阈值。
+  # variance < 此值时判定为虚焦。
+  laplacian_threshold_jpg: 10.0
 
-image_processing:
-  # M-series macOS only. Image analysis uses Metal GPU exclusively.
-  # CPU / auto fallback is intentionally not supported.
-  analysis_backend: metal
-  raw_backend: metal
-  log_backend: true
-
-thread_pool:
-  # 固定 worker 数。
-  # 当前方案强制使用 4 个 worker。
-  # 这里保留配置项主要是为了让运行参数显式可见；
-  # 即使这里改成其他数字，执行层仍按 4 个 worker 运行。
-  worker_count: 4
+analysis:
+  # 同时进行 Metal 分析的并发数。
+  metal_concurrency: 6

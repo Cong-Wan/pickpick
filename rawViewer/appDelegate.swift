@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-03
-Description: 使用 AppKit application delegate 创建并持有 rawViewer 主窗口控制器；增加启动日志与 activate 调用
+Version: 1.2
+Date: 2026-06-11
+Description: 使用 AppKit application delegate 创建并持有 pickpick 主窗口控制器；清理启动强制解包，启动调试日志改为 --debug 控制
 */
 
 import AppKit
@@ -11,17 +11,17 @@ final class appDelegate: NSObject, NSApplicationDelegate {
     private var mainController: mainWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSLog("🔥 applicationDidFinishLaunching called")
+        appDebugLogger.log("applicationDidFinishLaunching")
         let controller = mainWindowController()
         mainController = controller
-        guard controller.window != nil else {
-            NSLog("🔥 CRITICAL: controller.window is nil!")
+        guard let window = controller.window else {
+            appDebugLogger.log("main window is nil")
             return
         }
-        NSLog("🔥 calling showWindow, window.isVisible=%@", controller.window!.isVisible ? "YES" : "NO")
+        appDebugLogger.log("showWindow before visible=\(window.isVisible)")
         controller.showWindow(self)
         NSApp.activate(ignoringOtherApps: true)
-        NSLog("🔥 showWindow returned, window.isVisible=%@", controller.window!.isVisible ? "YES" : "NO")
+        appDebugLogger.log("showWindow after visible=\(window.isVisible)")
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

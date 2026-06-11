@@ -173,8 +173,18 @@ public final class photoBrowserViewController: NSViewController {
         onBack?()
     }
 
+    private func showErrorAlert(message: String) {
+        let alert = NSAlert()
+        alert.messageText = "Operation failed"
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
     @objc private func sourceChanged(_ sender: NSSegmentedControl) {
         let source: displaySource = (sender.selectedSegment == 0) ? .jpg : .raw
+        displaySourceStore().current = source
         viewModel.setDisplaySource(source)
         loadCurrentPhoto()
     }
@@ -197,7 +207,7 @@ public final class photoBrowserViewController: NSViewController {
                 thumbnailView.setCurrentIndex(viewModel.currentIndex)
                 loadCurrentPhoto()
             } catch {
-                print("Delete failed: \(error)")
+                showErrorAlert(message: error.localizedDescription)
             }
         }
     }

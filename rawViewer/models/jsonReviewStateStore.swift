@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.3
-Date: 2026-06-06
-Description: 提供 Swift 侧 review 状态更新接口，新增 clearReviewGroupId 方法用于 Duplicate 完成后清空 reviewGroupId
+Version: 1.5
+Date: 2026-06-11
+Description: 提供 Swift 侧 review 状态更新接口，使用 analysisStore 替代直接 JSON 文件操作。v1.5 review 状态写回时保留既有 configSnapshot，避免覆盖真实分析配置
 */
 
 import Foundation
@@ -16,6 +16,7 @@ public protocol jsonReviewStateStoring: AnyObject {
     func mark(photoId: String, status: reviewStatus) throws
     func setTemplate(reviewGroupId: String, templatePhotoId: String) throws
     func clearReviewGroupId(photoId: String) throws
+    func update(_ mutate: (inout [photoItem]) -> Void) throws
 }
 
 public final class jsonReviewStateStore: jsonReviewStateStoring {
@@ -27,49 +28,33 @@ public final class jsonReviewStateStore: jsonReviewStateStoring {
     }
 
     public func mark(photoId: String, status: reviewStatus) throws {
-        try updateJson { photos in
-            guard var photo = photos[photoId] as? [String: Any] else { return }
-            photo["review_status"] = status.rawValue
-            photo["trashed_at"] = status == .trashed ? isoNow() : ""
-            photos[photoId] = photo
+        try update { items in
+            guard let index = items.firstIndex(where: { $0.photoId == photoId }) else { return }
+            items[index].reviewStatus = status
         }
         operations.append(.status(photoId: photoId, status: status))
     }
 
     public func setTemplate(reviewGroupId: String, templatePhotoId: String) throws {
-        try updateJson { photos in
-            for key in photos.keys {
-                guard var photo = photos[key] as? [String: Any], photo["review_group_id"] as? String == reviewGroupId else { continue }
-                photo["template_photo_id"] = templatePhotoId
-                photos[key] = photo
+        try update { items in
+            for index in items.indices where items[index].reviewGroupId == reviewGroupId {
+                items[index].templatePhotoId = templatePhotoId
             }
         }
         operations.append(.template(reviewGroupId: reviewGroupId, templatePhotoId: templatePhotoId))
     }
 
     public func clearReviewGroupId(photoId: String) throws {
-        try updateJson { photos in
-            guard var photo = photos[photoId] as? [String: Any] else { return }
-            photo["review_group_id"] = ""
-            photos[photoId] = photo
+        try update { items in
+            guard let index = items.firstIndex(where: { $0.photoId == photoId }) else { return }
+            items[index].reviewGroupId = ""
         }
     }
 
-    private func updateJson(_ mutate: (inout [String: Any]) -> Void) throws {
+    public func update(_ mutate: (inout [photoItem]) -> Void) throws {
         guard let folderUrl else { return }
-        let jsonUrl = folderUrl.appendingPathComponent(".cache/analysis.json")
-        guard FileManager.default.fileExists(atPath: jsonUrl.path) else { return }
-        let data = try Data(contentsOf: jsonUrl)
-        guard var root = try JSONSerialization.jsonObject(with: data) as? [String: Any], var photos = root["photos"] as? [String: Any] else { return }
-        mutate(&photos)
-        root["photos"] = photos
-        let output = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys])
-        try output.write(to: jsonUrl, options: .atomic)
+        var records = try analysisStore.shared.load(for: folderUrl)
+        mutate(&records)
+        try analysisStore.shared.save(folderUrl: folderUrl, records: records)
     }
-}
-
-private let isoFormatter = ISO8601DateFormatter()
-
-private func isoNow() -> String {
-    isoFormatter.string(from: Date())
 }

@@ -7,104 +7,52 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3C2CDB74DF39451398CCB802 /* src/fileScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5E320B565AB2414B97D311B4 /* src/fileScanner.cpp */; };
-		51F2D3135A414442BF8DBB5A /* src/appRunner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AE65D91F993140EC9176F938 /* src/appRunner.cpp */; };
-		6AD029932C234022929744B2 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CBFD07FF7E2F464E8E4F405A /* main.cpp */; };
-		7968CFF164734D93A3EDC4B6 /* src/configLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6FABC1AF34A2400EABB56DD3 /* src/configLoader.cpp */; };
-		847F76F611DE46119F6B51D4 /* src/imageAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAD190DAD67B4AA1B4E5E90A /* src/imageAnalyzer.cpp */; };
-		9941EDA579DC4662B1BA1DB9 /* src/jsonManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49AE7CD90F63498B8D7A83D3 /* src/jsonManager.cpp */; };
-		A10000000000000000000001 /* src/macImageAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005 /* src/macImageAnalyzer.mm */; };
-		A10000000000000000000002 /* src/gpuSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* src/gpuSupport.mm */; };
-		A10000000000000000000030 /* src/taskState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F2554B820E6450384435CF1 /* src/taskState.cpp */; };
-		A10000000000000000000031 /* src/configLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6FABC1AF34A2400EABB56DD3 /* src/configLoader.cpp */; };
-		A10000000000000000000032 /* src/fileScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5E320B565AB2414B97D311B4 /* src/fileScanner.cpp */; };
-		A10000000000000000000033 /* src/jsonManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49AE7CD90F63498B8D7A83D3 /* src/jsonManager.cpp */; };
-		A10000000000000000000034 /* src/resumePlanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49DA5498DB9A4FED905CBACE /* src/resumePlanner.cpp */; };
-		A10000000000000000000035 /* src/threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 658EF623F49F4E8BA73BF670 /* src/threadPool.cpp */; };
-		A10000000000000000000036 /* src/rawConverter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15EDE1DAC1404C96B23F5602 /* src/rawConverter.cpp */; };
-		A10000000000000000000037 /* src/imageAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAD190DAD67B4AA1B4E5E90A /* src/imageAnalyzer.cpp */; };
-		A10000000000000000000038 /* src/appRunner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AE65D91F993140EC9176F938 /* src/appRunner.cpp */; };
-		A10000000000000000000039 /* src/macImageAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005 /* src/macImageAnalyzer.mm */; };
-		A1000000000000000000003A /* src/gpuSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* src/gpuSupport.mm */; };
-		A10000000000000000000062 /* src/jpgWriter.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000060 /* src/jpgWriter.mm */; };
-		A10000000000000000000063 /* src/photoMetadataReader.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000061 /* src/photoMetadataReader.mm */; };
-		B84C9CC29F1E4535B4B6A666 /* src/threadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 658EF623F49F4E8BA73BF670 /* src/threadPool.cpp */; };
-		BE83762DF1204F5FA17F1918 /* src/rawConverter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 15EDE1DAC1404C96B23F5602 /* src/rawConverter.cpp */; };
-		CED0B665F71341B6B4D1001B /* src/resumePlanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 49DA5498DB9A4FED905CBACE /* src/resumePlanner.cpp */; };
-		E445CCDC0FF14B34A028B934 /* src/taskState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F2554B820E6450384435CF1 /* src/taskState.cpp */; };
+		D8CF00022FC92FEA00F93002 /* config.yaml in Resources */ = {isa = PBXBuildFile; fileRef = D8CF00032FC92FEA00F93003 /* config.yaml */; };
+		D8E174B22FDA4967006503AC /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = AA000001000000000000A002 /* Yams */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		15EDE1DAC1404C96B23F5602 /* src/rawConverter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/rawConverter.cpp; sourceTree = "<group>"; };
-		1A09E7E71F19468D8B698756 /* PhotoAnalyzerCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PhotoAnalyzerCLI; sourceTree = BUILT_PRODUCTS_DIR; };
-		1F2554B820E6450384435CF1 /* src/taskState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/taskState.cpp; sourceTree = "<group>"; };
-		49AE7CD90F63498B8D7A83D3 /* src/jsonManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/jsonManager.cpp; sourceTree = "<group>"; };
-		49DA5498DB9A4FED905CBACE /* src/resumePlanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/resumePlanner.cpp; sourceTree = "<group>"; };
-		5E320B565AB2414B97D311B4 /* src/fileScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/fileScanner.cpp; sourceTree = "<group>"; };
-		658EF623F49F4E8BA73BF670 /* src/threadPool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/threadPool.cpp; sourceTree = "<group>"; };
-		6FABC1AF34A2400EABB56DD3 /* src/configLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/configLoader.cpp; sourceTree = "<group>"; };
-		A10000000000000000000005 /* src/macImageAnalyzer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/macImageAnalyzer.mm; sourceTree = "<group>"; };
-		A10000000000000000000006 /* src/gpuSupport.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/gpuSupport.mm; sourceTree = "<group>"; };
-		A10000000000000000000060 /* src/jpgWriter.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/jpgWriter.mm; sourceTree = "<group>"; };
-		A10000000000000000000061 /* src/photoMetadataReader.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = src/photoMetadataReader.mm; sourceTree = "<group>"; };
-		AE65D91F993140EC9176F938 /* src/appRunner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/appRunner.cpp; sourceTree = "<group>"; };
-		CBFD07FF7E2F464E8E4F405A /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		D8DB71302FC92FEA00F93F82 /* pickpick.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pickpick.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		FAD190DAD67B4AA1B4E5E90A /* src/imageAnalyzer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = src/imageAnalyzer.cpp; sourceTree = "<group>"; };
+		D8CF00032FC92FEA00F93003 /* config.yaml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; name = config.yaml; path = rawViewer/config.yaml; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D8CF00012FC92FEA00F93001 /* Exceptions for "rawViewer" folder in "pickpick" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				config.yaml,
+			);
+			target = D8DB712F2FC92FEA00F93F82 /* pickpick */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		D8DB71322FC92FEA00F93F82 /* pickpick */ = {
+		D8DB71322FC92FEA00F93F82 /* rawViewer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D8CF00012FC92FEA00F93001 /* Exceptions for "rawViewer" folder in "pickpick" target */,
+			);
 			path = rawViewer;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		C1D9EB9CA8FA4D76A4792636 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		D8DB712D2FC92FEA00F93F82 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D8E174B22FDA4967006503AC /* Yams in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		4AE33933EEF34E19AF7037C3 /* cpp */ = {
-			isa = PBXGroup;
-			children = (
-				CBFD07FF7E2F464E8E4F405A /* main.cpp */,
-				1F2554B820E6450384435CF1 /* src/taskState.cpp */,
-				6FABC1AF34A2400EABB56DD3 /* src/configLoader.cpp */,
-				5E320B565AB2414B97D311B4 /* src/fileScanner.cpp */,
-				49AE7CD90F63498B8D7A83D3 /* src/jsonManager.cpp */,
-				49DA5498DB9A4FED905CBACE /* src/resumePlanner.cpp */,
-				658EF623F49F4E8BA73BF670 /* src/threadPool.cpp */,
-				15EDE1DAC1404C96B23F5602 /* src/rawConverter.cpp */,
-				FAD190DAD67B4AA1B4E5E90A /* src/imageAnalyzer.cpp */,
-				A10000000000000000000005 /* src/macImageAnalyzer.mm */,
-				A10000000000000000000006 /* src/gpuSupport.mm */,
-				AE65D91F993140EC9176F938 /* src/appRunner.cpp */,
-				A10000000000000000000060 /* src/jpgWriter.mm */,
-				A10000000000000000000061 /* src/photoMetadataReader.mm */,
-			);
-			path = cpp;
-			sourceTree = "<group>";
-		};
 		D8DB71272FC92FEA00F93F82 = {
 			isa = PBXGroup;
 			children = (
-				D8DB71322FC92FEA00F93F82 /* pickpick */,
-				4AE33933EEF34E19AF7037C3 /* cpp */,
+				D8DB71322FC92FEA00F93F82 /* rawViewer */,
 				D8DB71312FC92FEA00F93F82 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -113,7 +61,6 @@
 			isa = PBXGroup;
 			children = (
 				D8DB71302FC92FEA00F93F82 /* pickpick.app */,
-				1A09E7E71F19468D8B698756 /* PhotoAnalyzerCLI */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -121,24 +68,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		28E1281724674CF8AE843240 /* PhotoAnalyzerCLI */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = F41A89906BE14F78B2C96B05 /* Build configuration list for PBXNativeTarget "PhotoAnalyzerCLI" */;
-			buildPhases = (
-				3388AFF50D3D48FF9D23CD9F /* Sources */,
-				C1D9EB9CA8FA4D76A4792636 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = PhotoAnalyzerCLI;
-			packageProductDependencies = (
-			);
-			productName = PhotoAnalyzerCLI;
-			productReference = 1A09E7E71F19468D8B698756 /* PhotoAnalyzerCLI */;
-			productType = "com.apple.product-type.tool";
-		};
 		D8DB712F2FC92FEA00F93F82 /* pickpick */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = D8DB713B2FC92FEB00F93F82 /* Build configuration list for PBXNativeTarget "pickpick" */;
@@ -152,11 +81,11 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				4AE33933EEF34E19AF7037C3 /* cpp */,
-				D8DB71322FC92FEA00F93F82 /* pickpick */,
+				D8DB71322FC92FEA00F93F82 /* rawViewer */,
 			);
 			name = pickpick;
 			packageProductDependencies = (
+				AA000001000000000000A002 /* Yams */,
 			);
 			productName = pickpick;
 			productReference = D8DB71302FC92FEA00F93F82 /* pickpick.app */;
@@ -177,7 +106,7 @@
 					};
 				};
 			};
-			buildConfigurationList = D8DB712B2FC92FEA00F93F82 /* Build configuration list for PBXProject "pickpick" */;
+			buildConfigurationList = D8DB712B2FC92FEA00F93F82 /* Build configuration list for PBXProject "rawViewer" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -186,13 +115,15 @@
 			);
 			mainGroup = D8DB71272FC92FEA00F93F82;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AA000001000000000000A001 /* XCLocalSwiftPackageReference "3rdPart/yams" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D8DB71312FC92FEA00F93F82 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				D8DB712F2FC92FEA00F93F82 /* pickpick */,
-				28E1281724674CF8AE843240 /* PhotoAnalyzerCLI */,
 			);
 		};
 /* End PBXProject section */
@@ -202,166 +133,23 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D8CF00022FC92FEA00F93002 /* config.yaml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		3388AFF50D3D48FF9D23CD9F /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				6AD029932C234022929744B2 /* main.cpp in Sources */,
-				E445CCDC0FF14B34A028B934 /* src/taskState.cpp in Sources */,
-				7968CFF164734D93A3EDC4B6 /* src/configLoader.cpp in Sources */,
-				3C2CDB74DF39451398CCB802 /* src/fileScanner.cpp in Sources */,
-				9941EDA579DC4662B1BA1DB9 /* src/jsonManager.cpp in Sources */,
-				CED0B665F71341B6B4D1001B /* src/resumePlanner.cpp in Sources */,
-				B84C9CC29F1E4535B4B6A666 /* src/threadPool.cpp in Sources */,
-				BE83762DF1204F5FA17F1918 /* src/rawConverter.cpp in Sources */,
-				847F76F611DE46119F6B51D4 /* src/imageAnalyzer.cpp in Sources */,
-				A10000000000000000000001 /* src/macImageAnalyzer.mm in Sources */,
-				A10000000000000000000002 /* src/gpuSupport.mm in Sources */,
-				51F2D3135A414442BF8DBB5A /* src/appRunner.cpp in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		D8DB712C2FC92FEA00F93F82 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000030 /* src/taskState.cpp in Sources */,
-				A10000000000000000000031 /* src/configLoader.cpp in Sources */,
-				A10000000000000000000032 /* src/fileScanner.cpp in Sources */,
-				A10000000000000000000033 /* src/jsonManager.cpp in Sources */,
-				A10000000000000000000034 /* src/resumePlanner.cpp in Sources */,
-				A10000000000000000000035 /* src/threadPool.cpp in Sources */,
-				A10000000000000000000036 /* src/rawConverter.cpp in Sources */,
-				A10000000000000000000037 /* src/imageAnalyzer.cpp in Sources */,
-				A10000000000000000000038 /* src/appRunner.cpp in Sources */,
-				A10000000000000000000039 /* src/macImageAnalyzer.mm in Sources */,
-				A1000000000000000000003A /* src/gpuSupport.mm in Sources */,
-				A10000000000000000000062 /* src/jpgWriter.mm in Sources */,
-				A10000000000000000000063 /* src/photoMetadataReader.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		07204A31C14B405AB4457E4C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/cpp/include",
-					"$(PROJECT_DIR)/3rdPart/json",
-					"$(PROJECT_DIR)/3rdPart/yaml/include",
-					"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
-					"$(PROJECT_DIR)/3rdPart/libraw/include",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/3rdPart/opencv/lib",
-					"$(PROJECT_DIR)/3rdPart/libraw/lib",
-					"$(PROJECT_DIR)/3rdPart/yaml/lib",
-				);
-				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = (
-					"-lopencv_core",
-					"-lopencv_imgcodecs",
-					"-lopencv_imgproc",
-					"-lraw",
-					"-lyaml-cpp",
-					"-lc++",
-					"-framework",
-					Accelerate,
-					"-framework",
-					OpenCL,
-					"-framework",
-					Metal,
-					"-framework",
-					CoreImage,
-					"-framework",
-					CoreGraphics,
-					"-lz",
-					"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-					"-llibpng",
-					"-llibjpeg-turbo",
-					"-llibtiff",
-					"-llibwebp",
-					"-llibopenjp2",
-					"-lIlmImf",
-					"-lzlib",
-					"-littnotify",
-					"-ltegra_hal",
-					"-lkleidicv_hal",
-					"-lkleidicv_thread",
-					"-lkleidicv",
-				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
-		41760C872A7B41F4A8BCB150 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/cpp/include",
-					"$(PROJECT_DIR)/3rdPart/json",
-					"$(PROJECT_DIR)/3rdPart/yaml/include",
-					"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
-					"$(PROJECT_DIR)/3rdPart/libraw/include",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/3rdPart/opencv/lib",
-					"$(PROJECT_DIR)/3rdPart/libraw/lib",
-					"$(PROJECT_DIR)/3rdPart/yaml/lib",
-				);
-				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = (
-					"-lopencv_core",
-					"-lopencv_imgcodecs",
-					"-lopencv_imgproc",
-					"-lraw",
-					"-lyaml-cpp",
-					"-lc++",
-					"-framework",
-					Accelerate,
-					"-framework",
-					OpenCL,
-					"-framework",
-					Metal,
-					"-framework",
-					CoreImage,
-					"-framework",
-					CoreGraphics,
-					"-lz",
-					"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-					"-llibpng",
-					"-llibjpeg-turbo",
-					"-llibtiff",
-					"-llibwebp",
-					"-llibopenjp2",
-					"-lIlmImf",
-					"-lzlib",
-					"-littnotify",
-					"-ltegra_hal",
-					"-lkleidicv_hal",
-					"-lkleidicv_thread",
-					"-lkleidicv",
-				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
 		D8DB71392FC92FEB00F93F82 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -494,10 +282,7 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/cpp/include",
 					"$(PROJECT_DIR)/3rdPart/json",
-					"$(PROJECT_DIR)/3rdPart/yaml/include",
-					"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
 					"$(PROJECT_DIR)/3rdPart/libraw/include",
 				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -505,24 +290,13 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/3rdPart/opencv/lib",
-					"$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-					"$(PROJECT_DIR)/3rdPart/libraw/lib",
-					"$(PROJECT_DIR)/3rdPart/yaml/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/3rdPart/libraw/lib";
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
-					"-lopencv_core",
-					"-lopencv_imgcodecs",
-					"-lopencv_imgproc",
 					"-lraw",
-					"-lyaml-cpp",
 					"-lc++",
 					"-framework",
 					Accelerate,
-					"-framework",
-					OpenCL,
 					"-framework",
 					Metal,
 					"-framework",
@@ -534,19 +308,6 @@
 					"-framework",
 					MetalKit,
 					"-lz",
-					"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-					"-llibpng",
-					"-llibjpeg-turbo",
-					"-llibtiff",
-					"-llibwebp",
-					"-llibopenjp2",
-					"-lIlmImf",
-					"-lzlib",
-					"-littnotify",
-					"-ltegra_hal",
-					"-lkleidicv_hal",
-					"-lkleidicv_thread",
-					"-lkleidicv",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.pickpick;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -575,10 +336,7 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/cpp/include",
 					"$(PROJECT_DIR)/3rdPart/json",
-					"$(PROJECT_DIR)/3rdPart/yaml/include",
-					"$(PROJECT_DIR)/3rdPart/opencv/include/opencv4",
 					"$(PROJECT_DIR)/3rdPart/libraw/include",
 				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -586,24 +344,13 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/3rdPart/opencv/lib",
-					"$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-					"$(PROJECT_DIR)/3rdPart/libraw/lib",
-					"$(PROJECT_DIR)/3rdPart/yaml/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/3rdPart/libraw/lib";
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
-					"-lopencv_core",
-					"-lopencv_imgcodecs",
-					"-lopencv_imgproc",
 					"-lraw",
-					"-lyaml-cpp",
 					"-lc++",
 					"-framework",
 					Accelerate,
-					"-framework",
-					OpenCL,
 					"-framework",
 					Metal,
 					"-framework",
@@ -615,19 +362,6 @@
 					"-framework",
 					MetalKit,
 					"-lz",
-					"-L$(PROJECT_DIR)/3rdPart/opencv/lib/opencv4/3rdparty",
-					"-llibpng",
-					"-llibjpeg-turbo",
-					"-llibtiff",
-					"-llibwebp",
-					"-llibopenjp2",
-					"-lIlmImf",
-					"-lzlib",
-					"-littnotify",
-					"-ltegra_hal",
-					"-lkleidicv_hal",
-					"-lkleidicv_thread",
-					"-lkleidicv",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.pickpick;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -645,7 +379,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D8DB712B2FC92FEA00F93F82 /* Build configuration list for PBXProject "pickpick" */ = {
+		D8DB712B2FC92FEA00F93F82 /* Build configuration list for PBXProject "rawViewer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D8DB71392FC92FEB00F93F82 /* Debug */,
@@ -663,16 +397,22 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F41A89906BE14F78B2C96B05 /* Build configuration list for PBXNativeTarget "PhotoAnalyzerCLI" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				41760C872A7B41F4A8BCB150 /* Debug */,
-				07204A31C14B405AB4457E4C /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		AA000001000000000000A001 /* XCLocalSwiftPackageReference "3rdPart/yams" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = 3rdPart/yams;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AA000001000000000000A002 /* Yams */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA000001000000000000A001 /* XCLocalSwiftPackageReference "3rdPart/yams" */;
+			productName = Yams;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D8DB71282FC92FEA00F93F82 /* Project object */;
 }

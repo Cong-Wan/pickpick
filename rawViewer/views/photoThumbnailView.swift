@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 2.0
-Date: 2026-06-06
-Description: 缩略图列表 view，改用 NSTableView 单列布局；setCurrentIndex 仅刷新旧行和当前行；cell 自管理异步缩略图加载 Task；updatePhotos 时对 checkedIds 取与新 photo id 集合的交集
+Version: 2.1
+Date: 2026-06-10
+Description: 修复 checkbox 点击被 NSClickGestureRecognizer 拦截的问题：为 cell 手势添加 NSGestureRecognizerDelegate，当点击位置落在 checkbox frame 内时拒绝接收事件
 */
 
 import AppKit
@@ -169,6 +169,16 @@ extension photoThumbnailView: NSTableViewDataSource {
     }
 }
 
+// MARK: - NSGestureRecognizerDelegate
+
+extension photoThumbnailView: NSGestureRecognizerDelegate {
+    public func gestureRecognizerShouldBegin(_ gestureRecognizer: NSGestureRecognizer) -> Bool {
+        guard let cell = gestureRecognizer.view as? photoThumbnailCellView else { return true }
+        let location = gestureRecognizer.location(in: cell)
+        return !cell.checkbox.frame.contains(location)
+    }
+}
+
 // MARK: - NSTableViewDelegate
 
 extension photoThumbnailView: NSTableViewDelegate {
@@ -187,6 +197,7 @@ extension photoThumbnailView: NSTableViewDelegate {
         cell.checkbox.action = #selector(toggleCheck(_:))
 
         let click = NSClickGestureRecognizer(target: self, action: #selector(thumbClicked(_:)))
+        click.delegate = self
         // 移除旧手势避免叠加
         cell.gestureRecognizers.removeAll()
         cell.addGestureRecognizer(click)
@@ -214,6 +225,8 @@ extension photoThumbnailView: NSTableViewDelegate {
 
     @objc private func thumbClicked(_ gesture: NSClickGestureRecognizer) {
         guard let cell = gesture.view as? photoThumbnailCellView else { return }
+        let location = gesture.location(in: cell)
+        if cell.checkbox.frame.contains(location) { return }
         let index = cell.thumbIndex
         guard photos.indices.contains(index) else { return }
         setCurrentIndex(index)

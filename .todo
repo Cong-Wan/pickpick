@@ -1,0 +1,5 @@
+# Bug Fixes Execution
+
+- [x] Task 1: 修复缩略图 checkbox 点击失效 (photoThumbnailView.swift) ✅ BUILD SUCCEEDED
+- [x] Task 2: 修复双指缩放逻辑 (metalPhotoView.swift) ✅ BUILD SUCCEEDED
+- [x] Task 3: 修复 JPG 转换偏暗 (rawConverter.cpp) ✅ BUILD SUCCEEDED

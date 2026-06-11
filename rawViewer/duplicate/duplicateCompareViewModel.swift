@@ -35,12 +35,23 @@ public final class duplicateCompareViewModel {
             return .finished
         }
         try trashService.trash(right)
-        try store.mark(photoId: right.photoId, status: .trashed)
         photos.removeAll { $0.photoId == right.photoId }
-        if photos.count == 1 {
-            try markFinalKept(left)
-            return .finished
+        let shouldFinish = photos.count == 1
+        try store.update { items in
+            if let rightIndex = items.firstIndex(where: { $0.photoId == right.photoId }) {
+                items[rightIndex].reviewStatus = .trashed
+            }
+            if shouldFinish, let leftIndex = items.firstIndex(where: { $0.photoId == left.photoId }) {
+                items[leftIndex].reviewStatus = .kept
+                if !left.reviewGroupId.isEmpty {
+                    for index in items.indices where items[index].reviewGroupId == left.reviewGroupId {
+                        items[index].templatePhotoId = left.photoId
+                    }
+                    items[leftIndex].reviewGroupId = ""
+                }
+            }
         }
+        if shouldFinish { return .finished }
         mainIndex = 0
         candidateIndex = min(1, photos.count - 1)
         return .continueComparing
@@ -53,42 +64,66 @@ public final class duplicateCompareViewModel {
             return .finished
         }
         try trashService.trash(left)
-        try store.mark(photoId: left.photoId, status: .trashed)
         photos.removeAll { $0.photoId == left.photoId }
-        if photos.count == 1 {
-            try markFinalKept(right)
-            return .finished
+        let shouldFinish = photos.count == 1
+        try store.update { items in
+            if let leftIndex = items.firstIndex(where: { $0.photoId == left.photoId }) {
+                items[leftIndex].reviewStatus = .trashed
+            }
+            if shouldFinish, let rightIndex = items.firstIndex(where: { $0.photoId == right.photoId }) {
+                items[rightIndex].reviewStatus = .kept
+                if !right.reviewGroupId.isEmpty {
+                    for index in items.indices where items[index].reviewGroupId == right.reviewGroupId {
+                        items[index].templatePhotoId = right.photoId
+                    }
+                    items[rightIndex].reviewGroupId = ""
+                }
+            }
         }
+        if shouldFinish { return .finished }
         mainIndex = 0
         candidateIndex = min(1, photos.count - 1)
         return .continueComparing
     }
 
     public func keepBoth(templatePhotoId: String) throws -> duplicateCompareActionResult {
-        if let left = mainPhoto {
-            try store.mark(photoId: left.photoId, status: .kept)
-            try store.clearReviewGroupId(photoId: left.photoId)
-        }
-        if let right = candidatePhoto {
-            try store.mark(photoId: right.photoId, status: .kept)
-            try store.clearReviewGroupId(photoId: right.photoId)
-        }
+        let left = mainPhoto
+        let right = candidatePhoto
+        let originalGroupId = left?.reviewGroupId.isEmpty == false ? left?.reviewGroupId : right?.reviewGroupId
+        let keptIds = Set([left, right].compactMap { $0?.photoId })
 
-        let keptIds = Set([mainPhoto, candidatePhoto].compactMap { $0?.photoId })
         photos.removeAll { keptIds.contains($0.photoId) }
+        let remainingCount = photos.count
+        let remainingLast = photos.first
 
-        switch photos.count {
+        try store.update { items in
+            for index in items.indices where keptIds.contains(items[index].photoId) {
+                items[index].reviewStatus = .kept
+                items[index].reviewGroupId = ""
+            }
+
+            if remainingCount == 1, let last = remainingLast,
+               let lastIndex = items.firstIndex(where: { $0.photoId == last.photoId }) {
+                items[lastIndex].reviewStatus = .kept
+                if !last.reviewGroupId.isEmpty {
+                    for index in items.indices where items[index].reviewGroupId == last.reviewGroupId {
+                        items[index].templatePhotoId = last.photoId
+                    }
+                    items[lastIndex].reviewGroupId = ""
+                }
+            } else if remainingCount > 1, let groupId = originalGroupId, !groupId.isEmpty {
+                for index in items.indices where items[index].reviewGroupId == groupId {
+                    items[index].templatePhotoId = templatePhotoId
+                }
+            }
+        }
+
+        switch remainingCount {
         case 0:
             return .finished
         case 1:
-            if let last = photos.first {
-                try markFinalKept(last)
-            }
             return .finished
         default:
-            if let groupId = mainPhoto?.reviewGroupId, !groupId.isEmpty {
-                try store.setTemplate(reviewGroupId: groupId, templatePhotoId: templatePhotoId)
-            }
             mainIndex = 0
             candidateIndex = min(1, photos.count - 1)
             return .continueComparing
@@ -96,10 +131,15 @@ public final class duplicateCompareViewModel {
     }
 
     private func markFinalKept(_ photo: photoItem) throws {
-        try store.mark(photoId: photo.photoId, status: .kept)
-        if !photo.reviewGroupId.isEmpty {
-            try store.setTemplate(reviewGroupId: photo.reviewGroupId, templatePhotoId: photo.photoId)
-            try store.clearReviewGroupId(photoId: photo.photoId)
+        try store.update { items in
+            guard let index = items.firstIndex(where: { $0.photoId == photo.photoId }) else { return }
+            items[index].reviewStatus = .kept
+            if !photo.reviewGroupId.isEmpty {
+                for itemIndex in items.indices where items[itemIndex].reviewGroupId == photo.reviewGroupId {
+                    items[itemIndex].templatePhotoId = photo.photoId
+                }
+                items[index].reviewGroupId = ""
+            }
         }
     }
 }

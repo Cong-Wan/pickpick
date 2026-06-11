@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.2
-Date: 2026-06-06
-Description: 导航协调器，持有 records/groups 作为全 app 数据单一来源，管理 screenState 状态机，路由分发到各 VC；持有 trashService 实例并注入到各 ViewModel；加载 records 后自动调用 trashService 清理已标记为 trash 的照片文件
+Version: 1.4
+Date: 2026-06-10
+Description: 导航协调器，持有 records/groups 作为全 app 数据单一来源，管理 screenState 状态机，路由分发到各 VC；持有 trashService 实例并注入到各 ViewModel；加载 records 后自动调用 trashService 清理已标记为 trash 的照片文件。v1.3: 迁移至 photoAnalyzing 协议，使用 analysisStore 替代直接文件操作
 */
 
 import AppKit
@@ -23,12 +23,12 @@ public final class appCoordinator: appCoordinating {
     public private(set) var screenState: windowScreenState = .start
 
     private weak var window: NSWindow?
-    private let analyzer: photoAnalyzerBridge
+    private let analyzer: photoAnalyzing
     private let imageService: photoImageService
     private let trashService: photoTrashServicing
     public private(set) var currentFolderUrl: URL?
 
-    public init(window: NSWindow, analyzer: photoAnalyzerBridge, imageService: photoImageService = photoImageService(), trashService: photoTrashServicing = photoTrashService()) {
+    public init(window: NSWindow, analyzer: photoAnalyzing, imageService: photoImageService = photoImageService(), trashService: photoTrashServicing = photoTrashService()) {
         self.window = window
         self.analyzer = analyzer
         self.imageService = imageService
@@ -44,28 +44,23 @@ public final class appCoordinator: appCoordinating {
 
         Task { @MainActor in
             do {
-                if FileManager.default.fileExists(atPath: folderUrl.appendingPathComponent(".cache/analysis.json").path) {
-                    let loadedRecords = try analyzer.loadAnalysisResult(folderUrl: folderUrl)
-                    self.records = loadedRecords
-                    self.trashService.cleanupTrashedPhotos(self.records)
-                    self.showGroups()
-                    return
+                if analysisStore.shared.hasResults(for: folderUrl) {
+                    do {
+                        let loadedRecords = try analyzer.loadRecords(folderUrl: folderUrl)
+                        self.records = loadedRecords
+                        self.trashService.cleanupTrashedPhotos(self.records)
+                        self.showGroups()
+                        return
+                    } catch {
+                        appDebugLogger.log("cached analysis load failed, reanalyzing: \(error.localizedDescription)")
+                    }
                 }
-                let userConfigUrl = folderUrl.appendingPathComponent("config.yaml")
-                let configUrl: URL
-                if FileManager.default.fileExists(atPath: userConfigUrl.path) {
-                    configUrl = userConfigUrl
-                } else if let bundled = Bundle.main.url(forResource: "config", withExtension: "yaml") {
-                    configUrl = bundled
-                } else {
-                    self.screenState = .error("config.yaml not found in bundle")
-                    self.showError(message: "config.yaml not found in bundle")
-                    return
+                _ = try await analyzer.analyze(folderUrl: folderUrl) { progress in
+                    Task { @MainActor in
+                        progressController.update(progress: progress)
+                    }
                 }
-                _ = try await analyzer.startAnalysis(folderUrl: folderUrl, configUrl: configUrl) { progress in
-                    progressController.update(progress: progress)
-                }
-                self.records = try analyzer.loadAnalysisResult(folderUrl: folderUrl)
+                self.records = try analyzer.loadRecords(folderUrl: folderUrl)
                 self.trashService.cleanupTrashedPhotos(self.records)
                 self.showGroups()
             } catch {
@@ -77,7 +72,7 @@ public final class appCoordinator: appCoordinating {
 
     public func reloadData() throws {
         guard let folderUrl = currentFolderUrl else { return }
-        records = try analyzer.loadAnalysisResult(folderUrl: folderUrl)
+        records = try analyzer.loadRecords(folderUrl: folderUrl)
         groups = makeVisiblePhotoGroups(from: records)
     }
 
@@ -109,6 +104,14 @@ public final class appCoordinator: appCoordinating {
         window?.contentViewController = controller
     }
 
+    private func reloadDataIgnoringError() {
+        do {
+            try reloadData()
+        } catch {
+            appDebugLogger.log("reloadData failed: \(error.localizedDescription)")
+        }
+    }
+
     public func showBrowser(group: photoGroup) {
         screenState = .browser
         let store = jsonReviewStateStore(folderUrl: currentFolderUrl)
@@ -120,7 +123,9 @@ public final class appCoordinator: appCoordinating {
         )
         let browser = photoBrowserViewController(viewModel: viewModel, imageService: imageService)
         browser.onBack = { [weak self] in
-            self?.showGroups()
+            guard let self else { return }
+            self.reloadDataIgnoringError()
+            self.showGroups()
         }
         window?.contentViewController = browser
     }
@@ -131,7 +136,9 @@ public final class appCoordinator: appCoordinating {
         let viewModel = duplicateCompareViewModel(photos: group.photos, store: store, trashService: trashService)
         let duplicate = duplicateCompareViewController(viewModel: viewModel, imageService: imageService)
         duplicate.onBack = { [weak self] in
-            self?.showGroups()
+            guard let self else { return }
+            self.reloadDataIgnoringError()
+            self.showGroups()
         }
         duplicate.onFinished = { [weak self] in
             guard let self = self else { return }

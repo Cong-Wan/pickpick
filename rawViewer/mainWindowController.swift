@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 2.0
-Date: 2026-06-06
-Description: 窗口控制器，仅负责窗口创建/菜单/生命周期管理；数据和路由逻辑全部转交 appCoordinator
+Version: 2.1
+Date: 2026-06-10
+Description: 窗口控制器，仅负责窗口创建/菜单/生命周期管理；数据和路由逻辑全部转交 appCoordinator。v2.1: 迁移至 photoAnalyzing 协议
 */
 
 import AppKit
@@ -18,14 +18,14 @@ public enum windowScreenState: Equatable {
 
 public final class mainWindowController: NSWindowController {
     public private(set) var screenState: windowScreenState = .start
-    public var analyzer: photoAnalyzerBridge
+    public var analyzer: photoAnalyzing
     private var coordinator: appCoordinator?
 
     public convenience init() {
-        self.init(analyzer: photoAnalyzerBridge())
+        self.init(analyzer: photoAnalysisService())
     }
 
-    public convenience init(analyzer: photoAnalyzerBridge = photoAnalyzerBridge()) {
+    public convenience init(analyzer: photoAnalyzing = photoAnalysisService()) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1100, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -45,12 +45,12 @@ public final class mainWindowController: NSWindowController {
     }
 
     public override init(window: NSWindow?) {
-        self.analyzer = photoAnalyzerBridge()
+        self.analyzer = photoAnalysisService()
         super.init(window: window)
     }
 
     required init?(coder: NSCoder) {
-        self.analyzer = photoAnalyzerBridge()
+        self.analyzer = photoAnalysisService()
         super.init(coder: coder)
     }
 
