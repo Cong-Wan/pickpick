@@ -1,12 +1,18 @@
 /*
 Author: wilbur
-Version: 2.1
-Date: 2026-06-10
-Description: 修复分组卡片预览图内存泄漏：将 loadImage(kind: .thumbnail) 改为 loadThumbnail，走 CGImageSource 降采样路径，避免加载完整原图
+Version: 2.7
+Date: 2026-06-11
+Description: 收窄扑克牌扇形角度与水平偏移，避免分组缩略图散开过度
 */
 
 import AppKit
-import CoreImage
+
+private struct fanCardLayout {
+    let rotationDegrees: CGFloat
+    let xOffset: CGFloat
+    let yOffset: CGFloat
+    let zPosition: CGFloat
+}
 
 public final class groupCardView: NSView {
     public var onTap: (() -> Void)?
@@ -35,53 +41,63 @@ public final class groupCardView: NSView {
         layer?.backgroundColor = NSColor.clear.cgColor
         layer?.cornerRadius = 8
 
-        // Stack container for overlapping images
         stackContainer.wantsLayer = true
+        stackContainer.layer?.masksToBounds = false
         stackContainer.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stackContainer)
 
-        // Add up to 3 overlapping image previews
-        let count = min(3, previewPhotos.count)
-        let rotations: [CGFloat] = [-4, 3, -1]
-        let offsets: [(CGFloat, CGFloat)] = [(8, 6), (22, 14), (32, 20)]
+        let count = min(5, previewPhotos.count)
+        let layouts = fanLayouts(for: count)
 
-        for i in 0..<count {
+        for index in 0..<count {
+            let layout = layouts[index]
+            let cardContainer = NSView()
+            cardContainer.wantsLayer = true
+            cardContainer.layer?.backgroundColor = NSColor.clear.cgColor
+            cardContainer.layer?.zPosition = layout.zPosition
+            cardContainer.translatesAutoresizingMaskIntoConstraints = false
+            stackContainer.addSubview(cardContainer)
+
             let imgView = NSImageView()
             imgView.imageScaling = .scaleProportionallyUpOrDown
             imgView.imageAlignment = .alignCenter
             imgView.wantsLayer = true
-            imgView.layer?.backgroundColor = NSColor.darkGray.cgColor
-            imgView.layer?.cornerRadius = 4
-            imgView.layer?.borderWidth = 0.5
-            imgView.layer?.borderColor = NSColor.gray.withAlphaComponent(0.3).cgColor
+            imgView.layer?.backgroundColor = NSColor.clear.cgColor
+            imgView.layer?.cornerRadius = 0
+            imgView.layer?.borderWidth = 0
+            imgView.layer?.borderColor = nil
+            imgView.layer?.shadowOpacity = 0
             imgView.translatesAutoresizingMaskIntoConstraints = false
-            stackContainer.addSubview(imgView)
+            cardContainer.addSubview(imgView)
             previewImageViews.append(imgView)
 
             NSLayoutConstraint.activate([
-                imgView.centerXAnchor.constraint(equalTo: stackContainer.centerXAnchor, constant: offsets[i].0 - 20),
-                imgView.centerYAnchor.constraint(equalTo: stackContainer.centerYAnchor, constant: offsets[i].1 - 10),
-                imgView.widthAnchor.constraint(equalTo: stackContainer.widthAnchor, multiplier: 0.6),
-                imgView.heightAnchor.constraint(equalTo: stackContainer.heightAnchor, multiplier: 0.75)
+                cardContainer.centerXAnchor.constraint(equalTo: stackContainer.centerXAnchor, constant: layout.xOffset),
+                cardContainer.centerYAnchor.constraint(equalTo: stackContainer.bottomAnchor, constant: layout.yOffset),
+                cardContainer.widthAnchor.constraint(equalToConstant: 82),
+                cardContainer.heightAnchor.constraint(equalToConstant: 216),
+
+                imgView.centerXAnchor.constraint(equalTo: cardContainer.centerXAnchor),
+                imgView.bottomAnchor.constraint(equalTo: cardContainer.centerYAnchor),
+                imgView.widthAnchor.constraint(equalToConstant: 82),
+                imgView.heightAnchor.constraint(equalToConstant: 108)
             ])
 
-            imgView.layer?.transform = CATransform3DMakeRotation(rotations[i] * .pi / 180, 0, 0, 1)
+            cardContainer.frameCenterRotation = layout.rotationDegrees
 
-            let photo = previewPhotos[i]
+            let photo = previewPhotos[index]
             let targetView = imgView
             let task = Task { [weak self] in
-                let image = await imageService.loadThumbnail(for: photo, maxWidth: 160, maxHeight: 110)
+                let image = await imageService.loadThumbnail(for: photo, maxWidth: 164, maxHeight: 216)
                 if Task.isCancelled { return }
                 await MainActor.run {
                     guard let self = self, self.previewImageViews.contains(targetView) else { return }
                     targetView.image = image
-                    // image 为 nil 时保留 darkGray 占位背景（已在 setupView 设置）
                 }
             }
             loadTasks.append(task)
         }
 
-        // Labels
         nameLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         nameLabel.textColor = .labelColor
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -100,9 +116,9 @@ public final class groupCardView: NSView {
             stackContainer.topAnchor.constraint(equalTo: topAnchor),
             stackContainer.leadingAnchor.constraint(equalTo: leadingAnchor),
             stackContainer.trailingAnchor.constraint(equalTo: trailingAnchor),
-            stackContainer.heightAnchor.constraint(equalToConstant: 100),
+            stackContainer.heightAnchor.constraint(equalToConstant: 120),
 
-            nameLabel.topAnchor.constraint(equalTo: stackContainer.bottomAnchor, constant: 6),
+            nameLabel.topAnchor.constraint(equalTo: stackContainer.bottomAnchor, constant: 8),
             nameLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
             nameLabel.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
 
@@ -111,9 +127,43 @@ public final class groupCardView: NSView {
             countLabel.leadingAnchor.constraint(greaterThanOrEqualTo: nameLabel.trailingAnchor, constant: 4)
         ])
 
-        // Click gesture
         let click = NSClickGestureRecognizer(target: self, action: #selector(handleClick))
         addGestureRecognizer(click)
+    }
+
+    private func fanLayouts(for count: Int) -> [fanCardLayout] {
+        switch count {
+        case 1:
+            return [
+                fanCardLayout(rotationDegrees: 0, xOffset: 0, yOffset: -8, zPosition: 1)
+            ]
+        case 2:
+            return [
+                fanCardLayout(rotationDegrees: 10, xOffset: -6, yOffset: -8, zPosition: 1),
+                fanCardLayout(rotationDegrees: -10, xOffset: 6, yOffset: -8, zPosition: 2)
+            ]
+        case 3:
+            return [
+                fanCardLayout(rotationDegrees: 18, xOffset: -10, yOffset: -8, zPosition: 1),
+                fanCardLayout(rotationDegrees: 0, xOffset: 0, yOffset: -10, zPosition: 3),
+                fanCardLayout(rotationDegrees: -18, xOffset: 10, yOffset: -8, zPosition: 2)
+            ]
+        case 4:
+            return [
+                fanCardLayout(rotationDegrees: 24, xOffset: -14, yOffset: -7, zPosition: 1),
+                fanCardLayout(rotationDegrees: 8, xOffset: -5, yOffset: -10, zPosition: 3),
+                fanCardLayout(rotationDegrees: -8, xOffset: 5, yOffset: -10, zPosition: 4),
+                fanCardLayout(rotationDegrees: -24, xOffset: 14, yOffset: -7, zPosition: 2)
+            ]
+        default:
+            return [
+                fanCardLayout(rotationDegrees: 26, xOffset: -18, yOffset: -6, zPosition: 1),
+                fanCardLayout(rotationDegrees: 13, xOffset: -8, yOffset: -9, zPosition: 3),
+                fanCardLayout(rotationDegrees: 0, xOffset: 0, yOffset: -11, zPosition: 5),
+                fanCardLayout(rotationDegrees: -13, xOffset: 8, yOffset: -9, zPosition: 4),
+                fanCardLayout(rotationDegrees: -26, xOffset: 18, yOffset: -6, zPosition: 2)
+            ]
+        }
     }
 
     @objc private func handleClick() {

@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-06
-Description: 分组网格视图模型，负责空组过滤、路由决策、预览取前几张以及响应式列数计算；columnCount 扣除滚动条宽度
+Version: 1.2
+Date: 2026-06-11
+Description: 分组网格视图模型，负责空组过滤、路由决策、预览取前 5 张以及响应式列数计算；columnCount 扣除滚动条宽度
 */
 
 import AppKit
@@ -52,7 +52,7 @@ public final class groupGridViewModel {
     }
 
     public func previewPhotos(for group: photoGroup) -> [photoItem] {
-        Array(group.photos.prefix(3))
+        Array(group.photos.prefix(5))
     }
 
     public func route(for group: photoGroup) -> groupRoute {
