@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 2.1
-Date: 2026-06-10
-Description: 窗口控制器，仅负责窗口创建/菜单/生命周期管理；数据和路由逻辑全部转交 appCoordinator。v2.1: 迁移至 photoAnalyzing 协议
+Version: 2.2
+Date: 2026-06-11
+Description: 窗口控制器，仅负责窗口创建/菜单/生命周期管理；数据和路由逻辑全部转交 appCoordinator。v2.2: 窗口标题改为 pickpick
 */
 
 import AppKit
@@ -32,7 +32,7 @@ public final class mainWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "rawViewer"
+        window.title = "pickpick"
         window.minSize = NSSize(width: 760, height: 520)
         window.center()
         self.init(window: window)
