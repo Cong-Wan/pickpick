@@ -11,8 +11,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		D8DB71302FC92FEA00F93F82 /* pickpick.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pickpick.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8CF00032FC92FEA00F93003 /* config.yaml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; name = config.yaml; path = rawViewer/config.yaml; sourceTree = "<group>"; };
+		D8DB71302FC92FEA00F93F82 /* pickpick.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pickpick.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -52,6 +52,7 @@
 			children = (
 				D8DB71322FC92FEA00F93F82 /* rawViewer */,
 				D8DB71312FC92FEA00F93F82 /* Products */,
+				D8E1761D2FDA8468006503AC /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -61,6 +62,14 @@
 				D8DB71302FC92FEA00F93F82 /* pickpick.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D8E1761D2FDA8468006503AC /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				D8CF00032FC92FEA00F93003 /* config.yaml */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -390,7 +399,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = D8DB71282FC92FEA00F93F82 /* Project object */;
 }
