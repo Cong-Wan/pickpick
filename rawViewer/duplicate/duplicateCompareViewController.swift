@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.4
-Date: 2026-06-11
-Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment，并新增左右一起旋转
+Version: 3.5
+Date: 2026-06-12
+Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment，并新增左右一起旋转和同步缩放快捷键
 */
 
 import AppKit
@@ -366,6 +366,21 @@ public final class duplicateCompareViewController: NSViewController {
         }
     }
 
+    private func zoomBothIn() {
+        leftPhotoController.zoomIn()
+        rightPhotoController.zoomIn()
+    }
+
+    private func zoomBothOut() {
+        leftPhotoController.zoomOut()
+        rightPhotoController.zoomOut()
+    }
+
+    private func resetBothZoom() {
+        leftPhotoController.resetZoom()
+        rightPhotoController.resetZoom()
+    }
+
     public override func keyDown(with event: NSEvent) {
         switch event.keyCode {
         case 123: // Left arrow
@@ -383,7 +398,12 @@ public final class duplicateCompareViewController: NSViewController {
                 showErrorAlert(message: error.localizedDescription)
             }
         default:
-            super.keyDown(with: event)
+            switch event.charactersIgnoringModifiers {
+            case "=", "+": zoomBothIn()
+            case "-": zoomBothOut()
+            case "r", "R": resetBothZoom()
+            default: super.keyDown(with: event)
+            }
         }
     }
 }
