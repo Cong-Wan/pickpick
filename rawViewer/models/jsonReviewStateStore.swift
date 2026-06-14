@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.6
-Date: 2026-06-11
-Description: 新增 Restore Normal 和照片旋转角度持久化接口；保留 review 状态写回时既有 configSnapshot
+Version: 1.7
+Date: 2026-06-13
+Description: 新增 Restore Normal 和照片旋转角度持久化接口；保留 review 状态写回时既有 configSnapshot。v1.7 通过 analysisStore 串行 update 入口执行 JSON 状态变更
 */
 
 import Foundation
@@ -105,15 +105,15 @@ public final class jsonReviewStateStore: jsonReviewStateStoring {
 
     public func update(_ mutate: (inout [photoItem]) -> Void) throws {
         guard let folderUrl else { return }
-        var records = try analysisStore.shared.load(for: folderUrl)
-        mutate(&records)
-        try analysisStore.shared.save(folderUrl: folderUrl, records: records)
+        try analysisStore.shared.update(folderUrl: folderUrl) { items in
+            mutate(&items)
+        }
     }
 
     private func updateThrowing(_ mutate: (inout [photoItem]) throws -> Void) throws {
         guard let folderUrl else { return }
-        var records = try analysisStore.shared.load(for: folderUrl)
-        try mutate(&records)
-        try analysisStore.shared.save(folderUrl: folderUrl, records: records)
+        try analysisStore.shared.update(folderUrl: folderUrl) { items in
+            try mutate(&items)
+        }
     }
 }

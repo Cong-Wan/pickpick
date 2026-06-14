@@ -1,13 +1,13 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-11
-Description: 分析参数配置结构 (exposure / blur / concurrency) + 默认值。v1.1 移除未生效的拉普拉斯核大小配置，保持 config schema 与 Metal 3x3 kernel 行为一致
+Version: 1.2
+Date: 2026-06-13
+Description: 分析参数配置结构 (exposure / blur / concurrency) + 默认值。v1.2 标注配置值可在后台分析任务中传递
 */
 
 import Foundation
 
-public struct exposureConfig: Codable, Equatable {
+nonisolated public struct exposureConfig: Codable, Equatable, Sendable {
     public var overexposePixelThreshold: Double
     public var underexposePixelThreshold: Double
     public var overexposeRatioLimit: Double
@@ -26,7 +26,7 @@ public struct exposureConfig: Codable, Equatable {
     }
 }
 
-public struct blurConfig: Codable, Equatable {
+nonisolated public struct blurConfig: Codable, Equatable, Sendable {
     public var laplacianThresholdRaw: Double
     public var laplacianThresholdJpg: Double
 
@@ -39,7 +39,7 @@ public struct blurConfig: Codable, Equatable {
     }
 }
 
-public struct analysisConfig: Codable, Equatable {
+nonisolated public struct analysisConfig: Codable, Equatable, Sendable {
     public var exposure: exposureConfig
     public var blur: blurConfig
     public var metalConcurrency: Int
@@ -51,7 +51,7 @@ public struct analysisConfig: Codable, Equatable {
     }
 }
 
-public extension analysisConfig {
+nonisolated public extension analysisConfig {
     static let defaults = analysisConfig(
         exposure: exposureConfig(
             overexposePixelThreshold: 0.96,

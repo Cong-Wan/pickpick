@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-11
-Description: Metal 设备 / queue / pipeline 上下文；初始化失败改为 throws，避免设备或 shader 异常时 fatalError 退出
+Version: 1.2
+Date: 2026-06-13
+Description: Metal 设备 / queue / pipeline 上下文；初始化失败改为 throws，避免设备或 shader 异常时 fatalError 退出。v1.2 将 shared 访问声明为非 UI actor 隔离，供后台分析任务安全调用
 */
 
 import Foundation
@@ -32,11 +32,11 @@ public enum metalAnalysisContextError: Error, LocalizedError {
 }
 
 public final class metalAnalysisContext {
-    private static let cachedResult: Result<metalAnalysisContext, Error> = Result {
+    private nonisolated static let cachedResult: Result<metalAnalysisContext, Error> = Result {
         try metalAnalysisContext()
     }
 
-    public static func shared() throws -> metalAnalysisContext {
+    public nonisolated static func shared() throws -> metalAnalysisContext {
         try cachedResult.get()
     }
 

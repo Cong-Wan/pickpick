@@ -1,14 +1,14 @@
 /*
 Author: wilbur
-Version: 1.2
-Date: 2026-06-11
-Description: RAW Bayer 原始值分析: LibRaw 取数据, Metal GPU 4 个 kernel, CPU 后处理曝光/虚焦/DR。v1.2 contextProvider 惰性初始化、encoder guard、DR 修正
+Version: 1.4
+Date: 2026-06-13
+Description: RAW Bayer 原始值分析: LibRaw 取数据, Metal GPU 4 个 kernel, CPU 后处理曝光/虚焦/DR。v1.4 让 contextProvider 可从后台分析任务调用并标注 task group 捕获安全
 */
 
 import Foundation
 import Metal
 
-public struct rawAnalysisResult {
+nonisolated public struct rawAnalysisResult: Sendable {
     public let isBlurry: Bool
     public let exposureStatus: String
     public let dynamicRange: dynamicRangeData?
@@ -33,7 +33,7 @@ public struct rawAnalysisResult {
     }
 }
 
-public protocol rawBayerAnalyzing: AnyObject {
+nonisolated public protocol rawBayerAnalyzing: AnyObject, Sendable {
     func analyze(rawPath: String, config: analysisConfig) throws -> rawAnalysisResult
 }
 
@@ -75,10 +75,10 @@ struct partialStatsGpu {
     var maxVal: Float
 }
 
-public final class rawBayerAnalyzer: rawBayerAnalyzing {
-    private let contextProvider: () throws -> metalAnalysisContext
+nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked Sendable {
+    private let contextProvider: @Sendable () throws -> metalAnalysisContext
 
-    public init(contextProvider: @escaping () throws -> metalAnalysisContext = metalAnalysisContext.shared) {
+    public init(contextProvider: @escaping @Sendable () throws -> metalAnalysisContext = { try metalAnalysisContext.shared() }) {
         self.contextProvider = contextProvider
     }
 

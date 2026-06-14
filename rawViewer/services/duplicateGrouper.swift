@@ -1,18 +1,18 @@
 /*
 Author: wilbur
-Version: 1.0
-Date: 2026-06-10
-Description: 3 秒阈值重复分组, 同组 >= 2 张才分配 dup_NNN ID
+Version: 1.1
+Date: 2026-06-13
+Description: 3 秒阈值重复分组, 同组 >= 2 张才分配 dup_NNN ID。v1.1 明确分组器和分组输入可在后台分析任务中使用
 */
 
 import Foundation
 
-public final class duplicateGrouper {
+nonisolated public final class duplicateGrouper: @unchecked Sendable {
     public static let thresholdSeconds: Int64 = 3
 
     public init() {}
 
-    public struct entry {
+    nonisolated public struct entry: Sendable {
         public let photoId: String
         public let epochSeconds: Int64
         public init(photoId: String, epochSeconds: Int64) {

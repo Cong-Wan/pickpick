@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-11
-Description: 主编排, 替代原 photoAnalyzerBridge。v1.1 去除不必要的 pickpick 模块名前缀并避免 jpgAnalyzer 命名遮蔽
+Version: 1.4
+Date: 2026-06-13
+Description: 主编排, 替代原 photoAnalyzerBridge。v1.4 保持失败分析不计入 normal summary，与分组语义一致
 */
 
 import Foundation
@@ -72,6 +72,20 @@ public final class photoAnalysisService: photoAnalyzing {
         self.cfgLoader = cfgLoader
     }
 
+    private struct exifStageResult {
+        let index: Int
+        let pair: photoFilePair
+        let item: photoItem
+        let shootingTime: duplicateGrouper.entry?
+    }
+
+    private struct analysisStageResult {
+        let index: Int
+        let photoId: String
+        let result: rawAnalysisResult
+        let phase: analysisPhase
+    }
+
     // MARK: - Analyze
 
     public func analyze(
@@ -80,7 +94,6 @@ public final class photoAnalysisService: photoAnalyzing {
     ) async throws -> analysisSummary {
         let config = try cfgLoader.load(for: folderUrl)
 
-        // 1. Scanning phase
         progress(analysisProgress(phase: .scanning, completedCount: 0, totalCount: 0, overallProgress: 0.0))
         let pairs = try scanner.scanTopLevel(folderUrl)
         let totalCount = pairs.count
@@ -89,136 +102,44 @@ public final class photoAnalysisService: photoAnalyzing {
             return analysisSummary(totalPhotos: 0, blurryCount: 0, overexposedCount: 0, underexposedCount: 0, normalCount: 0)
         }
 
-        // 2. EXIF reading phase
         progress(analysisProgress(phase: .exifReading, completedCount: 0, totalCount: totalCount, overallProgress: 0.1))
-        let recordsLock = NSLock()
-        var records: [String: photoItem] = [:]
+        let exifResults = await runExifStage(pairs: pairs, totalCount: totalCount, progress: progress)
+
+        var recordsById: [String: photoItem] = [:]
         var shootingTimes: [duplicateGrouper.entry] = []
-        var exifCompletedCount = 0
-
-        let exifQueue = DispatchQueue(label: "rawViewer.exifReader", attributes: .concurrent)
-        let exifGroup = DispatchGroup()
-        let exifSemaphore = DispatchSemaphore(value: 8)
-
-        for (index, pair) in pairs.enumerated() {
-            exifGroup.enter()
-            exifQueue.async {
-                exifSemaphore.wait()
-                defer {
-                    exifSemaphore.signal()
-                    exifGroup.leave()
-                }
-
-                let timeResult = self.exif.readBestShootingTime(rawPath: pair.rawPath, jpgPath: pair.jpgPath)
-
-                let item = photoItem(
-                    photoId: pair.photoId,
-                    jpgPath: pair.jpgPath ?? pair.rawPath ?? "",
-                    rawPath: pair.rawPath,
-                    analysisSource: ""
-                )
-
-                recordsLock.lock()
-                records[pair.photoId] = item
-                if timeResult.found {
-                    shootingTimes.append(duplicateGrouper.entry(photoId: pair.photoId, epochSeconds: timeResult.epochSeconds))
-                }
-                recordsLock.unlock()
-
-                recordsLock.lock()
-                exifCompletedCount += 1
-                let completed = exifCompletedCount
-                recordsLock.unlock()
-                let overall = 0.1 + 0.1 * Double(completed) / Double(totalCount)
-                progress(analysisProgress(phase: .exifReading, completedCount: completed, totalCount: totalCount, overallProgress: overall))
+        for result in exifResults {
+            recordsById[result.item.photoId] = result.item
+            if let shootingTime = result.shootingTime {
+                shootingTimes.append(shootingTime)
             }
         }
-        exifGroup.wait()
 
-        // 3. Analysis phase (raw / jpg)
         progress(analysisProgress(phase: .rawAnalysis, completedCount: 0, totalCount: totalCount, overallProgress: 0.2))
-        let gpuSemaphore = DispatchSemaphore(value: config.metalConcurrency)
-        var analysisCompletedCount = 0
-        let analysisQueue = DispatchQueue(label: "rawViewer.analysis", attributes: .concurrent)
-        let analysisGroup = DispatchGroup()
+        let analysisResults = await runAnalysisStage(pairs: pairs, config: config, totalCount: totalCount, progress: progress)
 
-        for (index, pair) in pairs.enumerated() {
-            analysisGroup.enter()
-            analysisQueue.async {
-                gpuSemaphore.wait()
-                defer {
-                    gpuSemaphore.signal()
-                    analysisGroup.leave()
-                }
-
-                let result: rawAnalysisResult
-                if pair.hasRaw, let rawPath = pair.rawPath {
-                    do {
-                        result = try self.rawAnalyzer.analyze(rawPath: rawPath, config: config)
-                    } catch {
-                        result = self.runJpgFallback(pair: pair, config: config)
-                    }
-                } else if pair.hasJpg, let jpgPath = pair.jpgPath {
-                    do {
-                        result = try self.jpgAnalyzerService.analyze(jpgPath: jpgPath, config: config)
-                    } catch {
-                        result = rawAnalysisResult(
-                            isBlurry: false,
-                            exposureStatus: "normal",
-                            dynamicRange: nil,
-                            blackLevel: 0,
-                            whiteLevel: 0,
-                            analysisSource: "jpg_failed"
-                        )
-                    }
-                } else {
-                    result = rawAnalysisResult(
-                        isBlurry: false,
-                        exposureStatus: "normal",
-                        dynamicRange: nil,
-                        blackLevel: 0,
-                        whiteLevel: 0,
-                        analysisSource: "none"
-                    )
-                }
-
-                recordsLock.lock()
-                if var item = records[pair.photoId] {
-                    item.isBlurry = result.isBlurry
-                    item.exposureStatus = result.exposureStatus
-                    item.dynamicRange = result.dynamicRange
-                    item.analysisSource = result.analysisSource
-                    records[pair.photoId] = item
-                }
-                recordsLock.unlock()
-
-                recordsLock.lock()
-                analysisCompletedCount += 1
-                let completed = analysisCompletedCount
-                recordsLock.unlock()
-                let overall = 0.2 + 0.6 * Double(completed) / Double(totalCount)
-                let phase: analysisPhase = pair.hasRaw ? .rawAnalysis : .jpgAnalysis
-                progress(analysisProgress(phase: phase, completedCount: completed, totalCount: totalCount, overallProgress: overall))
+        for result in analysisResults {
+            if var item = recordsById[result.photoId] {
+                item.isBlurry = result.result.isBlurry
+                item.exposureStatus = result.result.exposureStatus
+                item.dynamicRange = result.result.dynamicRange
+                item.analysisSource = result.result.analysisSource
+                recordsById[result.photoId] = item
             }
         }
-        analysisGroup.wait()
 
-        // 4. Duplicate grouping phase
         progress(analysisProgress(phase: .duplicateGrouping, completedCount: 0, totalCount: totalCount, overallProgress: 0.85))
         let groupMap = grouper.computeDuplicateGroupIds(shootingTimes)
         for (photoId, groupId) in groupMap {
-            if var item = records[photoId] {
+            if var item = recordsById[photoId] {
                 item.reviewGroupId = groupId
-                records[photoId] = item
+                recordsById[photoId] = item
             }
         }
 
-        // 5. Organizing / save phase
         progress(analysisProgress(phase: .organizing, completedCount: 0, totalCount: totalCount, overallProgress: 0.9))
-        let finalRecords = pairs.compactMap { records[$0.photoId] }
+        let finalRecords = pairs.compactMap { recordsById[$0.photoId] }
         try store.save(folderUrl: folderUrl, records: finalRecords, config: config)
 
-        // 6. Compute summary
         let summary = computeSummary(finalRecords)
         progress(analysisProgress(phase: .completed, completedCount: totalCount, totalCount: totalCount, overallProgress: 1.0))
         return summary
@@ -232,11 +153,169 @@ public final class photoAnalysisService: photoAnalyzing {
 
     // MARK: - Private Helpers
 
+    private func runExifStage(
+        pairs: [photoFilePair],
+        totalCount: Int,
+        progress: @escaping (analysisProgress) -> Void
+    ) async -> [exifStageResult] {
+        let concurrency = min(8, max(1, pairs.count))
+        var nextIndex = 0
+        var completed = 0
+        var results: [exifStageResult] = []
+        results.reserveCapacity(pairs.count)
+
+        await withTaskGroup(of: exifStageResult.self) { group in
+            func enqueueNext() {
+                guard nextIndex < pairs.count else { return }
+                let index = nextIndex
+                let pair = pairs[index]
+                nextIndex += 1
+                group.addTask { [exif] in
+                    let timeResult = exif.readBestShootingTime(rawPath: pair.rawPath, jpgPath: pair.jpgPath)
+                    let item = photoItem(
+                        photoId: pair.photoId,
+                        jpgPath: pair.jpgPath ?? pair.rawPath ?? "",
+                        rawPath: pair.rawPath,
+                        analysisSource: ""
+                    )
+                    let shootingTime = timeResult.found
+                        ? duplicateGrouper.entry(photoId: pair.photoId, epochSeconds: timeResult.epochSeconds)
+                        : nil
+                    return exifStageResult(index: index, pair: pair, item: item, shootingTime: shootingTime)
+                }
+            }
+
+            for _ in 0..<concurrency {
+                enqueueNext()
+            }
+
+            while let result = await group.next() {
+                results.append(result)
+                completed += 1
+                let overall = 0.1 + 0.1 * Double(completed) / Double(totalCount)
+                progress(analysisProgress(phase: .exifReading, completedCount: completed, totalCount: totalCount, overallProgress: overall))
+                enqueueNext()
+            }
+        }
+
+        return results.sorted { $0.index < $1.index }
+    }
+
+    private func runAnalysisStage(
+        pairs: [photoFilePair],
+        config: analysisConfig,
+        totalCount: Int,
+        progress: @escaping (analysisProgress) -> Void
+    ) async -> [analysisStageResult] {
+        let concurrency = min(max(config.metalConcurrency, 1), max(1, pairs.count))
+        let jpgFallback = makeJpgFallbackRunner(config: config)
+        var nextIndex = 0
+        var completed = 0
+        var results: [analysisStageResult] = []
+        results.reserveCapacity(pairs.count)
+
+        await withTaskGroup(of: analysisStageResult.self) { group in
+            func enqueueNext() {
+                guard nextIndex < pairs.count else { return }
+                let index = nextIndex
+                let pair = pairs[index]
+                nextIndex += 1
+                group.addTask { [rawAnalyzer, jpgAnalyzerService] in
+                    let result: rawAnalysisResult
+                    let phase: analysisPhase
+                    if pair.hasRaw, let rawPath = pair.rawPath {
+                        phase = .rawAnalysis
+                        do {
+                            result = try rawAnalyzer.analyze(rawPath: rawPath, config: config)
+                        } catch {
+                            result = jpgFallback(pair)
+                        }
+                    } else if pair.hasJpg, let jpgPath = pair.jpgPath {
+                        phase = .jpgAnalysis
+                        do {
+                            result = try jpgAnalyzerService.analyze(jpgPath: jpgPath, config: config)
+                        } catch {
+                            result = rawAnalysisResult(
+                                isBlurry: false,
+                                exposureStatus: "failed",
+                                dynamicRange: nil,
+                                blackLevel: 0,
+                                whiteLevel: 0,
+                                analysisSource: "jpg_failed"
+                            )
+                        }
+                    } else {
+                        phase = .jpgAnalysis
+                        result = rawAnalysisResult(
+                            isBlurry: false,
+                            exposureStatus: "failed",
+                            dynamicRange: nil,
+                            blackLevel: 0,
+                            whiteLevel: 0,
+                            analysisSource: "none"
+                        )
+                    }
+                    return analysisStageResult(index: index, photoId: pair.photoId, result: result, phase: phase)
+                }
+            }
+
+            for _ in 0..<concurrency {
+                enqueueNext()
+            }
+
+            while let result = await group.next() {
+                results.append(result)
+                completed += 1
+                let overall = 0.2 + 0.6 * Double(completed) / Double(totalCount)
+                progress(analysisProgress(phase: result.phase, completedCount: completed, totalCount: totalCount, overallProgress: overall))
+                enqueueNext()
+            }
+        }
+
+        return results.sorted { $0.index < $1.index }
+    }
+
+    private func makeJpgFallbackRunner(config: analysisConfig) -> @Sendable (photoFilePair) -> rawAnalysisResult {
+        let jpgAnalyzerService = self.jpgAnalyzerService
+        return { pair in
+            guard pair.hasJpg, let jpgPath = pair.jpgPath else {
+                return rawAnalysisResult(
+                    isBlurry: false,
+                    exposureStatus: "failed",
+                    dynamicRange: nil,
+                    blackLevel: 0,
+                    whiteLevel: 0,
+                    analysisSource: "jpg_failed"
+                )
+            }
+            do {
+                let result = try jpgAnalyzerService.analyze(jpgPath: jpgPath, config: config)
+                return rawAnalysisResult(
+                    isBlurry: result.isBlurry,
+                    exposureStatus: result.exposureStatus,
+                    dynamicRange: result.dynamicRange,
+                    blackLevel: result.blackLevel,
+                    whiteLevel: result.whiteLevel,
+                    analysisSource: "jpg_fallback"
+                )
+            } catch {
+                return rawAnalysisResult(
+                    isBlurry: false,
+                    exposureStatus: "failed",
+                    dynamicRange: nil,
+                    blackLevel: 0,
+                    whiteLevel: 0,
+                    analysisSource: "jpg_failed"
+                )
+            }
+        }
+    }
+
     private func runJpgFallback(pair: photoFilePair, config: analysisConfig) -> rawAnalysisResult {
         guard pair.hasJpg, let jpgPath = pair.jpgPath else {
             return rawAnalysisResult(
                 isBlurry: false,
-                exposureStatus: "normal",
+                exposureStatus: "failed",
                 dynamicRange: nil,
                 blackLevel: 0,
                 whiteLevel: 0,
@@ -256,7 +335,7 @@ public final class photoAnalysisService: photoAnalyzing {
         } catch {
             return rawAnalysisResult(
                 isBlurry: false,
-                exposureStatus: "normal",
+                exposureStatus: "failed",
                 dynamicRange: nil,
                 blackLevel: 0,
                 whiteLevel: 0,
@@ -271,7 +350,7 @@ public final class photoAnalysisService: photoAnalyzing {
             if item.isBlurry { blurry += 1 }
             if item.exposureStatus == "overexposed" { overexposed += 1 }
             else if item.exposureStatus == "underexposed" { underexposed += 1 }
-            if !item.isBlurry && item.exposureStatus == "normal" { normal += 1 }
+            if item.isNormalAnalysisResult { normal += 1 }
         }
         return analysisSummary(
             totalPhotos: records.count,

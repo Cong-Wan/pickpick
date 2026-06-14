@@ -1,12 +1,13 @@
 /*
 Author: wilbur
-Version: 1.2
-Date: 2026-06-11
-Description: 使用 AppKit application delegate 创建并持有 pickpick 主窗口控制器；清理启动强制解包，启动调试日志改为 --debug 控制
+Version: 1.3
+Date: 2026-06-13
+Description: 使用 AppKit application delegate 创建并持有 pickpick 主窗口控制器；清理启动强制解包，启动调试日志改为 --debug 控制。v1.3 明确 MainActor 隔离以匹配 AppKit delegate 生命周期
 */
 
 import AppKit
 
+@MainActor
 final class appDelegate: NSObject, NSApplicationDelegate {
     private var mainController: mainWindowController?
 

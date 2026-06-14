@@ -1,13 +1,13 @@
 /*
 Author: wilbur
-Version: 1.3
-Date: 2026-06-11
-Description: 从 folderUrl/config.yaml → Bundle.main/config.yaml → 硬编码默认值三级降级加载 config；校验 ratio、blur threshold 和 Metal 并发边界。v1.3 移除 Yams 依赖，内置极简 YAML 解析器
+Version: 1.4
+Date: 2026-06-13
+Description: 从 folderUrl/config.yaml → Bundle.main/config.yaml → 硬编码默认值三级降级加载 config；校验 ratio、blur threshold 和 Metal 并发边界。v1.4 明确配置加载器可在后台分析任务中使用
 */
 
 import Foundation
 
-public final class configLoader {
+nonisolated public final class configLoader: @unchecked Sendable {
     public init() {}
 
     /// 加载顺序: folderUrl/config.yaml > Bundle.main/config.yaml > defaults

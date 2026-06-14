@@ -1,18 +1,18 @@
 /*
 Author: wilbur
-Version: 1.8
-Date: 2026-06-11
-Description: 新增照片展示旋转角度持久化，并保持旧 analysis.json 解码兼容；补充 reviewStatus 解码同名遮蔽说明
+Version: 1.9
+Date: 2026-06-13
+Description: 新增照片展示旋转角度持久化，并保持旧 analysis.json 解码兼容；补充 reviewStatus 解码同名遮蔽说明。v1.9 明确分析失败不归入 Normal，并修正 displayUrl 对 RAW-only/JPG-only 的文件可用性判断
 */
 
 import Foundation
 
-public enum displaySource: String, Codable, Equatable {
+nonisolated public enum displaySource: String, Codable, Equatable, Sendable {
     case jpg
     case raw
 }
 
-public enum photoRotationDirection: Equatable {
+nonisolated public enum photoRotationDirection: Equatable, Sendable {
     case left
     case right
 
@@ -24,7 +24,7 @@ public enum photoRotationDirection: Equatable {
     }
 }
 
-public func normalizedRotationDegrees(_ value: Int) -> Int {
+nonisolated public func normalizedRotationDegrees(_ value: Int) -> Int {
     let normalized = value % 360
     let positive = normalized < 0 ? normalized + 360 : normalized
     switch positive {
@@ -35,18 +35,18 @@ public func normalizedRotationDegrees(_ value: Int) -> Int {
     }
 }
 
-public func rotatedDegrees(_ current: Int, direction: photoRotationDirection) -> Int {
+nonisolated public func rotatedDegrees(_ current: Int, direction: photoRotationDirection) -> Int {
     normalizedRotationDegrees(current + direction.deltaDegrees)
 }
 
-public enum reviewStatus: String, Codable, Equatable {
+nonisolated public enum reviewStatus: String, Codable, Equatable, Sendable {
     case active
     case kept
     case passed
     case trashed
 }
 
-public enum analysisPhase: String, Codable, Equatable {
+nonisolated public enum analysisPhase: String, Codable, Equatable, Sendable {
     case scanning
     case exifReading
     case rawAnalysis
@@ -56,7 +56,7 @@ public enum analysisPhase: String, Codable, Equatable {
     case completed
 }
 
-public struct analysisProgress: Equatable {
+nonisolated public struct analysisProgress: Equatable, Sendable {
     public var phase: analysisPhase
     public var completedCount: Int
     public var totalCount: Int
@@ -70,7 +70,7 @@ public struct analysisProgress: Equatable {
     }
 }
 
-public struct dynamicRangeData: Codable, Equatable {
+nonisolated public struct dynamicRangeData: Codable, Equatable, Sendable {
     public var sceneSpreadEv: Double
     public var codeRangeEv: Double
     public var blackLevel: Int
@@ -84,7 +84,7 @@ public struct dynamicRangeData: Codable, Equatable {
     }
 }
 
-public struct photoItem: Codable, Equatable, Identifiable {
+nonisolated public struct photoItem: Codable, Equatable, Identifiable, Sendable {
     public var id: String { photoId }
     public var photoId: String
     public var jpgPath: String
@@ -172,7 +172,7 @@ public struct photoItem: Codable, Equatable, Identifiable {
     }
 }
 
-public extension photoItem {
+nonisolated public extension photoItem {
     func hasExistingJpgFile(fileManager: FileManager = .default) -> Bool {
         let ext = URL(fileURLWithPath: jpgPath).pathExtension.lowercased()
         guard ["jpg", "jpeg"].contains(ext) else { return false }
@@ -184,6 +184,16 @@ public extension photoItem {
         let ext = URL(fileURLWithPath: rawPath).pathExtension.lowercased()
         guard ["rw2", "cr2"].contains(ext) else { return false }
         return fileManager.fileExists(atPath: rawPath)
+    }
+}
+
+nonisolated public extension photoItem {
+    var hasFailedAnalysis: Bool {
+        exposureStatus == "failed" || analysisSource == "jpg_failed" || analysisSource == "none"
+    }
+
+    var isNormalAnalysisResult: Bool {
+        !hasFailedAnalysis && !isBlurry && exposureStatus == "normal"
     }
 }
 
@@ -251,7 +261,7 @@ public func makeVisiblePhotoGroups(from photos: [photoItem]) -> [photoGroup] {
     appendGroup(.overexposed, photos: visiblePhotos.filter { $0.exposureStatus == "overexposed" && !isInValidDuplicateGroup($0) }, into: &groups)
     appendGroup(.underexposed, photos: visiblePhotos.filter { $0.exposureStatus == "underexposed" && !isInValidDuplicateGroup($0) }, into: &groups)
     appendGroup(.blurry, photos: visiblePhotos.filter { $0.isBlurry && !isInValidDuplicateGroup($0) }, into: &groups)
-    appendGroup(.normal, photos: visiblePhotos.filter { !$0.isBlurry && $0.exposureStatus == "normal" && !isInValidDuplicateGroup($0) }, into: &groups)
+    appendGroup(.normal, photos: visiblePhotos.filter { $0.isNormalAnalysisResult && !isInValidDuplicateGroup($0) }, into: &groups)
 
     for reviewGroupId in validDuplicateIds.sorted() {
         appendGroup(.duplicate(reviewGroupId: reviewGroupId), photos: visiblePhotos.filter { $0.reviewGroupId == reviewGroupId }, into: &groups)
@@ -294,9 +304,10 @@ public enum displayAvailability: Equatable {
 public func displayUrl(for photo: photoItem, source: displaySource) -> displayAvailability {
     switch source {
     case .jpg:
+        guard photo.hasExistingJpgFile() else { return .unavailable }
         return .available(URL(fileURLWithPath: photo.jpgPath))
     case .raw:
-        guard let rawPath = photo.rawPath, !rawPath.isEmpty else { return .unavailable }
+        guard photo.hasExistingRawFile(), let rawPath = photo.rawPath else { return .unavailable }
         return .available(URL(fileURLWithPath: rawPath))
     }
 }

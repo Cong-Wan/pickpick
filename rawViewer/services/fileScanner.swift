@@ -1,13 +1,13 @@
 /*
 Author: wilbur
-Version: 1.0
-Date: 2026-06-10
-Description: 顶层目录扫描, 按 stem 配对 JPG (jpg/jpeg) 和 RAW (rw2/cr2)
+Version: 1.1
+Date: 2026-06-13
+Description: 顶层目录扫描, 按 stem 配对 JPG (jpg/jpeg) 和 RAW (rw2/cr2)。v1.1 明确扫描结果和扫描器可在后台分析任务中使用
 */
 
 import Foundation
 
-public struct photoFilePair {
+nonisolated public struct photoFilePair: Sendable {
     public let photoId: String
     public let jpgPath: String?
     public let rawPath: String?
@@ -22,7 +22,7 @@ public struct photoFilePair {
     public var hasRaw: Bool { rawPath != nil }
 }
 
-public final class fileScanner {
+nonisolated public final class fileScanner: @unchecked Sendable {
     private static let jpgExtensions: Set<String> = ["jpg", "jpeg"]
     private static let rawExtensions: Set<String> = ["rw2", "cr2"]
 

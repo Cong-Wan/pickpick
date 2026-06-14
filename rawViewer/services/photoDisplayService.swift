@@ -1,14 +1,14 @@
 /*
 Author: wilbur
-Version: 1.2
-Date: 2026-06-11
-Description: JPG/RAW display 图加载服务，独立缓存 JPG(20) 和 RAW(10)，加载前按文件类型校验，避免 RAW-only 照片被当作 JPG 显示
+Version: 1.3
+Date: 2026-06-13
+Description: JPG/RAW display 图加载服务，独立缓存 JPG(20) 和 RAW(10)，加载前按文件类型校验，避免 RAW-only 照片被当作 JPG 显示。v1.3 使用可取消 detached task 收敛后台解码工作
 */
 
 import AppKit
 import CoreImage
 
-public final class photoDisplayService {
+nonisolated public final class photoDisplayService: @unchecked Sendable {
     private let jpgCache = NSCache<NSString, photoCachedImage>()
     private let rawCache = NSCache<NSString, photoCachedImage>()
     private let fileManager: FileManager
@@ -32,19 +32,21 @@ public final class photoDisplayService {
 
         let photoId = photo.photoId
         let jpgPath = photo.jpgPath
-        return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                guard let self else {
-                    continuation.resume(returning: .unavailable("Service deallocated"))
-                    return
-                }
+        let task = Task.detached(priority: .userInitiated) { [weak self] () -> photoImageResult in
+            guard !Task.isCancelled else { return .unavailable("Cancelled") }
+            guard let self else { return .unavailable("Service deallocated") }
+            let result = self.loadJpg(jpgPath: jpgPath)
+            guard !Task.isCancelled else { return .unavailable("Cancelled") }
+            if case .image(let image) = result {
                 let key = "\(photoId)|displayJpg" as NSString
-                let result = self.loadJpg(jpgPath: jpgPath)
-                if case .image(let image) = result {
-                    self.jpgCache.setObject(photoCachedImage(image: image), forKey: key)
-                }
-                continuation.resume(returning: result)
+                self.jpgCache.setObject(photoCachedImage(image: image), forKey: key)
             }
+            return result
+        }
+        return await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
         }
     }
 
@@ -60,19 +62,21 @@ public final class photoDisplayService {
 
         let photoId = photo.photoId
         let rawPath = photo.rawPath
-        return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                guard let self else {
-                    continuation.resume(returning: .unavailable("Service deallocated"))
-                    return
-                }
+        let task = Task.detached(priority: .userInitiated) { [weak self] () -> photoImageResult in
+            guard !Task.isCancelled else { return .unavailable("Cancelled") }
+            guard let self else { return .unavailable("Service deallocated") }
+            let result = self.loadRaw(rawPath: rawPath)
+            guard !Task.isCancelled else { return .unavailable("Cancelled") }
+            if case .image(let image) = result {
                 let key = "\(photoId)|displayRaw" as NSString
-                let result = self.loadRaw(rawPath: rawPath)
-                if case .image(let image) = result {
-                    self.rawCache.setObject(photoCachedImage(image: image), forKey: key)
-                }
-                continuation.resume(returning: result)
+                self.rawCache.setObject(photoCachedImage(image: image), forKey: key)
             }
+            return result
+        }
+        return await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
         }
     }
 

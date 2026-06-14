@@ -1,14 +1,14 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-11
-Description: 在 ~/Library/Application Support/rawViewer/{folderHash}/ 存储 analysis.json。v1.1 直接持久化 Codable photoItem，保存 review 状态时可保留既有 configSnapshot，并避免 Application Support 初始化 try! 崩溃
+Version: 1.2
+Date: 2026-06-13
+Description: 在 ~/Library/Application Support/rawViewer/{folderHash}/ 存储 analysis.json。v1.2 增加串行 load-mutate-save 更新入口，避免快速 review 操作互相覆盖
 */
 
 import Foundation
 import CryptoKit
 
-struct analysisFile: Codable {
+nonisolated struct analysisFile: Codable, Sendable {
     var schemaVersion: String = "2.0"
     var folderPath: String = ""
     var createdAt: String = ""
@@ -18,7 +18,7 @@ struct analysisFile: Codable {
     var configSnapshot: analysisConfig?
 }
 
-struct summaryData: Codable {
+nonisolated struct summaryData: Codable, Sendable {
     var totalPhotos: Int = 0
     var blurry: Int = 0
     var overexposed: Int = 0
@@ -26,11 +26,12 @@ struct summaryData: Codable {
     var normal: Int = 0
 }
 
-public final class analysisStore {
+nonisolated public final class analysisStore: @unchecked Sendable {
     public static let shared = analysisStore()
 
     private let fileManager: FileManager
     private let appSupportDir: URL
+    private let ioQueue = DispatchQueue(label: "rawViewer.analysisStore.io")
 
     public init(fileManager: FileManager = .default) {
         self.fileManager = fileManager
@@ -64,6 +65,26 @@ public final class analysisStore {
     }
 
     public func load(for folderUrl: URL) throws -> [photoItem] {
+        try ioQueue.sync {
+            try loadUnlocked(for: folderUrl)
+        }
+    }
+
+    public func save(folderUrl: URL, records: [photoItem], config: analysisConfig? = nil) throws {
+        try ioQueue.sync {
+            try saveUnlocked(folderUrl: folderUrl, records: records, config: config)
+        }
+    }
+
+    public func update(folderUrl: URL, mutate: (inout [photoItem]) throws -> Void) throws {
+        try ioQueue.sync {
+            var records = try loadUnlocked(for: folderUrl)
+            try mutate(&records)
+            try saveUnlocked(folderUrl: folderUrl, records: records, config: nil)
+        }
+    }
+
+    private func loadUnlocked(for folderUrl: URL) throws -> [photoItem] {
         let url = resultsUrl(for: folderUrl)
         guard fileManager.fileExists(atPath: url.path) else { return [] }
         let data = try Data(contentsOf: url)
@@ -71,7 +92,7 @@ public final class analysisStore {
         return root.photos
     }
 
-    public func save(folderUrl: URL, records: [photoItem], config: analysisConfig? = nil) throws {
+    private func saveUnlocked(folderUrl: URL, records: [photoItem], config: analysisConfig? = nil) throws {
         let dir = resultsUrl(for: folderUrl).deletingLastPathComponent()
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
 
@@ -102,7 +123,7 @@ public final class analysisStore {
         s.blurry = records.filter { $0.isBlurry }.count
         s.overexposed = records.filter { $0.exposureStatus == "overexposed" }.count
         s.underexposed = records.filter { $0.exposureStatus == "underexposed" }.count
-        s.normal = records.filter { !$0.isBlurry && $0.exposureStatus == "normal" }.count
+        s.normal = records.filter { $0.isNormalAnalysisResult }.count
         return s
     }
 

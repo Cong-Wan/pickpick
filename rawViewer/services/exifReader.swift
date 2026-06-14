@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.0
-Date: 2026-06-10
-Description: 使用 ImageIO 读取 EXIF DateTimeOriginal, 失败回退到 Spotlight kMDItemContentCreationDate
+Version: 1.2
+Date: 2026-06-13
+Description: 使用 ImageIO 读取 EXIF DateTimeOriginal, 失败回退到 Spotlight kMDItemContentCreationDate。v1.2 调整 Spotlight CFDate 转换写法并标注可被后台任务并发调用
 */
 
 import Foundation
@@ -10,7 +10,7 @@ import ImageIO
 import CoreServices
 import CoreFoundation
 
-public struct shootingTimeResult: Equatable {
+nonisolated public struct shootingTimeResult: Equatable, Sendable {
     public let found: Bool
     public let epochSeconds: Int64
     public let isoUtc: String?
@@ -26,7 +26,7 @@ public struct shootingTimeResult: Equatable {
     public static let notFound = shootingTimeResult(found: false, epochSeconds: 0, isoUtc: nil, source: "none")
 }
 
-public final class exifReader {
+nonisolated public final class exifReader: @unchecked Sendable {
 
     public init() {}
 
@@ -84,7 +84,8 @@ public final class exifReader {
         guard CFGetTypeID(value) == CFDateGetTypeID() else {
             return .notFound
         }
-        let absolute = CFDateGetAbsoluteTime(value as! CFDate)
+        let date = unsafeBitCast(value, to: CFDate.self)
+        let absolute = CFDateGetAbsoluteTime(date)
         let seconds = Int64((absolute + kCFAbsoluteTimeIntervalSince1970).rounded())
         return shootingTimeResult(found: true, epochSeconds: seconds, isoUtc: isoUtcFromEpoch(seconds), source: source)
     }

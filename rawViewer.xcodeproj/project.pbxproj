@@ -295,7 +295,6 @@
 				MARKETING_VERSION = 1.1.0;
 				OTHER_LDFLAGS = (
 					"-lraw",
-					"-lc++",
 					"-framework",
 					Accelerate,
 					"-framework",
@@ -318,6 +317,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = rawViewer/bridge/rawViewerBridgingHeader.h;
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -349,7 +349,6 @@
 				MARKETING_VERSION = 1.1.0;
 				OTHER_LDFLAGS = (
 					"-lraw",
-					"-lc++",
 					"-framework",
 					Accelerate,
 					"-framework",
@@ -372,6 +371,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = rawViewer/bridge/rawViewerBridgingHeader.h;
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};

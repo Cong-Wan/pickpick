@@ -1,14 +1,14 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-06
-Description: 基于 CGImageSource 的降采样缩略图加载服务，避免加载完整图像，缓存 NSImage 以隔离内存占用；闭包内重新生成 key 避免捕获非 Sendable NSString
+Version: 1.2
+Date: 2026-06-13
+Description: 基于 CGImageSource 的降采样缩略图加载服务，避免加载完整图像，缓存 NSImage 以隔离内存占用。v1.2 使用可取消 detached task 收敛后台缩略图解码工作
 */
 
 import AppKit
 import ImageIO
 
-public final class photoThumbnailService {
+nonisolated public final class photoThumbnailService: @unchecked Sendable {
     private let cache = NSCache<NSString, NSImage>()
     private let fileManager: FileManager
 
@@ -23,20 +23,24 @@ public final class photoThumbnailService {
             return cached
         }
 
+        let photoId = photo.photoId
         let jpgPath = photo.jpgPath
-        return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                guard let self else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                let image = self.decodeThumbnail(path: jpgPath, maxPixelSize: max(maxWidth, maxHeight))
-                if let image {
-                    let key = "\(photo.photoId)|thumb|\(maxWidth)x\(maxHeight)" as NSString
-                    self.cache.setObject(image, forKey: key)
-                }
-                continuation.resume(returning: image)
+        let maxPixelSize = max(maxWidth, maxHeight)
+        let task = Task.detached(priority: .userInitiated) { [weak self] () -> NSImage? in
+            guard !Task.isCancelled else { return nil }
+            guard let self else { return nil }
+            let image = self.decodeThumbnail(path: jpgPath, maxPixelSize: maxPixelSize)
+            guard !Task.isCancelled else { return nil }
+            if let image {
+                let key = "\(photoId)|thumb|\(maxWidth)x\(maxHeight)" as NSString
+                self.cache.setObject(image, forKey: key)
             }
+            return image
+        }
+        return await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
         }
     }
 
