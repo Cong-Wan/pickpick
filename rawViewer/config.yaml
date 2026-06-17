@@ -7,12 +7,12 @@ exposure_detection:
   # 高亮像素阈值，归一化 [0, 1]。
   # RAW: pixel >= blackLevel + threshold * (whiteLevel - blackLevel) 计为高亮。
   # JPG: gray > threshold * 255 计为高亮。
-  overexpose_pixel_threshold: 0.96
+  overexpose_pixel_threshold: 0.975
 
   # 暗部像素阈值，归一化 [0, 1]。
   # RAW: pixel <= blackLevel + threshold * (whiteLevel - blackLevel) 计为暗部。
   # JPG: gray < threshold * 255 计为暗部。
-  underexpose_pixel_threshold: 0.04
+  underexpose_pixel_threshold: 0.025
 
   # 高亮像素占比超过该值时判定为过曝。
   overexpose_ratio_limit: 0.05

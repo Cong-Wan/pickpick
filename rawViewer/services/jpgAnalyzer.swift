@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.4
-Date: 2026-06-13
-Description: JPG 兜底分析: CoreImage 渲染到 RGBA texture, Metal 4 kernel 分析。v1.4 让 contextProvider 可从后台分析任务调用并标注 task group 捕获安全
+Version: 1.5
+Date: 2026-06-17
+Description: JPG 兜底分析: CoreImage 渲染到 RGBA texture, Metal 4 kernel 分析。v1.4 让 contextProvider 可从后台分析任务调用并标注 task group 捕获安全。v1.5 给 RGBA texture 补 .shaderWrite，修复 CIContext 渲染目标被拒导致纹理未写入
 */
 
 import Foundation
@@ -68,7 +68,7 @@ nonisolated public final class jpgAnalyzer: jpgAnalyzing, @unchecked Sendable {
             height: height,
             mipmapped: false
         )
-        texDesc.usage = .shaderRead
+        texDesc.usage = [.shaderRead, .shaderWrite]
         texDesc.storageMode = .shared
         guard let texture = context.device.makeTexture(descriptor: texDesc) else {
             throw makeError("Failed to create RGBA texture")

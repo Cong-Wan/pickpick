@@ -4,6 +4,7 @@ draft/
 *.tmp
 *.bak
 *.swp
+*.profraw
 __pycache__/
 *.pyc
 *.pyo

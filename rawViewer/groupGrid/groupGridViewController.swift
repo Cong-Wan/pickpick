@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 4.0
-Date: 2026-06-06
-Description: 网格控制器改用 NSCollectionView + NSCollectionViewFlowLayout，resize 时 invalidateLayout 而非全量重建
+Version: 4.1
+Date: 2026-06-17
+Description: 网格控制器改用 NSCollectionView + NSCollectionViewFlowLayout，resize 时 invalidateLayout 而非全量重建。v4.1 为分组数量与卡片配置补充 display 调试日志
 */
 
 import AppKit
@@ -142,13 +142,15 @@ extension groupGridViewController: NSCollectionViewDataSource {
     }
 
     public func collectionView(_ collectionView: NSCollectionView, numberOfItemsInSection section: Int) -> Int {
-        viewModel.groups.count
+        appDebugLogger.log("display groups numberOfItems count=\(viewModel.groups.count) groups=\(viewModel.groups.map { "\($0.kind.title):\($0.photos.count)" }.joined(separator: ","))")
+        return viewModel.groups.count
     }
 
     public func collectionView(_ collectionView: NSCollectionView, itemForRepresentedObjectAt indexPath: IndexPath) -> NSCollectionViewItem {
         let identifier = NSUserInterfaceItemIdentifier("groupCard")
         let item = collectionView.makeItem(withIdentifier: identifier, for: indexPath) as! groupCollectionViewItem
         let group = viewModel.groups[indexPath.item]
+        appDebugLogger.log("display groups configure index=\(indexPath.item) title=\(group.kind.title) count=\(group.photos.count) first=\(group.photos.first?.photoId ?? "")")
         item.configure(with: group, imageService: imageService)
 
         if let card = item.view.subviews.first as? groupCardView {

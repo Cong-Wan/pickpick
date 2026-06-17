@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.2
-Date: 2026-06-11
-Description: 仅用于显示的 MTKView 子类；接收外部传入的 CIImage 或错误信息、清除旧内容、提供缩放与平移交互；新增展示层 90 度步进旋转
+Version: 3.4
+Date: 2026-06-17
+Description: 仅用于显示的 MTKView 子类；接收外部传入的 CIImage 或错误信息、清除旧内容、提供缩放与平移交互；进入窗口或布局变化后强制重绘已有图片避免 drawable 未就绪导致空白。v3.4 改用中转纹理（offscreen，usage 含 .shaderWrite）渲染 CIImage 再 blit 到 drawable，修复 CIContext 直接渲染 drawable 纹理因缺 .shaderWrite 被拒导致画面丢弃
 */
 
 import AppKit
@@ -22,6 +22,8 @@ public enum photoSource {
 public final class metalPhotoView: MTKView {
     private let commandQueue: MTLCommandQueue?
     private let ciContext: CIContext?
+    // drawable 纹理 usage 不含 .shaderWrite，CIContext 无法直接写入；先渲染到 offscreen 再 blit 到 drawable。
+    private var offscreenTexture: MTLTexture?
 
     private var currentImage: CIImage?
     private var rotationDegrees: Int = 0
@@ -35,6 +37,7 @@ public final class metalPhotoView: MTKView {
     private var pinchStartZoom: Double = 1.0
     private var pinchStartMagnification: Double = 0.0
     private var panOffset: CGPoint = .zero
+    private var debugDrawLogCount = 0
 
     public var onZoomChanged: ((Double) -> Void)?
 
@@ -92,6 +95,25 @@ public final class metalPhotoView: MTKView {
     public var hasImage: Bool { currentImage != nil }
     public var currentZoom: Double { userZoom }
 
+    public override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        requestRedrawIfNeeded()
+    }
+
+    public override func layout() {
+        super.layout()
+        requestRedrawIfNeeded()
+    }
+
+    private func requestRedrawIfNeeded() {
+        guard currentImage != nil || isShowingError else { return }
+        needsDisplay = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.currentImage != nil || self.isShowingError else { return }
+            self.needsDisplay = true
+        }
+    }
+
     // MARK: - 状态切换 API
 
     public func setImage(_ image: CIImage?, rotationDegrees: Int = 0) {
@@ -99,7 +121,9 @@ public final class metalPhotoView: MTKView {
         self.rotationDegrees = normalizedRotationDegrees(rotationDegrees)
         errorMessage = nil
         isShowingError = false
-        needsDisplay = true
+        debugDrawLogCount = 0
+        appDebugLogger.log("display metal setImage hasImage=\(image != nil) extent=\(image?.extent.debugDescription ?? "nil") rotation=\(self.rotationDegrees) windowReady=\(window != nil) bounds=\(bounds)")
+        requestRedrawIfNeeded()
     }
 
     public func clearImage() {
@@ -107,6 +131,7 @@ public final class metalPhotoView: MTKView {
         rotationDegrees = 0
         errorMessage = nil
         isShowingError = false
+        debugDrawLogCount = 0
         needsDisplay = true
     }
 
@@ -115,7 +140,7 @@ public final class metalPhotoView: MTKView {
         rotationDegrees = 0
         errorMessage = message
         isShowingError = true
-        needsDisplay = true
+        requestRedrawIfNeeded()
     }
 
     // MARK: - 缩放
@@ -168,16 +193,31 @@ public final class metalPhotoView: MTKView {
     public override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
-        guard let drawable = currentDrawable,
-              let commandBuffer = commandQueue?.makeCommandBuffer(),
-              let ciContext else { return }
+        guard let drawable = currentDrawable else {
+            logDrawDebug("missingDrawable dirty=\(dirtyRect) bounds=\(bounds) hasImage=\(currentImage != nil) windowReady=\(window != nil)")
+            return
+        }
+        guard let commandBuffer = commandQueue?.makeCommandBuffer() else {
+            logDrawDebug("missingCommandBuffer hasImage=\(currentImage != nil)")
+            return
+        }
+        guard let ciContext else {
+            logDrawDebug("missingCIContext hasImage=\(currentImage != nil)")
+            return
+        }
 
         let target = drawable.texture
         let bounds = CGRect(x: 0, y: 0, width: target.width, height: target.height)
+        logDrawDebug("draw start hasImage=\(currentImage != nil) target=\(target.width)x\(target.height) viewBounds=\(self.bounds)")
+
+        guard let offscreen = ensureOffscreen(matching: target) else {
+            logDrawDebug("missingOffscreenTexture target=\(target.width)x\(target.height)")
+            return
+        }
 
         let clearPass = MTLRenderPassDescriptor()
         if let attachment = clearPass.colorAttachments[0] {
-            attachment.texture = target
+            attachment.texture = offscreen
             attachment.loadAction = .clear
             attachment.storeAction = .store
             attachment.clearColor = clearColor
@@ -189,25 +229,62 @@ public final class metalPhotoView: MTKView {
         if let image = currentImage {
             let imageToRender = displayImage(from: image)
             let extent = imageToRender.extent
-            guard extent.width > 0, extent.height > 0,
-                  extent.width.isFinite, extent.height.isFinite else {
-                commandBuffer.present(drawable)
-                commandBuffer.commit()
-                return
+            if extent.width > 0, extent.height > 0,
+               extent.width.isFinite, extent.height.isFinite {
+                let fitScale = min(Double(target.width) / extent.width, Double(target.height) / extent.height)
+                let effectiveScale = fitScale * userZoom
+                let width = extent.width * effectiveScale
+                let height = extent.height * effectiveScale
+                let x = (Double(target.width) - width) / 2 + panOffset.x - extent.minX * effectiveScale
+                let y = (Double(target.height) - height) / 2 + panOffset.y - extent.minY * effectiveScale
+                let transform = CGAffineTransform(translationX: x, y: y).scaledBy(x: effectiveScale, y: effectiveScale)
+                logDrawDebug("render image extent=\(extent) fitScale=\(fitScale) effectiveScale=\(effectiveScale) output=\(width)x\(height) origin=\(x),\(y)")
+                ciContext.render(imageToRender.transformed(by: transform), to: offscreen, commandBuffer: commandBuffer, bounds: bounds, colorSpace: CGColorSpaceCreateDeviceRGB())
+            } else {
+                logDrawDebug("invalidExtent extent=\(extent)")
             }
+        }
 
-            let fitScale = min(Double(target.width) / extent.width, Double(target.height) / extent.height)
-            let effectiveScale = fitScale * userZoom
-            let width = extent.width * effectiveScale
-            let height = extent.height * effectiveScale
-            let x = (Double(target.width) - width) / 2 + panOffset.x - extent.minX * effectiveScale
-            let y = (Double(target.height) - height) / 2 + panOffset.y - extent.minY * effectiveScale
-            let transform = CGAffineTransform(translationX: x, y: y).scaledBy(x: effectiveScale, y: effectiveScale)
-            ciContext.render(imageToRender.transformed(by: transform), to: target, commandBuffer: commandBuffer, bounds: bounds, colorSpace: CGColorSpaceCreateDeviceRGB())
+        if let blit = commandBuffer.makeBlitCommandEncoder() {
+            blit.copy(
+                from: offscreen, sourceSlice: 0, sourceLevel: 0,
+                sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+                sourceSize: MTLSize(width: target.width, height: target.height, depth: 1),
+                to: target, destinationSlice: 0, destinationLevel: 0,
+                destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
+            )
+            blit.endEncoding()
         }
 
         commandBuffer.present(drawable)
         commandBuffer.commit()
+    }
+
+    private func ensureOffscreen(matching target: MTLTexture) -> MTLTexture? {
+        if let tex = offscreenTexture,
+           tex.width == target.width,
+           tex.height == target.height,
+           tex.pixelFormat == target.pixelFormat {
+            return tex
+        }
+        guard let mtlDevice = device else { return nil }
+        let desc = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: target.pixelFormat,
+            width: target.width,
+            height: target.height,
+            mipmapped: false
+        )
+        desc.usage = [.shaderRead, .shaderWrite, .renderTarget]
+        desc.storageMode = .private
+        let tex = mtlDevice.makeTexture(descriptor: desc)
+        offscreenTexture = tex
+        return tex
+    }
+
+    private func logDrawDebug(_ message: @autoclosure () -> String) {
+        guard appDebugLogger.isEnabled, debugDrawLogCount < 12 else { return }
+        debugDrawLogCount += 1
+        appDebugLogger.log("display metal \(message())")
     }
 
     public override func keyDown(with event: NSEvent) {

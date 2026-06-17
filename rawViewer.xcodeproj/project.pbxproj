@@ -6,12 +6,7 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		D8CF00022FC92FEA00F93002 /* config.yaml in Resources */ = {isa = PBXBuildFile; fileRef = D8CF00032FC92FEA00F93003 /* config.yaml */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
-		D8CF00032FC92FEA00F93003 /* config.yaml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; name = config.yaml; path = rawViewer/config.yaml; sourceTree = "<group>"; };
 		D8DB71302FC92FEA00F93F82 /* pickpick.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pickpick.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -52,7 +47,6 @@
 			children = (
 				D8DB71322FC92FEA00F93F82 /* rawViewer */,
 				D8DB71312FC92FEA00F93F82 /* Products */,
-				D8E1761D2FDA8468006503AC /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -62,14 +56,6 @@
 				D8DB71302FC92FEA00F93F82 /* pickpick.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		D8E1761D2FDA8468006503AC /* Recovered References */ = {
-			isa = PBXGroup;
-			children = (
-				D8CF00032FC92FEA00F93003 /* config.yaml */,
-			);
-			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -134,7 +120,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D8CF00022FC92FEA00F93002 /* config.yaml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,7 +263,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -309,6 +294,7 @@
 					MetalKit,
 					"-lz",
 				);
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
 				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.pickpick;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -317,7 +303,6 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = rawViewer/bridge/rawViewerBridgingHeader.h;
-				OTHER_SWIFT_FLAGS = "-parse-as-library";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -332,7 +317,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -363,6 +348,7 @@
 					MetalKit,
 					"-lz",
 				);
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
 				PRODUCT_BUNDLE_IDENTIFIER = Wilbur.pickpick;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -371,7 +357,6 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = rawViewer/bridge/rawViewerBridgingHeader.h;
-				OTHER_SWIFT_FLAGS = "-parse-as-library";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};

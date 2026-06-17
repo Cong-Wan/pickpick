@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.5
-Date: 2026-06-12
-Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment，并新增左右一起旋转和同步缩放快捷键
+Version: 3.6
+Date: 2026-06-16
+Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment；首图加载延后到 viewDidAppear 避免 Metal drawable 未就绪导致空白
 */
 
 import AppKit
@@ -22,6 +22,7 @@ public final class duplicateCompareViewController: NSViewController {
     private var rightPhotoController: photoMetalViewController!
     private var leftLoadTask: Task<Void, Never>?
     private var rightLoadTask: Task<Void, Never>?
+    private var hasLoadedInitialPhotos = false
 
     public init(viewModel: duplicateCompareViewModel, imageService: photoImageService) {
         self.viewModel = viewModel
@@ -45,6 +46,10 @@ public final class duplicateCompareViewController: NSViewController {
     public override func viewDidAppear() {
         super.viewDidAppear()
         view.window?.makeFirstResponder(view)
+        if !hasLoadedInitialPhotos {
+            hasLoadedInitialPhotos = true
+            loadPhotos()
+        }
     }
 
     public override func loadView() {
@@ -138,7 +143,6 @@ public final class duplicateCompareViewController: NSViewController {
         ])
 
         view = root
-        loadPhotos()
     }
 
     private func loadPhotos() {
@@ -149,31 +153,52 @@ public final class duplicateCompareViewController: NSViewController {
         updateSourceControlAvailability()
         let selectedSource = sourceStore.current
         updateActionButtons()
+        appDebugLogger.log("display duplicate loadPhotos start count=\(viewModel.photos.count) source=\(selectedSource.rawValue) left=\(viewModel.mainPhoto?.photoId ?? "") right=\(viewModel.candidatePhoto?.photoId ?? "")")
 
         if let left = viewModel.mainPhoto {
             let photoId = left.photoId
+            appDebugLogger.log("display duplicate loadLeft start photoId=\(photoId) jpgExists=\(left.hasExistingJpgFile()) rawExists=\(left.hasExistingRawFile()) jpgPath=\(left.jpgPath)")
             leftLoadTask = Task { [weak self] in
                 guard let self else { return }
                 let pair = await self.imageService.preloadDisplayPair(for: left)
-                if Task.isCancelled { return }
+                if Task.isCancelled {
+                    appDebugLogger.log("display duplicate loadLeft cancelled photoId=\(photoId)")
+                    return
+                }
                 await MainActor.run {
-                    guard self.viewModel.mainPhoto?.photoId == photoId else { return }
+                    guard self.viewModel.mainPhoto?.photoId == photoId else {
+                        appDebugLogger.log("display duplicate loadLeft stale photoId=\(photoId) current=\(self.viewModel.mainPhoto?.photoId ?? "")")
+                        return
+                    }
+                    appDebugLogger.log("display duplicate loadLeft loaded photoId=\(photoId) jpg=\(self.debugDescription(pair.jpg)) raw=\(self.debugDescription(pair.raw))")
                     self.show(pair: pair, source: selectedSource, isLeft: true)
                 }
             }
+        } else {
+            appDebugLogger.log("display duplicate loadLeft noPhoto")
         }
 
         if let right = viewModel.candidatePhoto {
             let photoId = right.photoId
+            appDebugLogger.log("display duplicate loadRight start photoId=\(photoId) jpgExists=\(right.hasExistingJpgFile()) rawExists=\(right.hasExistingRawFile()) jpgPath=\(right.jpgPath)")
             rightLoadTask = Task { [weak self] in
                 guard let self else { return }
                 let pair = await self.imageService.preloadDisplayPair(for: right)
-                if Task.isCancelled { return }
+                if Task.isCancelled {
+                    appDebugLogger.log("display duplicate loadRight cancelled photoId=\(photoId)")
+                    return
+                }
                 await MainActor.run {
-                    guard self.viewModel.candidatePhoto?.photoId == photoId else { return }
+                    guard self.viewModel.candidatePhoto?.photoId == photoId else {
+                        appDebugLogger.log("display duplicate loadRight stale photoId=\(photoId) current=\(self.viewModel.candidatePhoto?.photoId ?? "")")
+                        return
+                    }
+                    appDebugLogger.log("display duplicate loadRight loaded photoId=\(photoId) jpg=\(self.debugDescription(pair.jpg)) raw=\(self.debugDescription(pair.raw))")
                     self.show(pair: pair, source: selectedSource, isLeft: false)
                 }
             }
+        } else {
+            appDebugLogger.log("display duplicate loadRight noPhoto")
         }
     }
 
@@ -226,7 +251,10 @@ public final class duplicateCompareViewController: NSViewController {
         let rotationDegrees = isLeft
             ? (viewModel.mainPhoto?.rotationDegrees ?? 0)
             : (viewModel.candidatePhoto?.rotationDegrees ?? 0)
+        let side = isLeft ? "left" : "right"
+        appDebugLogger.log("display duplicate show side=\(side) photoId=\(pair.photoId) source=\(source.rawValue) selected=\(debugDescription(selected)) rotation=\(rotationDegrees)")
         if case .image(let image) = selected {
+            appDebugLogger.log("display duplicate show loadSelected side=\(side) photoId=\(pair.photoId) extent=\(image.extent)")
             controller.load(image: image, rotationDegrees: rotationDegrees)
             return
         }
@@ -253,6 +281,15 @@ public final class duplicateCompareViewController: NSViewController {
             return message
         }
         return "unknown"
+    }
+
+    private func debugDescription(_ result: photoImageResult) -> String {
+        switch result {
+        case .image(let image):
+            return "image extent=\(image.extent)"
+        case .unavailable(let message):
+            return "unavailable reason=\(message)"
+        }
     }
 
     @objc private func backClicked() {

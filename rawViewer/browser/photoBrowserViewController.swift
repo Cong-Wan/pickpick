@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.4
-Date: 2026-06-11
-Description: 浏览器控制器，按当前照片 JPG/RAW 文件存在性禁用对应 segment，新增 Restore Normal 与显示旋转按钮，并显式设置左侧布局填充分布
+Version: 3.5
+Date: 2026-06-16
+Description: 浏览器控制器，按当前照片 JPG/RAW 文件存在性禁用对应 segment，新增 Restore Normal 与显示旋转按钮；首图加载延后到 viewDidAppear 避免 Metal drawable 未就绪导致空白
 */
 
 import AppKit
@@ -23,6 +23,7 @@ public final class photoBrowserViewController: NSViewController {
     private var rotateLeftButton = NSButton(title: "⟲ 90°", target: nil, action: nil)
     private var rotateRightButton = NSButton(title: "⟳ 90°", target: nil, action: nil)
     private var loadTask: Task<Void, Never>?
+    private var hasLoadedInitialPhoto = false
 
     public init(viewModel: photoBrowserViewModel, imageService: photoImageService, groupKind: photoGroupKind? = nil) {
         self.viewModel = viewModel
@@ -64,6 +65,10 @@ public final class photoBrowserViewController: NSViewController {
     public override func viewDidAppear() {
         super.viewDidAppear()
         view.window?.makeFirstResponder(view)
+        if !hasLoadedInitialPhoto {
+            hasLoadedInitialPhoto = true
+            loadCurrentPhoto()
+        }
     }
 
     public override func loadView() {
@@ -171,7 +176,6 @@ public final class photoBrowserViewController: NSViewController {
         ])
 
         view = root
-        loadCurrentPhoto()
     }
 
     private func loadCurrentPhoto() {
@@ -181,17 +185,26 @@ public final class photoBrowserViewController: NSViewController {
         updateActionButtons()
 
         guard let photo = viewModel.currentPhoto else {
+            appDebugLogger.log("display browser loadCurrentPhoto noCurrentPhoto group=\(groupTitle) count=\(viewModel.photos.count) index=\(viewModel.currentIndex)")
             return
         }
         let requestId = viewModel.currentRequestId
         let photoId = photo.photoId
         let selectedSource = viewModel.displaySource
+        appDebugLogger.log("display browser loadCurrentPhoto start group=\(groupTitle) photoId=\(photoId) source=\(selectedSource.rawValue) requestId=\(requestId) jpgExists=\(photo.hasExistingJpgFile()) rawExists=\(photo.hasExistingRawFile()) jpgPath=\(photo.jpgPath)")
         loadTask = Task { [weak self] in
             guard let self else { return }
             let pair = await self.imageService.preloadDisplayPair(for: photo)
-            if Task.isCancelled { return }
+            if Task.isCancelled {
+                appDebugLogger.log("display browser loadCurrentPhoto cancelled photoId=\(photoId)")
+                return
+            }
             await MainActor.run {
-                guard self.viewModel.isCurrentRequest(requestId, photoId: photoId) else { return }
+                guard self.viewModel.isCurrentRequest(requestId, photoId: photoId) else {
+                    appDebugLogger.log("display browser loadCurrentPhoto stale photoId=\(photoId) requestId=\(requestId) currentRequestId=\(self.viewModel.currentRequestId) currentPhoto=\(self.viewModel.currentPhoto?.photoId ?? "")")
+                    return
+                }
+                appDebugLogger.log("display browser loadCurrentPhoto loaded photoId=\(photoId) jpg=\(self.debugDescription(pair.jpg)) raw=\(self.debugDescription(pair.raw))")
                 self.show(pair: pair, source: selectedSource)
             }
         }
@@ -241,7 +254,9 @@ public final class photoBrowserViewController: NSViewController {
         case .jpg: selected = pair.jpg
         case .raw: selected = pair.raw
         }
+        appDebugLogger.log("display browser show photoId=\(pair.photoId) source=\(source.rawValue) selected=\(debugDescription(selected)) rotation=\(rotationDegrees)")
         if case .image(let image) = selected {
+            appDebugLogger.log("display browser show loadSelected photoId=\(pair.photoId) extent=\(image.extent)")
             mainPhotoController.load(image: image, rotationDegrees: rotationDegrees)
             return
         }
@@ -267,6 +282,15 @@ public final class photoBrowserViewController: NSViewController {
             return message
         }
         return "unknown"
+    }
+
+    private func debugDescription(_ result: photoImageResult) -> String {
+        switch result {
+        case .image(let image):
+            return "image extent=\(image.extent)"
+        case .unavailable(let message):
+            return "unavailable reason=\(message)"
+        }
     }
 
     @objc private func backClicked() {
