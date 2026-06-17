@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.9
-Date: 2026-06-13
-Description: 新增照片展示旋转角度持久化，并保持旧 analysis.json 解码兼容；补充 reviewStatus 解码同名遮蔽说明。v1.9 明确分析失败不归入 Normal，并修正 displayUrl 对 RAW-only/JPG-only 的文件可用性判断
+Version: 1.10
+Date: 2026-06-17
+Description: 固定生成 Normal 工作流分组，并让 duplicate 中已保留且分析未失败的 kept 照片按展示语义归入 Normal；保留旋转持久化与失败分析不归入 Normal 的兼容逻辑
 */
 
 import Foundation
@@ -195,6 +195,10 @@ nonisolated public extension photoItem {
     var isNormalAnalysisResult: Bool {
         !hasFailedAnalysis && !isBlurry && exposureStatus == "normal"
     }
+
+    var isNormalDisplayPhoto: Bool {
+        (reviewStatus == .kept && !hasFailedAnalysis) || isNormalAnalysisResult
+    }
 }
 
 public enum photoGroupKind: Equatable {
@@ -258,10 +262,20 @@ public func makeVisiblePhotoGroups(from photos: [photoItem]) -> [photoGroup] {
         !photo.reviewGroupId.isEmpty && validDuplicateIds.contains(photo.reviewGroupId)
     }
 
-    appendGroup(.overexposed, photos: visiblePhotos.filter { $0.exposureStatus == "overexposed" && !isInValidDuplicateGroup($0) }, into: &groups)
-    appendGroup(.underexposed, photos: visiblePhotos.filter { $0.exposureStatus == "underexposed" && !isInValidDuplicateGroup($0) }, into: &groups)
-    appendGroup(.blurry, photos: visiblePhotos.filter { $0.isBlurry && !isInValidDuplicateGroup($0) }, into: &groups)
-    appendGroup(.normal, photos: visiblePhotos.filter { $0.isNormalAnalysisResult && !isInValidDuplicateGroup($0) }, into: &groups)
+    appendGroup(.overexposed, photos: visiblePhotos.filter {
+        $0.exposureStatus == "overexposed" && $0.reviewStatus != .kept && !isInValidDuplicateGroup($0)
+    }, into: &groups)
+    appendGroup(.underexposed, photos: visiblePhotos.filter {
+        $0.exposureStatus == "underexposed" && $0.reviewStatus != .kept && !isInValidDuplicateGroup($0)
+    }, into: &groups)
+    appendGroup(.blurry, photos: visiblePhotos.filter {
+        $0.isBlurry && $0.reviewStatus != .kept && !isInValidDuplicateGroup($0)
+    }, into: &groups)
+
+    let normalPhotos = visiblePhotos.filter {
+        $0.isNormalDisplayPhoto && !isInValidDuplicateGroup($0)
+    }
+    groups.append(photoGroup(kind: .normal, photos: normalPhotos))
 
     for reviewGroupId in validDuplicateIds.sorted() {
         appendGroup(.duplicate(reviewGroupId: reviewGroupId), photos: visiblePhotos.filter { $0.reviewGroupId == reviewGroupId }, into: &groups)

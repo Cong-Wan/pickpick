@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.5
-Date: 2026-06-11
-Description: 注入 photoTrashService，keepLeft/keepRight 在标记 JSON 前先将文件移入废纸篓；新增 duplicate 当前对比照片共同旋转
+Version: 1.6
+Date: 2026-06-17
+Description: 注入 photoTrashService，keepLeft/keepRight 在标记 JSON 前先将文件移入废纸篓；Duplicate 旋转改为当前组剩余照片整体旋转，确保新顶替照片继承旋转状态
 */
 
 import Foundation
@@ -131,25 +131,27 @@ public final class duplicateCompareViewModel {
     }
 
     @discardableResult
-    public func rotateCurrentPair(direction: photoRotationDirection) throws -> [String: Int] {
-        var rotations: [String: Int] = [:]
-        if let left = mainPhoto {
-            rotations[left.photoId] = rotatedDegrees(left.rotationDegrees, direction: direction)
-        }
-        if let right = candidatePhoto {
-            rotations[right.photoId] = rotatedDegrees(right.rotationDegrees, direction: direction)
-        }
-        guard !rotations.isEmpty else { return [:] }
+    public func rotateCurrentGroup(direction: photoRotationDirection) throws -> [String: Int] {
+        guard !photos.isEmpty else { return [:] }
+
+        let baseRotation = mainPhoto?.rotationDegrees
+            ?? candidatePhoto?.rotationDegrees
+            ?? photos.first?.rotationDegrees
+            ?? 0
+        let targetRotation = rotatedDegrees(baseRotation, direction: direction)
+        let rotations = Dictionary(uniqueKeysWithValues: photos.map { ($0.photoId, targetRotation) })
 
         try store.setRotations(rotations)
 
         for index in photos.indices {
-            let photoId = photos[index].photoId
-            if let rotation = rotations[photoId] {
-                photos[index].rotationDegrees = rotation
-            }
+            photos[index].rotationDegrees = targetRotation
         }
         return rotations
+    }
+
+    @discardableResult
+    public func rotateCurrentPair(direction: photoRotationDirection) throws -> [String: Int] {
+        try rotateCurrentGroup(direction: direction)
     }
 
     private func markFinalKept(_ photo: photoItem) throws {

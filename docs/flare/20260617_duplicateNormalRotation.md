@@ -4,7 +4,7 @@
 
 **目标：** 修复 Duplicate 筛选后保留照片不进入 Normal、初始空 Normal 不显示、Duplicate 新顶替照片不继承旋转角度三个工作流问题。
 
-**架构：** 分组层新增“展示归类”语义：`.kept` 照片作为人工筛选保留结果归入 Normal，但不修改原始分析字段。Normal 作为固定工作流分组始终生成并在 Grid 中保留空卡片。Duplicate 旋转从当前左右 pair 扩大为当前 duplicate 剩余照片整体写入 `rotationDegrees`，继续沿用现有 `analysis.json` 持久化。
+**架构：** 分组层新增“展示归类”语义：未失败的 `.kept` 照片作为人工筛选保留结果归入 Normal，但不修改原始分析字段。Normal 作为固定工作流分组始终生成并在 Grid 中保留空卡片。Duplicate 旋转从当前左右 pair 扩大为当前 duplicate 剩余照片统一写入同一个 `rotationDegrees`，继续沿用现有 `analysis.json` 持久化。
 
 **技术栈：** Swift、AppKit、现有 `photoItem` / `photoGroup` 模型、`jsonReviewStateStore`、`xcodebuild`。
 
@@ -22,7 +22,7 @@
 
 将修改以下文件：
 
-- `rawViewer/models/photoModels.swift` — 定义 Normal 展示归类语义；固定生成 Normal 分组；确保 `.kept` 进入 Normal 且不再进入异常分组。
+- `rawViewer/models/photoModels.swift` — 定义 Normal 展示归类语义；固定生成 Normal 分组；确保未失败的 `.kept` 进入 Normal，`.kept` 不再进入异常分组，失败分析照片仍不进入 Normal。
 - `rawViewer/groupGrid/groupGridViewController.swift` — 分组卡片过滤时保留空 Normal 卡片，其他空分组继续隐藏。
 - `rawViewer/duplicate/duplicateCompareViewModel.swift` — 新增当前 duplicate 剩余组级旋转写入；保留旧 pair 方法作为兼容转发。
 - `rawViewer/duplicate/duplicateCompareViewController.swift` — 旋转按钮调用组级旋转，并用 `targetCount` 记录失败上下文。
@@ -33,7 +33,7 @@
 
 ### Task 1: 固定 Normal 分组并让 Duplicate 保留照片进入 Normal
 
-**目标：** Groups 页面始终显示 Normal 卡片；Duplicate 中被保留为 `.kept` 且 `reviewGroupId` 已清空的照片返回 Groups 后进入 Normal，并且不会同时显示在 Overexposed / Underexposed / Blurry 中。
+**目标：** Groups 页面始终显示 Normal 卡片；Duplicate 中被保留为 `.kept`、`reviewGroupId` 已清空且分析未失败的照片返回 Groups 后进入 Normal，并且不会同时显示在 Overexposed / Underexposed / Blurry 中。
 
 **涉及的文件：**
 
@@ -53,7 +53,7 @@
 Author: wilbur
 Version: 1.10
 Date: 2026-06-17
-Description: 固定生成 Normal 工作流分组，并让 duplicate 中已保留的 kept 照片按展示语义归入 Normal；保留旋转持久化与失败分析不归入 Normal 的兼容逻辑
+Description: 固定生成 Normal 工作流分组，并让 duplicate 中已保留且分析未失败的 kept 照片按展示语义归入 Normal；保留旋转持久化与失败分析不归入 Normal 的兼容逻辑
 */
 ```
 
@@ -84,7 +84,7 @@ nonisolated public extension photoItem {
     }
 
     var isNormalDisplayPhoto: Bool {
-        reviewStatus == .kept || isNormalAnalysisResult
+        (reviewStatus == .kept && !hasFailedAnalysis) || isNormalAnalysisResult
     }
 }
 ```
@@ -170,11 +170,88 @@ $ rg -n "isNormalDisplayPhoto|groups.append\(photoGroup\(kind: \.normal|case \.n
 # 预期：能看到 isNormalDisplayPhoto、Normal 分组固定 append、visibleGroupCards 中保留空 Normal 的 case .normal 判断。
 ```
 
-- [ ] 如构建或静态确认不通过，回到 Step 1 修复实现，然后重新运行本任务全部验证命令，直到全部通过。
+- [ ] 运行模型层临时验证脚本（不新增项目测试文件，不使用测试框架）：
+
+```bash
+$ cat > /tmp/main.swift <<'SWIFT'
+import Foundation
+import Darwin
+
+func require(_ condition: @autoclosure () -> Bool, _ message: String) {
+    if !condition() {
+        fputs("MODEL_GROUP_VERIFICATION_FAILED: \(message)\n", stderr)
+        exit(1)
+    }
+}
+
+func makePhoto(
+    _ photoId: String,
+    isBlurry: Bool = false,
+    exposureStatus: String = "normal",
+    reviewStatus: reviewStatus = .active,
+    reviewGroupId: String = "",
+    analysisSource: String = "raw"
+) -> photoItem {
+    photoItem(
+        photoId: photoId,
+        jpgPath: "/tmp/\(photoId).jpg",
+        isBlurry: isBlurry,
+        exposureStatus: exposureStatus,
+        reviewStatus: reviewStatus,
+        reviewGroupId: reviewGroupId,
+        analysisSource: analysisSource
+    )
+}
+
+func group(_ groups: [photoGroup], normal: Void = ()) -> photoGroup? {
+    groups.first { if case .normal = $0.kind { return true }; return false }
+}
+
+let emptyGroups = makeVisiblePhotoGroups(from: [])
+require(group(emptyGroups)?.photos.isEmpty == true, "empty Normal group must be generated")
+
+let keptOverexposed = makePhoto("kept-over", exposureStatus: "overexposed", reviewStatus: .kept)
+let keptBlurry = makePhoto("kept-blurry", isBlurry: true, reviewStatus: .kept)
+let failedKept = makePhoto("failed-kept", exposureStatus: "failed", reviewStatus: .kept, analysisSource: "jpg_failed")
+let activeNormal = makePhoto("active-normal")
+let activeDuplicateA = makePhoto("dup-a", reviewGroupId: "dup_001")
+let activeDuplicateB = makePhoto("dup-b", reviewGroupId: "dup_001")
+
+let groups = makeVisiblePhotoGroups(from: [
+    keptOverexposed,
+    keptBlurry,
+    failedKept,
+    activeNormal,
+    activeDuplicateA,
+    activeDuplicateB
+])
+let normalIds = Set(group(groups)!.photos.map(\.photoId))
+require(normalIds.contains("kept-over"), "kept overexposed photo should enter Normal")
+require(normalIds.contains("kept-blurry"), "kept blurry photo should enter Normal")
+require(normalIds.contains("active-normal"), "active normal analysis photo should enter Normal")
+require(!normalIds.contains("failed-kept"), "failed kept photo must not enter Normal")
+require(!normalIds.contains("dup-a") && !normalIds.contains("dup-b"), "valid duplicate photos must stay out of Normal")
+
+let abnormalIds = Set(groups.filter {
+    switch $0.kind {
+    case .overexposed, .underexposed, .blurry: return true
+    default: return false
+    }
+}.flatMap { $0.photos.map(\.photoId) })
+require(!abnormalIds.contains("kept-over"), "kept overexposed photo must not remain in abnormal groups")
+require(!abnormalIds.contains("kept-blurry"), "kept blurry photo must not remain in abnormal groups")
+
+print("MODEL_GROUP_VERIFICATION_PASSED")
+SWIFT
+$ swiftc rawViewer/models/photoModels.swift /tmp/main.swift -o /tmp/verifyDuplicateNormalGroups && /tmp/verifyDuplicateNormalGroups
+# 预期：输出 MODEL_GROUP_VERIFICATION_PASSED。
+```
+
+- [ ] 如构建、静态确认或模型层临时验证不通过，回到 Step 1 修复实现，然后重新运行本任务全部验证命令，直到全部通过。
 
 ------
 
-✅ **完成的标志：** 构建通过，运行无异常，关键静态匹配确认 Normal 固定生成、空 Normal 不被卡片过滤、`.kept` 有 Normal 展示语义。在满足此条件之前不要开始 Task 2。
+✅ **完成的标志：** 构建通过，运行无异常，关键静态匹配确认 Normal 固定生成、空 Normal 不被卡片过滤、未失败的 `.kept` 有 Normal 展示语义，且失败分析照片不进入 Normal。在满足此条件之前不要开始 Task 2。
 
 ------
 
@@ -235,19 +312,19 @@ public func rotateCurrentPair(direction: photoRotationDirection) throws -> [Stri
 ```swift
 @discardableResult
 public func rotateCurrentGroup(direction: photoRotationDirection) throws -> [String: Int] {
-    var rotations: [String: Int] = [:]
-    for photo in photos {
-        rotations[photo.photoId] = rotatedDegrees(photo.rotationDegrees, direction: direction)
-    }
-    guard !rotations.isEmpty else { return [:] }
+    guard !photos.isEmpty else { return [:] }
+
+    let baseRotation = mainPhoto?.rotationDegrees
+        ?? candidatePhoto?.rotationDegrees
+        ?? photos.first?.rotationDegrees
+        ?? 0
+    let targetRotation = rotatedDegrees(baseRotation, direction: direction)
+    let rotations = Dictionary(uniqueKeysWithValues: photos.map { ($0.photoId, targetRotation) })
 
     try store.setRotations(rotations)
 
     for index in photos.indices {
-        let photoId = photos[index].photoId
-        if let rotation = rotations[photoId] {
-            photos[index].rotationDegrees = rotation
-        }
+        photos[index].rotationDegrees = targetRotation
     }
     return rotations
 }
@@ -258,7 +335,7 @@ public func rotateCurrentPair(direction: photoRotationDirection) throws -> [Stri
 }
 ```
 
-说明：保留 `rotateCurrentPair(direction:)` 是为了兼容可能存在的旧调用点；控制器会在本任务中切换到 `rotateCurrentGroup(direction:)`。
+说明：保留 `rotateCurrentPair(direction:)` 是为了兼容可能存在的旧调用点；控制器会在本任务中切换到 `rotateCurrentGroup(direction:)`。组级旋转必须以当前 `mainPhoto` 的旋转角度为锚点计算单一 `targetRotation`，再写入全组；不能按每张照片自己的旧角度分别累加，否则历史数据中 A/B=90°、C=0° 时 C 仍会落后。
 
 - [ ] 修改 `rawViewer/duplicate/duplicateCompareViewController.swift` 文件头。
 
@@ -338,15 +415,105 @@ $ xcodebuild -project rawViewer.xcodeproj -scheme pickpick -configuration Debug 
 - [ ] 运行静态确认命令：
 
 ```bash
-$ rg -n "rotateCurrentGroup|for photo in photos|targetCount|rotateCurrentPair\(direction: direction\)" rawViewer/duplicate/duplicateCompareViewModel.swift rawViewer/duplicate/duplicateCompareViewController.swift
-# 预期：能看到 rotateCurrentGroup 方法、遍历 photos 的组级旋转逻辑、控制器失败日志中的 targetCount，以及旧 rotateCurrentPair 兼容转发。
+$ rg -n "rotateCurrentGroup|baseRotation|targetRotation|Dictionary\(uniqueKeysWithValues|targetCount" rawViewer/duplicate/duplicateCompareViewModel.swift rawViewer/duplicate/duplicateCompareViewController.swift
+# 预期：能看到 rotateCurrentGroup 方法、baseRotation / targetRotation 锚点统一旋转逻辑、Dictionary 全组写入逻辑、控制器失败日志中的 targetCount。
+
+$ rg -n "func rotateCurrentPair|try rotateCurrentGroup\(direction: direction\)" rawViewer/duplicate/duplicateCompareViewModel.swift
+# 预期：能看到旧 rotateCurrentPair 方法仍存在，并转发到 rotateCurrentGroup(direction:)。
 ```
 
-- [ ] 如构建或静态确认不通过，回到 Step 1 修复实现，然后重新运行本任务全部验证命令，直到全部通过。
+- [ ] 运行模型层临时验证脚本（不新增项目测试文件，不使用测试框架）：
+
+```bash
+$ cat > /tmp/duplicateSupport.swift <<'SWIFT'
+import Foundation
+
+public protocol jsonReviewStateStoring: AnyObject {
+    func mark(photoId: String, status: reviewStatus) throws
+    func setTemplate(reviewGroupId: String, templatePhotoId: String) throws
+    func clearReviewGroupId(photoId: String) throws
+    func restoreNormal(photoIds: Set<String>) throws
+    func setRotations(_ rotationsByPhotoId: [String: Int]) throws
+    func update(_ mutate: (inout [photoItem]) -> Void) throws
+}
+
+public protocol photoTrashServicing {
+    func trash(_ photo: photoItem) throws
+    func cleanupTrashedPhotos(_ photos: [photoItem])
+}
+SWIFT
+
+$ cat > /tmp/main.swift <<'SWIFT'
+import Foundation
+import Darwin
+
+func require(_ condition: @autoclosure () -> Bool, _ message: String) {
+    if !condition() {
+        fputs("MODEL_ROTATION_VERIFICATION_FAILED: \(message)\n", stderr)
+        exit(1)
+    }
+}
+
+final class fakeReviewStateStore: jsonReviewStateStoring {
+    var rotationsByPhotoId: [String: Int] = [:]
+
+    func mark(photoId: String, status: reviewStatus) throws {}
+    func setTemplate(reviewGroupId: String, templatePhotoId: String) throws {}
+    func clearReviewGroupId(photoId: String) throws {}
+    func restoreNormal(photoIds: Set<String>) throws {}
+    func update(_ mutate: (inout [photoItem]) -> Void) throws {}
+
+    func setRotations(_ rotationsByPhotoId: [String: Int]) throws {
+        self.rotationsByPhotoId = rotationsByPhotoId.mapValues { normalizedRotationDegrees($0) }
+    }
+}
+
+final class fakeTrashService: photoTrashServicing {
+    func trash(_ photo: photoItem) throws {}
+    func cleanupTrashedPhotos(_ photos: [photoItem]) {}
+}
+
+func makePhoto(_ photoId: String, rotationDegrees: Int) -> photoItem {
+    photoItem(
+        photoId: photoId,
+        jpgPath: "/tmp/\(photoId).jpg",
+        reviewGroupId: "dup_001",
+        analysisSource: "raw",
+        rotationDegrees: rotationDegrees
+    )
+}
+
+let store = fakeReviewStateStore()
+let viewModel = duplicateCompareViewModel(
+    photos: [
+        makePhoto("A", rotationDegrees: 90),
+        makePhoto("B", rotationDegrees: 90),
+        makePhoto("C", rotationDegrees: 0)
+    ],
+    store: store,
+    trashService: fakeTrashService()
+)
+
+do {
+    let rotations = try viewModel.rotateCurrentGroup(direction: .right)
+    require(Set(rotations.values) == Set([180]), "all returned rotations should be unified to 180")
+    require(Set(store.rotationsByPhotoId.values) == Set([180]), "persisted rotations should be unified to 180")
+    require(viewModel.photos.allSatisfy { $0.rotationDegrees == 180 }, "in-memory photos should all be 180")
+    print("MODEL_ROTATION_VERIFICATION_PASSED")
+} catch {
+    fputs("MODEL_ROTATION_VERIFICATION_FAILED: unexpected error \(error)\n", stderr)
+    exit(1)
+}
+SWIFT
+$ swiftc rawViewer/models/photoModels.swift /tmp/duplicateSupport.swift rawViewer/duplicate/duplicateCompareViewModel.swift /tmp/main.swift -o /tmp/verifyDuplicateGroupRotation && /tmp/verifyDuplicateGroupRotation
+# 预期：输出 MODEL_ROTATION_VERIFICATION_PASSED。
+```
+
+- [ ] 如构建、静态确认或模型层临时验证不通过，回到 Step 1 修复实现，然后重新运行本任务全部验证命令，直到全部通过。
 
 ------
 
-✅ **完成的标志：** 构建通过，运行无异常，关键静态匹配确认 Duplicate 旋转写回范围为当前组剩余照片，控制器已调用组级旋转。在满足此条件之前不要开始 Task 3。
+✅ **完成的标志：** 构建通过，运行无异常，关键静态匹配确认 Duplicate 旋转写回范围为当前组剩余照片，且全组统一写入同一个 targetRotation，控制器已调用组级旋转；模型层临时验证输出 `MODEL_ROTATION_VERIFICATION_PASSED`。在满足此条件之前不要开始 Task 3。
 
 ------
 
@@ -366,7 +533,7 @@ $ rg -n "rotateCurrentGroup|for photo in photos|targetCount|rotateCurrentPair\(d
 #### Step 1 — 实现
 
 - [ ] 本任务不继续修改代码。保留 Task 1 和 Task 2 的实现结果。
-- [ ] 不新增测试文件，不使用测试框架，不编排 Git 操作。
+- [ ] 不新增项目内测试文件，不新增测试 target，不使用测试框架，不编排 Git 操作。Task 1 / Task 2 的 `/tmp/main.swift` 以及 Task 2 的 `/tmp/duplicateSupport.swift` 仅作为临时模型验证脚本使用，不提交到项目。
 
 ------
 
@@ -407,11 +574,11 @@ $ find ~/Library/Developer/Xcode/DerivedData -path '*Build/Products/Debug/pickpi
 2. 进入 duplicate 组完成一次筛选，让至少一张照片变为 kept 且 reviewGroupId 被清空。
 3. 返回 Groups 页面。
 4. 进入 Normal 分组。
-5. 确认刚刚在 Duplicate 中保留的照片可以在 Normal 中看到。
+5. 确认刚刚在 Duplicate 中保留、且分析未失败的照片可以在 Normal 中看到。
 6. 确认该照片不会同时出现在 Overexposed / Underexposed / Blurry 分组中。
 ```
 
-关键输出符合预期的判断：完成 Duplicate 筛选后 Normal 数量增加或 Normal 中可见刚刚保留的照片。
+关键输出符合预期的判断：完成 Duplicate 筛选后 Normal 数量增加或 Normal 中可见刚刚保留且分析未失败的照片；failed / jpg_failed / none 照片不应因此进入 Normal。
 
 - [ ] 验证 Duplicate 旋转继承：
 
@@ -432,16 +599,16 @@ $ find ~/Library/Developer/Xcode/DerivedData -path '*Build/Products/Debug/pickpi
 
 ------
 
-✅ **完成的标志：** 最终构建通过，App 运行无异常，空 Normal 固定显示、Duplicate 保留归入 Normal、Duplicate 组级旋转继承三个可观察行为均符合预期。
+✅ **完成的标志：** 最终构建通过，App 运行无异常，空 Normal 固定显示、Duplicate 中未失败的保留照片归入 Normal、Duplicate 组级旋转继承三个可观察行为均符合预期。
 
 ------
 
 ## 自我复审
 
-**1. 规范覆盖：** Recipe 中的三个需求均有对应任务：空 Normal 固定显示在 Task 1；Duplicate `.kept` 归入 Normal 展示在 Task 1；Duplicate 新顶替照片继承旋转在 Task 2；端到端用户可见验证在 Task 3。
+**1. 规范覆盖：** Recipe 中的三个需求均有对应任务：空 Normal 固定显示在 Task 1；Duplicate 中未失败的 `.kept` 归入 Normal 展示在 Task 1；Duplicate 新顶替照片继承旋转在 Task 2；端到端用户可见验证在 Task 3。
 
 **2. 占位符扫描：** 计划中没有 TBD、TODO、稍后实现、与某任务类似、由工程师自行补齐等占位表达。所有涉及代码的步骤都给出完整替换代码块。
 
-**3. 类型一致性：** `photoItem.isNormalDisplayPhoto` 在 Task 1 定义并在同一任务的 `makeVisiblePhotoGroups(from:)` 中使用；`duplicateCompareViewModel.rotateCurrentGroup(direction:)` 在 Task 2 定义并由 `duplicateCompareViewController` 调用；旧 `rotateCurrentPair(direction:)` 保留为兼容转发。
+**3. 类型一致性：** `photoItem.isNormalDisplayPhoto` 在 Task 1 定义并在同一任务的 `makeVisiblePhotoGroups(from:)` 中使用；`duplicateCompareViewModel.rotateCurrentGroup(direction:)` 在 Task 2 定义并由 `duplicateCompareViewController` 调用，且使用 baseRotation 推导单一 targetRotation；旧 `rotateCurrentPair(direction:)` 保留为兼容转发。
 
-**4. 验证完整性：** 每个任务都有明确命令和预期输出。Task 1 和 Task 2 有构建验证与 `rg` 静态确认；Task 3 有最终构建、构建产物查找和三条手动端到端验证路径。计划未使用任何测试框架，未包含任何 Git 操作。
+**4. 验证完整性：** 每个任务都有明确命令和预期输出。Task 1 和 Task 2 有构建验证、`rg` 静态确认和 `/tmp/main.swift` 模型层临时验证；Task 3 有最终构建、构建产物查找和三条手动端到端验证路径。计划未使用任何测试框架，未包含任何 Git 操作。

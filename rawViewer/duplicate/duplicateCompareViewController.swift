@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.6
-Date: 2026-06-16
-Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment；首图加载延后到 viewDidAppear 避免 Metal drawable 未就绪导致空白
+Version: 3.7
+Date: 2026-06-17
+Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment；旋转按钮改为旋转当前 duplicate 组剩余照片，确保新顶替照片继承旋转状态
 */
 
 import AppKit
@@ -334,22 +334,15 @@ public final class duplicateCompareViewController: NSViewController {
         let right = viewModel.candidatePhoto
         guard left != nil || right != nil else { return }
 
-        let oldLeftRotation = left?.rotationDegrees
-        let oldRightRotation = right?.rotationDegrees
-        let targetLeftRotation = oldLeftRotation.map { rotatedDegrees($0, direction: direction) }
-        let targetRightRotation = oldRightRotation.map { rotatedDegrees($0, direction: direction) }
+        let targetCount = viewModel.photos.count
 
         do {
-            _ = try viewModel.rotateCurrentPair(direction: direction)
+            _ = try viewModel.rotateCurrentGroup(direction: direction)
             loadPhotos()
         } catch {
             let leftId = left?.photoId ?? ""
             let rightId = right?.photoId ?? ""
-            let oldLeft = oldLeftRotation.map(String.init) ?? ""
-            let targetLeft = targetLeftRotation.map(String.init) ?? ""
-            let oldRight = oldRightRotation.map(String.init) ?? ""
-            let targetRight = targetRightRotation.map(String.init) ?? ""
-            appFileLogger.log("operation failed page=duplicate action=\(actionName) leftPhotoId=\(leftId) rightPhotoId=\(rightId) oldLeftRotation=\(oldLeft) targetLeftRotation=\(targetLeft) oldRightRotation=\(oldRight) targetRightRotation=\(targetRight) error=\(error.localizedDescription)", level: .error)
+            appFileLogger.log("operation failed page=duplicate action=\(actionName) targetCount=\(targetCount) leftPhotoId=\(leftId) rightPhotoId=\(rightId) error=\(error.localizedDescription)", level: .error)
             showErrorAlert(message: error.localizedDescription)
         }
     }

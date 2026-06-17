@@ -1,14 +1,17 @@
 /*
 Author: wilbur
-Version: 4.1
+Version: 4.2
 Date: 2026-06-17
-Description: 网格控制器改用 NSCollectionView + NSCollectionViewFlowLayout，resize 时 invalidateLayout 而非全量重建。v4.1 为分组数量与卡片配置补充 display 调试日志
+Description: 网格控制器改用 NSCollectionView + NSCollectionViewFlowLayout，resize 时 invalidateLayout 而非全量重建；分组过滤保留空 Normal 工作流卡片
 */
 
 import AppKit
 
 public func visibleGroupCards(from groups: [photoGroup]) -> [photoGroup] {
-    groups.filter { !$0.photos.isEmpty }
+    groups.filter { group in
+        if case .normal = group.kind { return true }
+        return !group.photos.isEmpty
+    }
 }
 
 public func route(for group: photoGroup) -> groupRoute {

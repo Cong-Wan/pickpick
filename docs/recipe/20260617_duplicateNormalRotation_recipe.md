@@ -10,7 +10,7 @@
 
 当前 App 存在三个相互关联的工作流问题：
 
-1. 用户在 Duplicate 分组中选完照片后，期望保留下来的照片进入 Normal 分组，但回到 Normal 后看不见刚刚保留的照片。
+1. 用户在 Duplicate 分组中选完照片后，期望保留下来且分析未失败的照片进入 Normal 分组，但回到 Normal 后看不见刚刚保留的照片。
 2. 如果首次分析结果中没有任何 Normal 照片，Groups 页面不会出现 Normal 卡片，用户没有一个明确的“最终保留池”。
 3. Duplicate 对比页的旋转角度当前只绑定到当前左右两张照片。用户旋转 A/B 后，淘汰其中一张，C 顶替进来时 C 仍是 0°，没有继承当前 duplicate 组的旋转状态。
 
@@ -47,7 +47,7 @@ isNormalAnalysisResult
 !hasFailedAnalysis && !isBlurry && exposureStatus == "normal"
 ```
 
-因此，如果 Duplicate 中保留下来的照片原本被分析为 blurry / overexposed / underexposed，它即使已经 `.kept`，也不会进入 Normal。当前代码没有把 `.kept` 解释为“人工筛选后保留，应展示在 Normal 工作流分组”。
+因此，如果 Duplicate 中保留下来的照片原本被分析为 blurry / overexposed / underexposed，它即使已经 `.kept`，也不会进入 Normal。当前代码没有把未失败的 `.kept` 解释为“人工筛选后保留，应展示在 Normal 工作流分组”。
 
 ### 2.2 初始没有 Normal 时 Normal 卡片消失
 
@@ -111,8 +111,8 @@ viewModel.candidatePhoto?.rotationDegrees
 本次修复完成后应满足：
 
 1. Groups 页面永远显示 Normal 卡片，即使数量为 0，也显示 `Normal · 0`。
-2. Duplicate 中被保留的照片返回 Groups 后进入 Normal 分组。
-3. `.kept` 照片不会因为原始分析是 blurry / overexposed / underexposed 而继续显示在异常分组中。
+2. Duplicate 中被保留且分析未失败的照片返回 Groups 后进入 Normal 分组。
+3. 未失败的 `.kept` 照片不会因为原始分析是 blurry / overexposed / underexposed 而继续显示在异常分组中；失败分析照片仍不进入 Normal。
 4. Duplicate 页点击左旋/右旋后，当前 duplicate 组剩余照片共享同一个旋转状态。
 5. A/B 旋转后，C 顶替进来时直接按相同角度显示。
 6. 旋转状态仍写入现有 `analysis.json` 的 `rotationDegrees` 字段，不修改原始照片文件。
@@ -410,20 +410,21 @@ rg -n "isNormalDisplayPhoto|groups.append\(photoGroup\(kind: \.normal|case \.nor
 - `visibleGroupCards` 中保留空 Normal 的判断
 
 ```bash
-rg -n "rotateCurrentGroup|for photo in photos|targetCount" rawViewer/duplicate/duplicateCompareViewModel.swift rawViewer/duplicate/duplicateCompareViewController.swift
+rg -n "rotateCurrentGroup|baseRotation|targetRotation|Dictionary\(uniqueKeysWithValues|targetCount" rawViewer/duplicate/duplicateCompareViewModel.swift rawViewer/duplicate/duplicateCompareViewController.swift
 ```
 
 预期：能看到：
 
 - `rotateCurrentGroup`
-- 单一 `targetRotation` 的锚点旋转逻辑
+- `baseRotation` / `targetRotation` 的锚点统一旋转逻辑
+- `Dictionary(uniqueKeysWithValues:)` 的全组写入逻辑
 - 控制器日志中的 `targetCount`
 
 ### 9.3 模型层临时验证（不使用测试框架）
 
-使用 `/tmp/main.swift` 临时脚本验证核心模型规则，不新增项目测试 target，不提交测试文件。验证点：
+使用 `/tmp/main.swift` 临时脚本验证核心模型规则；Duplicate ViewModel 验证可额外生成 `/tmp/duplicateSupport.swift` 声明最小协议支撑编译。不新增项目测试 target，不提交测试文件。验证点：
 
-1. 空 Normal 固定生成且 `visibleGroupCards` 保留。
+1. 空 Normal 固定生成；`visibleGroupCards` 保留空 Normal 由静态确认覆盖。
 2. 未失败的 `.kept` 异常照片进入 Normal，不进入 Overexposed / Underexposed / Blurry。
 3. `failed` / `jpg_failed` / `none` 的 `.kept` 照片不进入 Normal。
 4. 历史混合旋转数据中 A/B=90、C=0 时，右旋后全组统一为 180。
