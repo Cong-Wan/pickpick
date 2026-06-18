@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.5
+Version: 3.6
 Date: 2026-06-16
-Description: 浏览器控制器，按当前照片 JPG/RAW 文件存在性禁用对应 segment，新增 Restore Normal 与显示旋转按钮；首图加载延后到 viewDidAppear 避免 Metal drawable 未就绪导致空白
+Description: 浏览器控制器，按当前照片 JPG/RAW 文件存在性禁用对应 segment，新增 Restore Normal 与显示旋转按钮；首图加载延后到 viewDidAppear 避免 Metal drawable 未就绪导致空白；主图无后缀文件名栏
 */
 
 import AppKit
@@ -188,6 +188,7 @@ public final class photoBrowserViewController: NSViewController {
             appDebugLogger.log("display browser loadCurrentPhoto noCurrentPhoto group=\(groupTitle) count=\(viewModel.photos.count) index=\(viewModel.currentIndex)")
             return
         }
+        mainPhotoController.setDisplayName(photo.displayFileName)
         let requestId = viewModel.currentRequestId
         let photoId = photo.photoId
         let selectedSource = viewModel.displaySource

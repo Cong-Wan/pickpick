@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.7
+Version: 3.8
 Date: 2026-06-17
-Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment；旋转按钮改为旋转当前 duplicate 组剩余照片，确保新顶替照片继承旋转状态
+Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment；旋转按钮改为旋转当前 duplicate 组剩余照片，确保新顶替照片继承旋转状态；左右图无后缀文件名栏
 */
 
 import AppKit
@@ -156,6 +156,7 @@ public final class duplicateCompareViewController: NSViewController {
         appDebugLogger.log("display duplicate loadPhotos start count=\(viewModel.photos.count) source=\(selectedSource.rawValue) left=\(viewModel.mainPhoto?.photoId ?? "") right=\(viewModel.candidatePhoto?.photoId ?? "")")
 
         if let left = viewModel.mainPhoto {
+            leftPhotoController.setDisplayName(left.displayFileName)
             let photoId = left.photoId
             appDebugLogger.log("display duplicate loadLeft start photoId=\(photoId) jpgExists=\(left.hasExistingJpgFile()) rawExists=\(left.hasExistingRawFile()) jpgPath=\(left.jpgPath)")
             leftLoadTask = Task { [weak self] in
@@ -179,6 +180,7 @@ public final class duplicateCompareViewController: NSViewController {
         }
 
         if let right = viewModel.candidatePhoto {
+            rightPhotoController.setDisplayName(right.displayFileName)
             let photoId = right.photoId
             appDebugLogger.log("display duplicate loadRight start photoId=\(photoId) jpgExists=\(right.hasExistingJpgFile()) rawExists=\(right.hasExistingRawFile()) jpgPath=\(right.jpgPath)")
             rightLoadTask = Task { [weak self] in

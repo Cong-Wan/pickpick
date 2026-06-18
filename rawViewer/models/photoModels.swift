@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.10
+Version: 1.11
 Date: 2026-06-17
-Description: 固定生成 Normal 工作流分组，并让 duplicate 中已保留且分析未失败的 kept 照片按展示语义归入 Normal；保留旋转持久化与失败分析不归入 Normal 的兼容逻辑
+Description: 固定生成 Normal 工作流分组，并让 duplicate 中已保留且分析未失败的 kept 照片按展示语义归入 Normal；新增无后缀稳定展示文件名辅助逻辑
 */
 
 import Foundation
@@ -173,6 +173,18 @@ nonisolated public struct photoItem: Codable, Equatable, Identifiable, Sendable 
 }
 
 nonisolated public extension photoItem {
+    var displayFileName: String {
+        let name = URL(fileURLWithPath: stableDisplayPath).deletingPathExtension().lastPathComponent
+        if !name.isEmpty { return name }
+        let fallback = URL(fileURLWithPath: photoId).deletingPathExtension().lastPathComponent
+        return fallback.isEmpty ? photoId : fallback
+    }
+
+    private var stableDisplayPath: String {
+        if let rawPath, !rawPath.isEmpty { return rawPath }
+        return jpgPath
+    }
+
     func hasExistingJpgFile(fileManager: FileManager = .default) -> Bool {
         let ext = URL(fileURLWithPath: jpgPath).pathExtension.lowercased()
         guard ["jpg", "jpeg"].contains(ext) else { return false }

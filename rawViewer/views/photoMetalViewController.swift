@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.3
+Version: 1.4
 Date: 2026-06-18
-Description: Metal 视图控制器，包装 metalPhotoView 并管理缩放/平移/加载/空态四态状态机；修正顶部坐标渲染下的向上拖拽方向
+Description: Metal 视图控制器，包装 metalPhotoView 并管理缩放/平移/加载/空态四态状态机；修正顶部坐标渲染下的向上拖拽方向；新增图片区域顶部文件名栏
 */
 
 import AppKit
@@ -10,7 +10,10 @@ import CoreImage
 
 public final class photoMetalViewController: NSViewController {
     private let metalView = metalPhotoView()
+    private let fileNameBar = NSView()
+    private let fileNameLabel = NSTextField(labelWithString: "")
     private let errorLabel = NSTextField(labelWithString: "")
+    private var fileNameBarHeightConstraint: NSLayoutConstraint?
     private var panOffset: CGPoint = .zero
 
     public private(set) var hasImage: Bool = false
@@ -41,25 +44,52 @@ public final class photoMetalViewController: NSViewController {
         let container = NSView()
         container.wantsLayer = true
 
-        metalView.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(metalView)
+        fileNameBar.wantsLayer = true
+        fileNameBar.layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.92).cgColor
+        fileNameBar.isHidden = true
+        fileNameBar.translatesAutoresizingMaskIntoConstraints = false
 
+        fileNameLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        fileNameLabel.textColor = .labelColor
+        fileNameLabel.alignment = .center
+        fileNameLabel.lineBreakMode = .byTruncatingTail
+        fileNameLabel.maximumNumberOfLines = 1
+        fileNameLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        metalView.translatesAutoresizingMaskIntoConstraints = false
         errorLabel.font = .systemFont(ofSize: 15, weight: .medium)
         errorLabel.textColor = .secondaryLabelColor
         errorLabel.alignment = .center
         errorLabel.isHidden = true
         errorLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        fileNameBar.addSubview(fileNameLabel)
+        container.addSubview(fileNameBar)
+        container.addSubview(metalView)
         container.addSubview(errorLabel)
 
+        let heightConstraint = fileNameBar.heightAnchor.constraint(equalToConstant: 0)
+        fileNameBarHeightConstraint = heightConstraint
+
         NSLayoutConstraint.activate([
-            metalView.topAnchor.constraint(equalTo: container.topAnchor),
+            fileNameBar.topAnchor.constraint(equalTo: container.topAnchor),
+            fileNameBar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            fileNameBar.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            heightConstraint,
+
+            fileNameLabel.centerYAnchor.constraint(equalTo: fileNameBar.centerYAnchor),
+            fileNameLabel.leadingAnchor.constraint(equalTo: fileNameBar.leadingAnchor, constant: 12),
+            fileNameLabel.trailingAnchor.constraint(equalTo: fileNameBar.trailingAnchor, constant: -12),
+
+            metalView.topAnchor.constraint(equalTo: fileNameBar.bottomAnchor),
             metalView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             metalView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             metalView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            errorLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            errorLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            errorLabel.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 24),
-            errorLabel.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -24)
+
+            errorLabel.centerXAnchor.constraint(equalTo: metalView.centerXAnchor),
+            errorLabel.centerYAnchor.constraint(equalTo: metalView.centerYAnchor),
+            errorLabel.leadingAnchor.constraint(greaterThanOrEqualTo: metalView.leadingAnchor, constant: 24),
+            errorLabel.trailingAnchor.constraint(lessThanOrEqualTo: metalView.trailingAnchor, constant: -24)
         ])
 
         let pan = NSPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
@@ -69,6 +99,14 @@ public final class photoMetalViewController: NSViewController {
     }
 
     // MARK: - 状态 API
+
+    public func setDisplayName(_ name: String?) {
+        let trimmedName = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        fileNameLabel.stringValue = trimmedName
+        let shouldShowName = !trimmedName.isEmpty
+        fileNameBar.isHidden = !shouldShowName
+        fileNameBarHeightConstraint?.constant = shouldShowName ? 30 : 0
+    }
 
     public func load(image: CIImage?, rotationDegrees: Int = 0) {
         errorLabel.isHidden = true
@@ -85,6 +123,7 @@ public final class photoMetalViewController: NSViewController {
     public func reset() {
         errorLabel.isHidden = true
         errorLabel.stringValue = ""
+        setDisplayName(nil)
         metalView.clearImage()
         metalView.resetZoom()
         metalView.resetPan()
