@@ -15,3 +15,7 @@ build/
 3rdparty/opencv-src/
 docs/recipe/layout/
 
+# Xcode user state
+*.xcuserstate
+xcuserdata/
+

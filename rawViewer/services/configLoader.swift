@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.4
-Date: 2026-06-13
-Description: 从 folderUrl/config.yaml → Bundle.main/config.yaml → 硬编码默认值三级降级加载 config；校验 ratio、blur threshold 和 Metal 并发边界。v1.4 明确配置加载器可在后台分析任务中使用
+Version: 1.6
+Date: 2026-06-18
+Description: 配置加载顺序统一为 app bundle config.yaml → 硬编码默认值；兼容 bundle 根目录和 rawViewer 子目录资源，并通过 --debug 输出实际配置来源
 */
 
 import Foundation
@@ -10,16 +10,19 @@ import Foundation
 nonisolated public final class configLoader: @unchecked Sendable {
     public init() {}
 
-    /// 加载顺序: folderUrl/config.yaml > Bundle.main/config.yaml > defaults
-    public func load(for folderUrl: URL) throws -> analysisConfig {
-        let folderConfig = folderUrl.appendingPathComponent("config.yaml")
-        if FileManager.default.fileExists(atPath: folderConfig.path) {
-            return try load(from: folderConfig)
-        }
-        if let bundleConfig = Bundle.main.url(forResource: "config", withExtension: "yaml") {
+    /// 加载顺序: Bundle.main/config.yaml > Bundle.main/rawViewer/config.yaml > defaults
+    public func load(for _: URL) throws -> analysisConfig {
+        if let bundleConfig = bundleConfigUrl() {
+            appDebugLogger.log("analysis config loaded from bundle: \(bundleConfig.path)")
             return try load(from: bundleConfig)
         }
+        appDebugLogger.log("analysis config bundle file missing, using defaults")
         return analysisConfig.defaults
+    }
+
+    private func bundleConfigUrl() -> URL? {
+        Bundle.main.url(forResource: "config", withExtension: "yaml")
+            ?? Bundle.main.url(forResource: "config", withExtension: "yaml", subdirectory: "rawViewer")
     }
 
     /// 从指定 yaml 文件加载, 字段缺失或非法则回退默认值/安全边界

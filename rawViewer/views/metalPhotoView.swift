@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.4
+Version: 3.5
 Date: 2026-06-17
-Description: 仅用于显示的 MTKView 子类；接收外部传入的 CIImage 或错误信息、清除旧内容、提供缩放与平移交互；进入窗口或布局变化后强制重绘已有图片避免 drawable 未就绪导致空白。v3.4 改用中转纹理（offscreen，usage 含 .shaderWrite）渲染 CIImage 再 blit 到 drawable，修复 CIContext 直接渲染 drawable 纹理因缺 .shaderWrite 被拒导致画面丢弃
+Description: 仅用于显示的 MTKView 子类；接收外部传入的 CIImage 或错误信息、清除旧内容、提供缩放与平移交互；修正 CoreImage 渲染到 Metal texture 的 Y 轴映射，避免详情图相对缩略图上下翻转
 */
 
 import AppKit
@@ -190,6 +190,27 @@ public final class metalPhotoView: MTKView {
         }
     }
 
+    private func renderTransform(
+        for extent: CGRect,
+        targetSize: CGSize,
+        effectiveScale: Double,
+        panOffset: CGPoint
+    ) -> CGAffineTransform {
+        let outputWidth = Double(extent.width) * effectiveScale
+        let outputHeight = Double(extent.height) * effectiveScale
+        let imageLeft = (Double(targetSize.width) - outputWidth) / 2 + panOffset.x
+        let imageTop = (Double(targetSize.height) - outputHeight) / 2 + panOffset.y
+
+        return CGAffineTransform(
+            a: effectiveScale,
+            b: 0,
+            c: 0,
+            d: -effectiveScale,
+            tx: imageLeft - Double(extent.minX) * effectiveScale,
+            ty: imageTop + Double(extent.maxY) * effectiveScale
+        )
+    }
+
     public override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
@@ -233,12 +254,16 @@ public final class metalPhotoView: MTKView {
                extent.width.isFinite, extent.height.isFinite {
                 let fitScale = min(Double(target.width) / extent.width, Double(target.height) / extent.height)
                 let effectiveScale = fitScale * userZoom
-                let width = extent.width * effectiveScale
-                let height = extent.height * effectiveScale
-                let x = (Double(target.width) - width) / 2 + panOffset.x - extent.minX * effectiveScale
-                let y = (Double(target.height) - height) / 2 + panOffset.y - extent.minY * effectiveScale
-                let transform = CGAffineTransform(translationX: x, y: y).scaledBy(x: effectiveScale, y: effectiveScale)
-                logDrawDebug("render image extent=\(extent) fitScale=\(fitScale) effectiveScale=\(effectiveScale) output=\(width)x\(height) origin=\(x),\(y)")
+                let width = Double(extent.width) * effectiveScale
+                let height = Double(extent.height) * effectiveScale
+                let targetSize = CGSize(width: target.width, height: target.height)
+                let transform = renderTransform(
+                    for: extent,
+                    targetSize: targetSize,
+                    effectiveScale: effectiveScale,
+                    panOffset: panOffset
+                )
+                logDrawDebug("render image extent=\(extent) fitScale=\(fitScale) effectiveScale=\(effectiveScale) output=\(width)x\(height) transform=\(transform)")
                 ciContext.render(imageToRender.transformed(by: transform), to: offscreen, commandBuffer: commandBuffer, bounds: bounds, colorSpace: CGColorSpaceCreateDeviceRGB())
             } else {
                 logDrawDebug("invalidExtent extent=\(extent)")

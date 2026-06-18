@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.2
-Date: 2026-06-11
-Description: Metal 视图控制器，包装 metalPhotoView 并管理缩放/平移/加载/空态四态状态机；新增展示旋转角度传递
+Version: 1.3
+Date: 2026-06-18
+Description: Metal 视图控制器，包装 metalPhotoView 并管理缩放/平移/加载/空态四态状态机；修正顶部坐标渲染下的向上拖拽方向
 */
 
 import AppKit
@@ -116,7 +116,7 @@ public final class photoMetalViewController: NSViewController {
         case .changed:
             let translation = gesture.translation(in: view)
             panOffset.x += translation.x
-            panOffset.y += translation.y
+            panOffset.y -= translation.y
             gesture.setTranslation(.zero, in: view)
             metalView.setPanOffset(panOffset)
         default:

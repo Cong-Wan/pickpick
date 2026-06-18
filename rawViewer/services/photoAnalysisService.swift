@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.4
-Date: 2026-06-13
-Description: 主编排, 替代原 photoAnalyzerBridge。v1.4 保持失败分析不计入 normal summary，与分组语义一致
+Version: 1.5
+Date: 2026-06-17
+Description: 主编排, 替代原 photoAnalyzerBridge；加载缓存时校验当前分析配置，configSnapshot 不一致则让上层重新分析
 */
 
 import Foundation
@@ -148,7 +148,8 @@ public final class photoAnalysisService: photoAnalyzing {
     // MARK: - Load Records
 
     public func loadRecords(folderUrl: URL) throws -> [photoItem] {
-        try store.load(for: folderUrl)
+        let config = try cfgLoader.load(for: folderUrl)
+        return try store.load(for: folderUrl, expectedConfig: config)
     }
 
     // MARK: - Private Helpers

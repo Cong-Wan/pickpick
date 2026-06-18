@@ -1,7 +1,7 @@
 # pickpick 默认分析参数
 # Swift 原生分析 schema 2.0
 # exposure_detection 中的像素阈值均为 0.0~1.0 ratio。
-# 本文件会被打包进 app bundle，文件夹内 config.yaml 优先级高于本文件。
+# 本文件会被打包进 app bundle，分析参数统一来自 app bundle；照片文件夹内 config.yaml 不再覆盖本文件。
 
 exposure_detection:
   # 高亮像素阈值，归一化 [0, 1]。
@@ -15,10 +15,10 @@ exposure_detection:
   underexpose_pixel_threshold: 0.025
 
   # 高亮像素占比超过该值时判定为过曝。
-  overexpose_ratio_limit: 0.05
+  overexpose_ratio_limit: 0.2
 
   # 暗部像素占比超过该值时判定为欠曝。
-  underexpose_ratio_limit: 0.05
+  underexpose_ratio_limit: 0.2
 
 blur_detection:
   # RAW Bayer Green Plane 拉普拉斯方差阈值。

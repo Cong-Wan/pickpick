@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.2
-Date: 2026-06-13
-Description: 分析参数配置结构 (exposure / blur / concurrency) + 默认值。v1.2 标注配置值可在后台分析任务中传递
+Version: 1.3
+Date: 2026-06-17
+Description: 分析参数配置结构 (exposure / blur / concurrency) + 默认值；同步默认参数到 rawViewer/config.yaml，避免 bundle 配置缺失时回退旧严格阈值
 */
 
 import Foundation
@@ -54,8 +54,8 @@ nonisolated public struct analysisConfig: Codable, Equatable, Sendable {
 nonisolated public extension analysisConfig {
     static let defaults = analysisConfig(
         exposure: exposureConfig(
-            overexposePixelThreshold: 0.96,
-            underexposePixelThreshold: 0.04,
+            overexposePixelThreshold: 0.975,
+            underexposePixelThreshold: 0.025,
             overexposeRatioLimit: 0.05,
             underexposeRatioLimit: 0.05
         ),
@@ -63,6 +63,6 @@ nonisolated public extension analysisConfig {
             laplacianThresholdRaw: 5000.0,
             laplacianThresholdJpg: 10.0
         ),
-        metalConcurrency: 2
+        metalConcurrency: 6
     )
 }

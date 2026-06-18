@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.2
-Date: 2026-06-13
-Description: 在 ~/Library/Application Support/rawViewer/{folderHash}/ 存储 analysis.json。v1.2 增加串行 load-mutate-save 更新入口，避免快速 review 操作互相覆盖
+Version: 1.3
+Date: 2026-06-17
+Description: 在 ~/Library/Application Support/rawViewer/{folderHash}/ 存储 analysis.json；读取缓存时可校验 configSnapshot，配置变化时拒绝旧缓存以触发重新分析
 */
 
 import Foundation
@@ -24,6 +24,17 @@ nonisolated struct summaryData: Codable, Sendable {
     var overexposed: Int = 0
     var underexposed: Int = 0
     var normal: Int = 0
+}
+
+public enum analysisStoreError: Error, LocalizedError, Equatable {
+    case staleConfigSnapshot
+
+    public var errorDescription: String? {
+        switch self {
+        case .staleConfigSnapshot:
+            return "analysis cache configSnapshot differs from current config"
+        }
+    }
 }
 
 nonisolated public final class analysisStore: @unchecked Sendable {
@@ -70,6 +81,12 @@ nonisolated public final class analysisStore: @unchecked Sendable {
         }
     }
 
+    public func load(for folderUrl: URL, expectedConfig: analysisConfig) throws -> [photoItem] {
+        try ioQueue.sync {
+            try loadUnlocked(for: folderUrl, expectedConfig: expectedConfig)
+        }
+    }
+
     public func save(folderUrl: URL, records: [photoItem], config: analysisConfig? = nil) throws {
         try ioQueue.sync {
             try saveUnlocked(folderUrl: folderUrl, records: records, config: config)
@@ -84,11 +101,14 @@ nonisolated public final class analysisStore: @unchecked Sendable {
         }
     }
 
-    private func loadUnlocked(for folderUrl: URL) throws -> [photoItem] {
+    private func loadUnlocked(for folderUrl: URL, expectedConfig: analysisConfig? = nil) throws -> [photoItem] {
         let url = resultsUrl(for: folderUrl)
         guard fileManager.fileExists(atPath: url.path) else { return [] }
         let data = try Data(contentsOf: url)
         let root = try JSONDecoder().decode(analysisFile.self, from: data)
+        if let expectedConfig, root.configSnapshot != expectedConfig {
+            throw analysisStoreError.staleConfigSnapshot
+        }
         return root.photos
     }
 
