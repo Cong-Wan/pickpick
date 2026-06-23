@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.5
+Version: 1.6
 Date: 2026-06-17
-Description: 主编排, 替代原 photoAnalyzerBridge；加载缓存时校验当前分析配置，configSnapshot 不一致则让上层重新分析
+Description: 主编排, 替代原 photoAnalyzerBridge；加载缓存时校验当前分析配置，configSnapshot 不一致则让上层重新分析；v1.6 在 --debug 下写 calibration dump 供阈值校准
 */
 
 import Foundation
@@ -116,6 +116,8 @@ public final class photoAnalysisService: photoAnalyzing {
 
         progress(analysisProgress(phase: .rawAnalysis, completedCount: 0, totalCount: totalCount, overallProgress: 0.2))
         let analysisResults = await runAnalysisStage(pairs: pairs, config: config, totalCount: totalCount, progress: progress)
+
+        writeCalibrationDumpIfDebug(folderUrl: folderUrl, results: analysisResults, config: config)
 
         for result in analysisResults {
             if var item = recordsById[result.photoId] {
@@ -360,5 +362,45 @@ public final class photoAnalysisService: photoAnalyzing {
             underexposedCount: underexposed,
             normalCount: normal
         )
+    }
+
+    private func writeCalibrationDumpIfDebug(folderUrl: URL, results: [analysisStageResult], config: analysisConfig) {
+        guard appDebugLogger.isEnabled else { return }
+        let dir = store.resultsUrl(for: folderUrl).deletingLastPathComponent()
+        let url = dir.appendingPathComponent("calibration.txt")
+        var lines: [String] = []
+        lines.append("photoId\tsource\tmeanNorm\tmedianNorm\tp10\tp90\tp99\tdarkRatio\tdeepDarkRatio\tdarkTileCov\tbrightTileCov\tcenterBrightNorm\tusableTileRatio\tunderScore\toverScore\tblurScore\tprimary")
+        for r in results {
+            guard let d = r.result.debugInfo else { continue }
+            let g = d.features.globalExposure
+            let tiles = d.features.tiles
+            let tc = max(1, tiles.count)
+            let isRaw = r.result.analysisSource == "raw"
+            let darkThreshold = isRaw ? config.scoring.darkTileMeanThresholdRaw : config.scoring.darkTileMeanThresholdJpg
+            let brightThreshold = isRaw ? config.scoring.brightTileP90ThresholdRaw : config.scoring.brightTileP90ThresholdJpg
+            let darkTiles = tiles.filter { $0.meanNorm < darkThreshold }.count
+            let brightTiles = tiles.filter { $0.p90Norm > brightThreshold }.count
+            let centerBright = centerBrightness(features: d.features)
+            lines.append("\(r.photoId)\t\(r.result.analysisSource)\t\(String(format: "%.4f", g.meanNorm))\t\(String(format: "%.4f", g.medianNorm))\t\(String(format: "%.4f", g.p10Norm))\t\(String(format: "%.4f", g.p90Norm))\t\(String(format: "%.4f", g.p99Norm))\t\(String(format: "%.4f", g.darkRatio))\t\(String(format: "%.4f", g.deepDarkRatio))\t\(String(format: "%.3f", Double(darkTiles)/Double(tc)))\t\(String(format: "%.3f", Double(brightTiles)/Double(tc)))\t\(String(format: "%.4f", centerBright))\t\(String(format: "%.3f", d.features.blur.usableTileRatio))\t\(String(format: "%.3f", d.scores.underexposed))\t\(String(format: "%.3f", d.scores.overexposed))\t\(String(format: "%.3f", d.scores.blurry))\t\(d.primary.rawValue)")
+        }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        appDebugLogger.log("calibration dump written to \(url.path)")
+    }
+
+    private func centerBrightness(features: analysisFeatures) -> Double {
+        let rowStart = (features.gridRows - features.centerRows) / 2
+        let colStart = (features.gridCols - features.centerCols) / 2
+        var sum: Double = 0
+        var n = 0
+        for r in 0..<features.gridRows {
+            for c in 0..<features.gridCols {
+                if r >= rowStart && r < rowStart + features.centerRows && c >= colStart && c < colStart + features.centerCols {
+                    let idx = r * features.gridCols + c
+                    if idx < features.tiles.count { sum += features.tiles[idx].meanNorm; n += 1 }
+                }
+            }
+        }
+        return n > 0 ? sum / Double(n) : 0
     }
 }

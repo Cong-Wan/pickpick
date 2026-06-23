@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.4
-Date: 2026-06-13
-Description: RAW Bayer 原始值分析: LibRaw 取数据, Metal GPU 4 个 kernel, CPU 后处理曝光/虚焦/DR。v1.4 让 contextProvider 可从后台分析任务调用并标注 task group 捕获安全
+Version: 1.5
+Date: 2026-06-22
+Description: RAW Bayer 分析：LibRaw 取数据 + Metal 全局/网格直方图 + 每格 Laplacian + 共享评分引擎。v1.5 用全局+网格特征 + 主因分类替代单阈值
 */
 
 import Foundation
@@ -15,6 +15,7 @@ nonisolated public struct rawAnalysisResult: Sendable {
     public let blackLevel: Int
     public let whiteLevel: Int
     public let analysisSource: String
+    public let debugInfo: analysisDebugInfo?
 
     public init(
         isBlurry: Bool,
@@ -22,7 +23,8 @@ nonisolated public struct rawAnalysisResult: Sendable {
         dynamicRange: dynamicRangeData?,
         blackLevel: Int,
         whiteLevel: Int,
-        analysisSource: String = "raw"
+        analysisSource: String = "raw",
+        debugInfo: analysisDebugInfo? = nil
     ) {
         self.isBlurry = isBlurry
         self.exposureStatus = exposureStatus
@@ -30,6 +32,7 @@ nonisolated public struct rawAnalysisResult: Sendable {
         self.blackLevel = blackLevel
         self.whiteLevel = whiteLevel
         self.analysisSource = analysisSource
+        self.debugInfo = debugInfo
     }
 }
 
@@ -68,11 +71,28 @@ struct greenLaplacianConfig {
     var height: UInt32
 }
 
-struct partialStatsGpu {
+struct rawGridHistConfigGpu {
+    var planeWidth: UInt32
+    var planeHeight: UInt32
+    var gridRows: UInt32
+    var gridCols: UInt32
+    var binCount: UInt32
+    var range: Float
+    var darkThreshold: Float
+    var deepDarkThreshold: Float
+    var highlightThreshold: Float
+}
+
+struct gridReduceConfigGpu {
+    var width: UInt32
+    var height: UInt32
+    var gridRows: UInt32
+    var gridCols: UInt32
+}
+
+struct perTileStatsGpu {
     var sum: Float
     var sumSq: Float
-    var minVal: Float
-    var maxVal: Float
 }
 
 nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked Sendable {
@@ -85,44 +105,32 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
     public func analyze(rawPath: String, config: analysisConfig) throws -> rawAnalysisResult {
         let context = try contextProvider()
         guard let handle = rwRawOpen(rawPath) else {
-            throw NSError(
-                domain: "rawViewer.rawBayerAnalyzer", code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "LibRaw open_file returned null for \(rawPath)"]
-            )
+            throw makeError("LibRaw open_file returned null for \(rawPath)")
         }
         defer { rwRawClose(handle) }
 
         let errorMsg = String(cString: rwRawLastError(handle))
         if !errorMsg.isEmpty {
-            throw NSError(
-                domain: "rawViewer.rawBayerAnalyzer", code: 2,
-                userInfo: [NSLocalizedDescriptionKey: "LibRaw error: \(errorMsg)"]
-            )
+            throw makeError("LibRaw error: \(errorMsg)")
         }
 
         let data = rwRawGetBayerData(handle)
         guard data.rawWidth > 0, data.rawHeight > 0, data.rawImage != nil else {
-            throw NSError(
-                domain: "rawViewer.rawBayerAnalyzer", code: 3,
-                userInfo: [NSLocalizedDescriptionKey: "LibRaw returned empty Bayer data"]
-            )
+            throw makeError("LibRaw returned empty Bayer data")
         }
 
         let black = Int(data.blackLevel)
         let white = Int(data.whiteLevel)
         guard white > black else {
-            throw NSError(
-                domain: "rawViewer.rawBayerAnalyzer", code: 4,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid black/white level: black=\(black) white=\(white)"]
-            )
+            throw makeError("Invalid black/white level: black=\(black) white=\(white)")
         }
 
         let visibleW = Int(data.visibleWidth)
         let visibleH = Int(data.visibleHeight)
         let rawW = Int(data.rawWidth)
         let rawH = Int(data.rawHeight)
+        let range = Double(white - black)
 
-        // 1. 上传 rawImage 到 GPU
         let totalRaw = rawW * rawH
         guard let rawBuffer = context.device.makeBuffer(
             length: totalRaw * MemoryLayout<UInt16>.size,
@@ -130,12 +138,15 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
         ) else { throw makeError("alloc rawBuffer") }
         memcpy(rawBuffer.contents(), data.rawImage, totalRaw * MemoryLayout<UInt16>.size)
 
-        // 2. 计算绝对阈值
         let absOver = UInt32(black) + UInt32(Double(white - black) * config.exposure.overexposePixelThreshold)
         let absUnder = UInt32(black) + UInt32(Double(white - black) * config.exposure.underexposePixelThreshold)
 
-        // 3. 分配 GPU 输出 buffer
         let binCount: UInt32 = 4096
+        let gridRows = UInt32(config.grid.rows)
+        let gridCols = UInt32(config.grid.columns)
+        let gridBinCount: UInt32 = 64
+        let tileCount = Int(gridRows * gridCols)
+
         guard let histBuffer = context.device.makeBuffer(
             length: Int(4 * binCount) * MemoryLayout<UInt32>.size,
             options: .storageModeShared
@@ -148,34 +159,55 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
         ) else { throw makeError("alloc exposureBuffer") }
         memset(exposureBuffer.contents(), 0, 8 * MemoryLayout<UInt32>.size)
 
-        // 4. 启动 command buffer
+        let greenW = visibleW / 2
+        let greenH = visibleH / 2
+        guard greenW > 0, greenH > 0 else {
+            throw makeError("Visible area too small for green plane")
+        }
+        guard let greenBuffer = context.device.makeBuffer(
+            length: greenW * greenH * MemoryLayout<Float>.size,
+            options: .storageModeShared
+        ) else { throw makeError("alloc greenBuffer") }
+
+        guard let lapBuffer = context.device.makeBuffer(
+            length: greenW * greenH * MemoryLayout<Float>.size,
+            options: .storageModeShared
+        ) else { throw makeError("alloc lapBuffer") }
+
+        guard let gridHistBuffer = context.device.makeBuffer(
+            length: tileCount * Int(gridBinCount) * MemoryLayout<UInt32>.size,
+            options: .storageModeShared
+        ) else { throw makeError("alloc gridHistBuffer") }
+        memset(gridHistBuffer.contents(), 0, tileCount * Int(gridBinCount) * MemoryLayout<UInt32>.size)
+
+        guard let gridCountBuffer = context.device.makeBuffer(
+            length: tileCount * 4 * MemoryLayout<UInt32>.size,
+            options: .storageModeShared
+        ) else { throw makeError("alloc gridCountBuffer") }
+        memset(gridCountBuffer.contents(), 0, tileCount * 4 * MemoryLayout<UInt32>.size)
+
+        guard let perTileStatsBuffer = context.device.makeBuffer(
+            length: tileCount * MemoryLayout<perTileStatsGpu>.size,
+            options: .storageModeShared
+        ) else { throw makeError("alloc perTileStatsBuffer") }
+
         guard let cmd = context.commandQueue.makeCommandBuffer() else {
             throw makeError("makeCommandBuffer")
         }
 
-        // Dispatch 1: bayerHistogramKernel
+        // Dispatch 1: bayerHistogramKernel (全局 4 通道直方图 + 曝光计数)
         var histConfig = bayerHistConfig(
-            rawWidth: UInt32(rawW),
-            rawHeight: UInt32(rawH),
-            visibleOffsetX: UInt32(data.visibleOffsetX),
-            visibleOffsetY: UInt32(data.visibleOffsetY),
-            visibleWidth: UInt32(visibleW),
-            visibleHeight: UInt32(visibleH),
-            binCount: binCount,
-            blackLevel: UInt32(black),
-            whiteLevel: UInt32(white),
-            overThreshold: absOver,
-            underThreshold: absUnder
+            rawWidth: UInt32(rawW), rawHeight: UInt32(rawH),
+            visibleOffsetX: UInt32(data.visibleOffsetX), visibleOffsetY: UInt32(data.visibleOffsetY),
+            visibleWidth: UInt32(visibleW), visibleHeight: UInt32(visibleH),
+            binCount: binCount, blackLevel: UInt32(black), whiteLevel: UInt32(white),
+            overThreshold: absOver, underThreshold: absUnder
         )
-
         let totalVisible = visibleW * visibleH
         let histGroupSize = 256
         let histGroupCount = (totalVisible + histGroupSize - 1) / histGroupSize
-
         do {
-            guard let encoder = cmd.makeComputeCommandEncoder() else {
-                throw makeError("makeComputeCommandEncoder failed")
-            }
+            guard let encoder = cmd.makeComputeCommandEncoder() else { throw makeError("makeComputeCommandEncoder failed") }
             encoder.setComputePipelineState(context.bayerHistogramPipeline)
             encoder.setBuffer(rawBuffer, offset: 0, index: 0)
             encoder.setBuffer(histBuffer, offset: 0, index: 1)
@@ -189,33 +221,13 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
         }
 
         // Dispatch 2: bayerToGreenPlaneKernel
-        let greenW = visibleW / 2
-        let greenH = visibleH / 2
-        guard greenW > 0, greenH > 0 else {
-            throw NSError(
-                domain: "rawViewer.rawBayerAnalyzer", code: 5,
-                userInfo: [NSLocalizedDescriptionKey: "Visible area too small for green plane"]
-            )
-        }
-        guard let greenBuffer = context.device.makeBuffer(
-            length: greenW * greenH * MemoryLayout<Float>.size,
-            options: .storageModeShared
-        ) else { throw makeError("alloc greenBuffer") }
-
         var greenConfig = greenPlaneConfig(
-            rawWidth: UInt32(rawW),
-            rawHeight: UInt32(rawH),
-            visibleOffsetX: UInt32(data.visibleOffsetX),
-            visibleOffsetY: UInt32(data.visibleOffsetY),
-            greenWidth: UInt32(greenW),
-            greenHeight: UInt32(greenH),
-            blackLevel: UInt32(black)
+            rawWidth: UInt32(rawW), rawHeight: UInt32(rawH),
+            visibleOffsetX: UInt32(data.visibleOffsetX), visibleOffsetY: UInt32(data.visibleOffsetY),
+            greenWidth: UInt32(greenW), greenHeight: UInt32(greenH), blackLevel: UInt32(black)
         )
-
         do {
-            guard let encoder = cmd.makeComputeCommandEncoder() else {
-                throw makeError("makeComputeCommandEncoder failed")
-            }
+            guard let encoder = cmd.makeComputeCommandEncoder() else { throw makeError("makeComputeCommandEncoder failed") }
             encoder.setComputePipelineState(context.bayerToGreenPlanePipeline)
             encoder.setBuffer(rawBuffer, offset: 0, index: 0)
             encoder.setBuffer(greenBuffer, offset: 0, index: 1)
@@ -228,20 +240,9 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
         }
 
         // Dispatch 3: greenLaplacianKernel
-        guard let lapBuffer = context.device.makeBuffer(
-            length: greenW * greenH * MemoryLayout<Float>.size,
-            options: .storageModeShared
-        ) else { throw makeError("alloc lapBuffer") }
-
-        var lapConfig = greenLaplacianConfig(
-            width: UInt32(greenW),
-            height: UInt32(greenH)
-        )
-
+        var lapConfig = greenLaplacianConfig(width: UInt32(greenW), height: UInt32(greenH))
         do {
-            guard let encoder = cmd.makeComputeCommandEncoder() else {
-                throw makeError("makeComputeCommandEncoder failed")
-            }
+            guard let encoder = cmd.makeComputeCommandEncoder() else { throw makeError("makeComputeCommandEncoder failed") }
             encoder.setComputePipelineState(context.greenLaplacianPipeline)
             encoder.setBuffer(greenBuffer, offset: 0, index: 0)
             encoder.setBuffer(lapBuffer, offset: 0, index: 1)
@@ -253,25 +254,40 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
             encoder.endEncoding()
         }
 
-        // Dispatch 4: reduceLaplacianKernel
-        let reduceGroupSize = 256
-        let reduceGroupCount = (greenW * greenH + reduceGroupSize - 1) / reduceGroupSize
-        guard let partialStats = context.device.makeBuffer(
-            length: reduceGroupCount * MemoryLayout<partialStatsGpu>.size,
-            options: .storageModeShared
-        ) else { throw makeError("alloc partialStats") }
-
+        // Dispatch 4: reduceLaplacianPerTileKernel (每格 Laplacian sum/sumSq)
+        var gridReduceConfig = gridReduceConfigGpu(width: UInt32(greenW), height: UInt32(greenH), gridRows: gridRows, gridCols: gridCols)
         do {
-            guard let encoder = cmd.makeComputeCommandEncoder() else {
-                throw makeError("makeComputeCommandEncoder failed")
-            }
-            encoder.setComputePipelineState(context.reducePipeline)
+            guard let encoder = cmd.makeComputeCommandEncoder() else { throw makeError("makeComputeCommandEncoder failed") }
+            encoder.setComputePipelineState(context.reduceLaplacianPerTilePipeline)
             encoder.setBuffer(lapBuffer, offset: 0, index: 0)
-            encoder.setBuffer(partialStats, offset: 0, index: 1)
-            encoder.setBytes(&lapConfig, length: MemoryLayout<greenLaplacianConfig>.size, index: 2)
+            encoder.setBuffer(perTileStatsBuffer, offset: 0, index: 1)
+            encoder.setBytes(&gridReduceConfig, length: MemoryLayout<gridReduceConfigGpu>.size, index: 2)
             encoder.dispatchThreadgroups(
-                MTLSize(width: reduceGroupCount, height: 1, depth: 1),
-                threadsPerThreadgroup: MTLSize(width: reduceGroupSize, height: 1, depth: 1)
+                MTLSize(width: tileCount, height: 1, depth: 1),
+                threadsPerThreadgroup: MTLSize(width: 256, height: 1, depth: 1)
+            )
+            encoder.endEncoding()
+        }
+
+        // Dispatch 5: rawGridHistogramKernel (每格亮度直方图 + 计数)
+        var rawGridConfig = rawGridHistConfigGpu(
+            planeWidth: UInt32(greenW), planeHeight: UInt32(greenH),
+            gridRows: gridRows, gridCols: gridCols, binCount: gridBinCount,
+            range: Float(range),
+            darkThreshold: Float(config.exposure.underexposePixelThreshold) * Float(range),
+            deepDarkThreshold: Float(config.scoring.deepDarkPixelThreshold) * Float(range),
+            highlightThreshold: Float(config.exposure.overexposePixelThreshold) * Float(range)
+        )
+        do {
+            guard let encoder = cmd.makeComputeCommandEncoder() else { throw makeError("makeComputeCommandEncoder failed") }
+            encoder.setComputePipelineState(context.rawGridHistogramPipeline)
+            encoder.setBuffer(greenBuffer, offset: 0, index: 0)
+            encoder.setBuffer(gridHistBuffer, offset: 0, index: 1)
+            encoder.setBuffer(gridCountBuffer, offset: 0, index: 2)
+            encoder.setBytes(&rawGridConfig, length: MemoryLayout<rawGridHistConfigGpu>.size, index: 3)
+            encoder.dispatchThreadgroups(
+                MTLSize(width: (greenW + 15) / 16, height: (greenH + 15) / 16, depth: 1),
+                threadsPerThreadgroup: MTLSize(width: 16, height: 16, depth: 1)
             )
             encoder.endEncoding()
         }
@@ -282,93 +298,76 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
             throw makeError("command buffer error: \(cmd.error?.localizedDescription ?? "unknown")")
         }
 
-        // 5. CPU 后处理
+        // CPU 后处理
         let histPtr = histBuffer.contents().bindMemory(to: UInt32.self, capacity: 4 * Int(binCount))
         let greenHist = Array(UnsafeBufferPointer(start: histPtr.advanced(by: Int(binCount)), count: Int(binCount)))
 
-        let exposurePtr = exposureBuffer.contents().bindMemory(to: UInt32.self, capacity: 8)
-        var overCount: UInt64 = 0
-        var underCount: UInt64 = 0
-        for ch in 0..<4 {
-            overCount += UInt64(exposurePtr[ch * 2 + 0])
-            underCount += UInt64(exposurePtr[ch * 2 + 1])
-        }
-        let totalPixels = UInt64(totalVisible)
-        let overRatio = Double(overCount) / Double(totalPixels)
-        let underRatio = Double(underCount) / Double(totalPixels)
-
-        let exposureStatus: String
-        if overRatio > config.exposure.overexposeRatioLimit {
-            exposureStatus = "overexposed"
-        } else if underRatio > config.exposure.underexposeRatioLimit {
-            exposureStatus = "underexposed"
-        } else {
-            exposureStatus = "normal"
-        }
-
-        let partialPtr = partialStats.contents().bindMemory(to: partialStatsGpu.self, capacity: reduceGroupCount)
-        var sum: Double = 0
-        var sumSq: Double = 0
-        for i in 0..<reduceGroupCount {
-            sum += Double(partialPtr[i].sum)
-            sumSq += Double(partialPtr[i].sumSq)
-        }
-        let total = Double(greenW * greenH)
-        let mean = total > 0 ? sum / total : 0
-        let variance = total > 0 ? max(0, sumSq / total - mean * mean) : 0
-        let isBlurry = variance < config.blur.laplacianThresholdRaw
-
-        let (p01, p999) = computePercentiles(greenHist: greenHist, totalPixels: UInt64(greenW * greenH), binCount: Int(binCount))
-        let maxBin = Double(binCount - 1)
-        let p01Code = Double(p01) / maxBin * Double(white - black)
-        let p999Code = Double(p999) / maxBin * Double(white - black)
-        let sceneSpreadEv = p01Code > 0 ? log2(p999Code / p01Code) : 0
-        let codeRangeEv = p01Code > 0 ? log2(Double(white - black) / p01Code) : 0
-        let dr = dynamicRangeData(
-            sceneSpreadEv: sceneSpreadEv,
-            codeRangeEv: codeRangeEv,
-            blackLevel: black,
-            whiteLevel: white
+        let globalFeatures = buildGlobalExposureFeatures(
+            histogram: greenHist, binCount: Int(binCount),
+            darkThresholdNorm: config.exposure.underexposePixelThreshold,
+            deepDarkThresholdNorm: config.scoring.deepDarkPixelThreshold,
+            highlightThresholdNorm: config.exposure.overexposePixelThreshold
         )
 
+        let gridHistPtr = gridHistBuffer.contents().bindMemory(to: UInt32.self, capacity: tileCount * Int(gridBinCount))
+        let gridCountPtr = gridCountBuffer.contents().bindMemory(to: UInt32.self, capacity: tileCount * 4)
+        let statsPtr = perTileStatsBuffer.contents().bindMemory(to: perTileStatsGpu.self, capacity: tileCount)
+        let gridHistArray = Array(UnsafeBufferPointer(start: gridHistPtr, count: tileCount * Int(gridBinCount)))
+
+        var tiles: [tileFeatures] = []
+        tiles.reserveCapacity(tileCount)
+        for t in 0..<tileCount {
+            let pixelCount = Double(gridCountPtr[t * 4 + 0])
+            let darkCount = Double(gridCountPtr[t * 4 + 1])
+            let deepDarkCount = Double(gridCountPtr[t * 4 + 2])
+            let highlightCount = Double(gridCountPtr[t * 4 + 3])
+            let tf = buildTileFeatures(
+                histogram: gridHistArray, histogramOffset: t * Int(gridBinCount), binCount: Int(gridBinCount),
+                pixelCount: pixelCount, darkCount: darkCount, deepDarkCount: deepDarkCount, highlightCount: highlightCount,
+                laplacianSum: Double(statsPtr[t].sum), laplacianSumSq: Double(statsPtr[t].sumSq), range: range,
+                usableMinBrightness: config.scoring.usableTileMinBrightnessRaw,
+                usableMinContrast: config.scoring.usableTileMinContrastRaw
+            )
+            tiles.append(tf)
+        }
+
+        let blur = buildBlurFeatures(
+            tiles: tiles, gridRows: Int(gridRows), gridCols: Int(gridCols),
+            centerRows: config.grid.centerRows, centerCols: config.grid.centerColumns,
+            sharpTileLaplacianThreshold: config.scoring.sharpTileLaplacianThresholdRaw,
+            lowContrastTileThreshold: config.scoring.lowContrastTileThresholdRaw
+        )
+
+        let features = analysisFeatures(
+            globalExposure: globalFeatures, tiles: tiles, blur: blur,
+            gridRows: Int(gridRows), gridCols: Int(gridCols),
+            centerRows: config.grid.centerRows, centerCols: config.grid.centerColumns
+        )
+
+        let scores = scoringEngine.score(features: features, config: config, valueSpace: .rawLinear)
+        let primary = scoringEngine.classify(scores: scores, config: config)
+        let fields = mapPrimaryToFields(primary)
+
+        // 动态范围 (复用全局特征百分位)
+        let p01Code = globalFeatures.p01Norm * range
+        let p999Code = globalFeatures.p99Norm * range
+        let sceneSpreadEv = p01Code > 0 ? log2(p999Code / p01Code) : 0
+        let codeRangeEv = p01Code > 0 ? log2(range / p01Code) : 0
+        let dr = dynamicRangeData(sceneSpreadEv: sceneSpreadEv, codeRangeEv: codeRangeEv, blackLevel: black, whiteLevel: white)
+
+        let debugInfo = analysisDebugInfo(features: features, scores: scores, primary: primary)
         return rawAnalysisResult(
-            isBlurry: isBlurry,
-            exposureStatus: exposureStatus,
+            isBlurry: fields.isBlurry,
+            exposureStatus: fields.exposureStatus,
             dynamicRange: dr,
             blackLevel: black,
-            whiteLevel: white
-        )
-    }
-
-    private func computePercentiles(greenHist: [UInt32], totalPixels: UInt64, binCount: Int) -> (UInt32, UInt32) {
-        guard totalPixels > 0, !greenHist.isEmpty, binCount > 0 else { return (0, 0) }
-        let p01Target = max(UInt64(1), UInt64(ceil(Double(totalPixels) * 0.001)))
-        let p999Target = max(UInt64(1), UInt64(ceil(Double(totalPixels) * 0.999)))
-        var cum: UInt64 = 0
-        var p01Bin: UInt32?
-        var p999Bin: UInt32?
-
-        for i in 0..<min(binCount, greenHist.count) {
-            cum += UInt64(greenHist[i])
-            if p01Bin == nil, cum >= p01Target {
-                p01Bin = UInt32(i)
-            }
-            if p999Bin == nil, cum >= p999Target {
-                p999Bin = UInt32(i)
-                break
-            }
-        }
-
-        return (
-            p01Bin ?? 0,
-            p999Bin ?? UInt32(max(0, min(binCount, greenHist.count) - 1))
+            whiteLevel: white,
+            analysisSource: "raw",
+            debugInfo: debugInfo
         )
     }
 
     private func makeError(_ msg: String) -> NSError {
-        NSError(
-            domain: "rawViewer.rawBayerAnalyzer", code: 999,
-            userInfo: [NSLocalizedDescriptionKey: msg]
-        )
+        NSError(domain: "rawViewer.rawBayerAnalyzer", code: 999, userInfo: [NSLocalizedDescriptionKey: msg])
     }
 }

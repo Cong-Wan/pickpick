@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.6
-Date: 2026-06-18
-Description: 配置加载顺序统一为 app bundle config.yaml → 硬编码默认值；兼容 bundle 根目录和 rawViewer 子目录资源，并通过 --debug 输出实际配置来源
+Version: 1.7
+Date: 2026-06-23
+Description: 配置加载顺序统一为 app bundle config.yaml → 硬编码默认值；兼容 bundle 根目录和 rawViewer 子目录资源，并通过 --debug 输出实际配置来源。v1.7 解析 grid_analysis/scoring 段（含 blur_min_brightness_raw/jpg），新增 clampedInt 对网格行列做安全 clamp
 */
 
 import Foundation
@@ -84,43 +84,55 @@ nonisolated public final class configLoader: @unchecked Sendable {
     private func parse(_ root: [String: Any]) -> analysisConfig {
         let exposureNode = root["exposure_detection"] as? [String: Any] ?? [:]
         let blurNode = root["blur_detection"] as? [String: Any] ?? [:]
+        let gridNode = root["grid_analysis"] as? [String: Any] ?? [:]
+        let scoringNode = root["scoring"] as? [String: Any] ?? [:]
         let analysisNode = root["analysis"] as? [String: Any] ?? [:]
 
         let exposure = exposureConfig(
-            overexposePixelThreshold: ratioValue(
-                exposureNode["overexpose_pixel_threshold"],
-                default: analysisConfig.defaults.exposure.overexposePixelThreshold
-            ),
-            underexposePixelThreshold: ratioValue(
-                exposureNode["underexpose_pixel_threshold"],
-                default: analysisConfig.defaults.exposure.underexposePixelThreshold
-            ),
-            overexposeRatioLimit: ratioValue(
-                exposureNode["overexpose_ratio_limit"],
-                default: analysisConfig.defaults.exposure.overexposeRatioLimit
-            ),
-            underexposeRatioLimit: ratioValue(
-                exposureNode["underexpose_ratio_limit"],
-                default: analysisConfig.defaults.exposure.underexposeRatioLimit
-            )
+            overexposePixelThreshold: ratioValue(exposureNode["overexpose_pixel_threshold"], default: analysisConfig.defaults.exposure.overexposePixelThreshold),
+            underexposePixelThreshold: ratioValue(exposureNode["underexpose_pixel_threshold"], default: analysisConfig.defaults.exposure.underexposePixelThreshold),
+            overexposeRatioLimit: ratioValue(exposureNode["overexpose_ratio_limit"], default: analysisConfig.defaults.exposure.overexposeRatioLimit),
+            underexposeRatioLimit: ratioValue(exposureNode["underexpose_ratio_limit"], default: analysisConfig.defaults.exposure.underexposeRatioLimit)
         )
 
         let blur = blurConfig(
-            laplacianThresholdRaw: nonNegativeValue(
-                blurNode["laplacian_threshold_raw"],
-                default: analysisConfig.defaults.blur.laplacianThresholdRaw
-            ),
-            laplacianThresholdJpg: nonNegativeValue(
-                blurNode["laplacian_threshold_jpg"],
-                default: analysisConfig.defaults.blur.laplacianThresholdJpg
-            )
+            laplacianThresholdRaw: nonNegativeValue(blurNode["laplacian_threshold_raw"], default: analysisConfig.defaults.blur.laplacianThresholdRaw),
+            laplacianThresholdJpg: nonNegativeValue(blurNode["laplacian_threshold_jpg"], default: analysisConfig.defaults.blur.laplacianThresholdJpg)
         )
 
-        let rawConcurrency = intValue(analysisNode["metal_concurrency"])
-            ?? analysisConfig.defaults.metalConcurrency
+        let rows = clampedInt(gridNode["rows"], default: analysisConfig.defaults.grid.rows, min: 1, max: 12)
+        let columns = clampedInt(gridNode["columns"], default: analysisConfig.defaults.grid.columns, min: 1, max: 12)
+        let centerRows = clampedInt(gridNode["center_rows"], default: analysisConfig.defaults.grid.centerRows, min: 1, max: rows)
+        let centerColumns = clampedInt(gridNode["center_columns"], default: analysisConfig.defaults.grid.centerColumns, min: 1, max: columns)
+        let grid = gridAnalysisConfig(rows: rows, columns: columns, centerRows: centerRows, centerColumns: centerColumns)
+
+        let scoring = scoringConfig(
+            underexposedThreshold: ratioValue(scoringNode["underexposed_threshold"], default: analysisConfig.defaults.scoring.underexposedThreshold),
+            overexposedThreshold: ratioValue(scoringNode["overexposed_threshold"], default: analysisConfig.defaults.scoring.overexposedThreshold),
+            blurryThreshold: ratioValue(scoringNode["blurry_threshold"], default: analysisConfig.defaults.scoring.blurryThreshold),
+            deepDarkPixelThreshold: ratioValue(scoringNode["deep_dark_pixel_threshold"], default: analysisConfig.defaults.scoring.deepDarkPixelThreshold),
+            darkTileMeanThresholdRaw: ratioValue(scoringNode["dark_tile_mean_threshold_raw"], default: analysisConfig.defaults.scoring.darkTileMeanThresholdRaw),
+            darkTileMeanThresholdJpg: ratioValue(scoringNode["dark_tile_mean_threshold_jpg"], default: analysisConfig.defaults.scoring.darkTileMeanThresholdJpg),
+            brightTileP90ThresholdRaw: ratioValue(scoringNode["bright_tile_p90_threshold_raw"], default: analysisConfig.defaults.scoring.brightTileP90ThresholdRaw),
+            brightTileP90ThresholdJpg: ratioValue(scoringNode["bright_tile_p90_threshold_jpg"], default: analysisConfig.defaults.scoring.brightTileP90ThresholdJpg),
+            lowContrastTileThresholdRaw: ratioValue(scoringNode["low_contrast_tile_threshold_raw"], default: analysisConfig.defaults.scoring.lowContrastTileThresholdRaw),
+            lowContrastTileThresholdJpg: ratioValue(scoringNode["low_contrast_tile_threshold_jpg"], default: analysisConfig.defaults.scoring.lowContrastTileThresholdJpg),
+            usableTileMinBrightnessRaw: ratioValue(scoringNode["usable_tile_min_brightness_raw"], default: analysisConfig.defaults.scoring.usableTileMinBrightnessRaw),
+            usableTileMinBrightnessJpg: ratioValue(scoringNode["usable_tile_min_brightness_jpg"], default: analysisConfig.defaults.scoring.usableTileMinBrightnessJpg),
+            usableTileMinContrastRaw: ratioValue(scoringNode["usable_tile_min_contrast_raw"], default: analysisConfig.defaults.scoring.usableTileMinContrastRaw),
+            usableTileMinContrastJpg: ratioValue(scoringNode["usable_tile_min_contrast_jpg"], default: analysisConfig.defaults.scoring.usableTileMinContrastJpg),
+            sharpTileLaplacianThresholdRaw: nonNegativeValue(scoringNode["sharp_tile_laplacian_threshold_raw"], default: analysisConfig.defaults.scoring.sharpTileLaplacianThresholdRaw),
+            sharpTileLaplacianThresholdJpg: nonNegativeValue(scoringNode["sharp_tile_laplacian_threshold_jpg"], default: analysisConfig.defaults.scoring.sharpTileLaplacianThresholdJpg),
+            laplacianLowThresholdRaw: nonNegativeValue(scoringNode["laplacian_low_threshold_raw"], default: analysisConfig.defaults.scoring.laplacianLowThresholdRaw),
+            laplacianLowThresholdJpg: nonNegativeValue(scoringNode["laplacian_low_threshold_jpg"], default: analysisConfig.defaults.scoring.laplacianLowThresholdJpg),
+            blurMinBrightnessRaw: ratioValue(scoringNode["blur_min_brightness_raw"], default: analysisConfig.defaults.scoring.blurMinBrightnessRaw),
+            blurMinBrightnessJpg: ratioValue(scoringNode["blur_min_brightness_jpg"], default: analysisConfig.defaults.scoring.blurMinBrightnessJpg)
+        )
+
+        let rawConcurrency = intValue(analysisNode["metal_concurrency"]) ?? analysisConfig.defaults.metalConcurrency
         let concurrency = min(max(rawConcurrency, 1), 8)
 
-        return analysisConfig(exposure: exposure, blur: blur, metalConcurrency: concurrency)
+        return analysisConfig(exposure: exposure, blur: blur, grid: grid, scoring: scoring, metalConcurrency: concurrency)
     }
 
     private func ratioValue(_ any: Any?, default defaultValue: Double) -> Double {
@@ -145,5 +157,10 @@ nonisolated public final class configLoader: @unchecked Sendable {
         if let d = any as? Double, d.isFinite { return Int(d) }
         if let s = any as? String { return Int(s) }
         return nil
+    }
+
+    private func clampedInt(_ any: Any?, default defaultValue: Int, min minValue: Int, max maxValue: Int) -> Int {
+        let raw = intValue(any) ?? defaultValue
+        return Swift.min(Swift.max(raw, minValue), maxValue)
     }
 }

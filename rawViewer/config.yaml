@@ -4,31 +4,42 @@
 # 本文件会被打包进 app bundle，分析参数统一来自 app bundle；照片文件夹内 config.yaml 不再覆盖本文件。
 
 exposure_detection:
-  # 高亮像素阈值，归一化 [0, 1]。
-  # RAW: pixel >= blackLevel + threshold * (whiteLevel - blackLevel) 计为高亮。
-  # JPG: gray > threshold * 255 计为高亮。
   overexpose_pixel_threshold: 0.975
-
-  # 暗部像素阈值，归一化 [0, 1]。
-  # RAW: pixel <= blackLevel + threshold * (whiteLevel - blackLevel) 计为暗部。
-  # JPG: gray < threshold * 255 计为暗部。
-  underexpose_pixel_threshold: 0.025
-
-  # 高亮像素占比超过该值时判定为过曝。
+  underexpose_pixel_threshold: 0.01
   overexpose_ratio_limit: 0.2
-
-  # 暗部像素占比超过该值时判定为欠曝。
-  underexpose_ratio_limit: 0.2
+  underexpose_ratio_limit: 0.3
 
 blur_detection:
-  # RAW Bayer Green Plane 拉普拉斯方差阈值。
-  # variance < 此值时判定为虚焦。
   laplacian_threshold_raw: 5000.0
-
-  # JPG 8-bit 灰度拉普拉斯方差阈值。
-  # variance < 此值时判定为虚焦。
   laplacian_threshold_jpg: 10.0
 
+grid_analysis:
+  rows: 5
+  columns: 5
+  center_rows: 3
+  center_columns: 3
+
+scoring:
+  underexposed_threshold: 0.855
+  overexposed_threshold: 0.55
+  blurry_threshold: 0.55
+  deep_dark_pixel_threshold: 0.002
+  dark_tile_mean_threshold_raw: 0.05
+  dark_tile_mean_threshold_jpg: 0.08
+  bright_tile_p90_threshold_raw: 0.4
+  bright_tile_p90_threshold_jpg: 0.55
+  low_contrast_tile_threshold_raw: 0.02
+  low_contrast_tile_threshold_jpg: 0.06
+  usable_tile_min_brightness_raw: 0.05
+  usable_tile_min_brightness_jpg: 0.08
+  usable_tile_min_contrast_raw: 0.03
+  usable_tile_min_contrast_jpg: 0.08
+  sharp_tile_laplacian_threshold_raw: 0.0005
+  sharp_tile_laplacian_threshold_jpg: 0.0005
+  laplacian_low_threshold_raw: 0.0005
+  laplacian_low_threshold_jpg: 0.0005
+  blur_min_brightness_raw: 0.10
+  blur_min_brightness_jpg: 0.15
+
 analysis:
-  # 同时进行 Metal 分析的并发数。
   metal_concurrency: 6

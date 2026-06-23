@@ -6,12 +6,7 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		D8CF00032FC92FEA00F93003 /* config.yaml in Resources */ = {isa = PBXBuildFile; fileRef = D8CF00022FC92FEA00F93002 /* config.yaml */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
-		D8CF00022FC92FEA00F93002 /* config.yaml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = rawViewer/config.yaml; sourceTree = SOURCE_ROOT; };
 		D8DB71302FC92FEA00F93F82 /* pickpick.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pickpick.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -19,7 +14,6 @@
 		D8CF00012FC92FEA00F93001 /* Exceptions for "rawViewer" folder in "pickpick" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				config.yaml,
 			);
 			target = D8DB712F2FC92FEA00F93F82 /* pickpick */;
 		};
@@ -125,7 +119,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D8CF00032FC92FEA00F93003 /* config.yaml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
