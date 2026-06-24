@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.5
-Date: 2026-06-11
-Description: 导航协调器，持有 records/groups 作为全 app 数据单一来源，管理 screenState 状态机，路由分发到各 VC；普通浏览页传递 group kind；持有 trashService 实例并注入到各 ViewModel
+Version: 1.6
+Date: 2026-06-24
+Description: 导航协调器，持有 records/groups 作为全 app 数据单一来源，管理 screenState 状态机，路由分发到各 VC；普通浏览页传递 group kind；持有 trashService 实例并注入到各 ViewModel；v1.6 统一通过 installContentViewController 安装主页面，避免 contentViewController 替换导致窗口尺寸回退
 */
 
 import AppKit
@@ -40,7 +40,7 @@ public final class appCoordinator: appCoordinating {
         screenState = .progress
 
         let progressController = progressViewController()
-        window?.contentViewController = progressController
+        installContentViewController(progressController)
 
         Task { @MainActor in
             do {
@@ -86,7 +86,7 @@ public final class appCoordinator: appCoordinating {
         controller.onFolderSelected = { [weak self] url in
             self?.startAnalysis(folderUrl: url)
         }
-        window?.contentViewController = controller
+        installContentViewController(controller)
     }
 
     public func showGroups() {
@@ -101,7 +101,8 @@ public final class appCoordinator: appCoordinating {
         controller.onSelectGroup = { [weak self] group in
             self?.navigateToGroup(group)
         }
-        window?.contentViewController = controller
+
+        installContentViewController(controller)
     }
 
     private func reloadDataIgnoringError() {
@@ -127,7 +128,7 @@ public final class appCoordinator: appCoordinating {
             self.reloadDataIgnoringError()
             self.showGroups()
         }
-        window?.contentViewController = browser
+        installContentViewController(browser)
     }
 
     public func showDuplicate(group: photoGroup) {
@@ -149,7 +150,7 @@ public final class appCoordinator: appCoordinating {
             }
             self.showGroups()
         }
-        window?.contentViewController = duplicate
+        installContentViewController(duplicate)
     }
 
     public func showError(message: String) {
@@ -168,7 +169,29 @@ public final class appCoordinator: appCoordinating {
         ])
         let controller = NSViewController()
         controller.view = view
-        window?.contentViewController = controller
+        installContentViewController(controller)
+    }
+
+    private func installContentViewController(_ controller: NSViewController) {
+        guard let window else { return }
+
+        let currentFrame = window.frame
+        let currentContentSize = window.contentView?.bounds.size ?? currentFrame.size
+
+        controller.loadViewIfNeeded()
+        controller.view.frame = NSRect(origin: .zero, size: currentContentSize)
+
+        window.contentViewController = controller
+
+        guard !window.styleMask.contains(.fullScreen), !window.isMiniaturized else { return }
+
+        if !NSEqualRects(window.frame, currentFrame) {
+            appDebugLogger.log("restore window frame from=\(NSStringFromRect(window.frame)) to=\(NSStringFromRect(currentFrame)) screenState=\(screenState)")
+            window.setFrame(currentFrame, display: true)
+            let restoredContentSize = window.contentView?.bounds.size ?? currentContentSize
+            controller.view.frame = NSRect(origin: .zero, size: restoredContentSize)
+            controller.view.layoutSubtreeIfNeeded()
+        }
     }
 
     func navigateToGroup(_ group: photoGroup) {
