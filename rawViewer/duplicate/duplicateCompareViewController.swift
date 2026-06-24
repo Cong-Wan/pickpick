@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.8
-Date: 2026-06-17
-Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment；旋转按钮改为旋转当前 duplicate 组剩余照片，确保新顶替照片继承旋转状态；左右图无后缀文件名栏
+Version: 3.9
+Date: 2026-06-24
+Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment；旋转按钮改为旋转当前 duplicate 组剩余照片，确保新顶替照片继承旋转状态；左右图无后缀文件名栏；新增左右双侧删除按钮（点哪删哪，复用 keepLeft/keepRight）
 */
 
 import AppKit
@@ -18,6 +18,8 @@ public final class duplicateCompareViewController: NSViewController {
     private var sourceControl = NSSegmentedControl(labels: ["JPG", "RAW"], trackingMode: .selectOne, target: nil, action: nil)
     private var rotateLeftButton = NSButton(title: "⟲ 90°", target: nil, action: nil)
     private var rotateRightButton = NSButton(title: "⟳ 90°", target: nil, action: nil)
+    private var leftDeleteButton = NSButton(title: "🗑", target: nil, action: nil)
+    private var rightDeleteButton = NSButton(title: "🗑", target: nil, action: nil)
     private var leftPhotoController: photoMetalViewController!
     private var rightPhotoController: photoMetalViewController!
     private var leftLoadTask: Task<Void, Never>?
@@ -131,6 +133,22 @@ public final class duplicateCompareViewController: NSViewController {
         root.addSubview(toolbar)
         root.addSubview(splitView)
 
+        // 双侧删除按钮：点哪删哪（左按钮删左图、右按钮删右图），与 ←/→ 方向键「按哪留哪」相反
+        leftDeleteButton.target = self
+        leftDeleteButton.action = #selector(deleteLeftClicked)
+        leftDeleteButton.bezelStyle = .rounded
+        leftDeleteButton.toolTip = "Delete left photo"
+        leftDeleteButton.translatesAutoresizingMaskIntoConstraints = false
+
+        rightDeleteButton.target = self
+        rightDeleteButton.action = #selector(deleteRightClicked)
+        rightDeleteButton.bezelStyle = .rounded
+        rightDeleteButton.toolTip = "Delete right photo"
+        rightDeleteButton.translatesAutoresizingMaskIntoConstraints = false
+
+        root.addSubview(leftDeleteButton)
+        root.addSubview(rightDeleteButton)
+
         NSLayoutConstraint.activate([
             toolbar.topAnchor.constraint(equalTo: root.topAnchor),
             toolbar.leadingAnchor.constraint(equalTo: root.leadingAnchor),
@@ -139,7 +157,12 @@ public final class duplicateCompareViewController: NSViewController {
             splitView.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
             splitView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             splitView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            splitView.bottomAnchor.constraint(equalTo: root.bottomAnchor)
+            splitView.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+
+            leftDeleteButton.topAnchor.constraint(equalTo: leftPhotoController.contentTopAnchor, constant: 8),
+            leftDeleteButton.leadingAnchor.constraint(equalTo: leftPhotoController.view.leadingAnchor, constant: 12),
+            rightDeleteButton.topAnchor.constraint(equalTo: rightPhotoController.contentTopAnchor, constant: 8),
+            rightDeleteButton.trailingAnchor.constraint(equalTo: rightPhotoController.view.trailingAnchor, constant: -12)
         ])
 
         view = root
@@ -205,9 +228,13 @@ public final class duplicateCompareViewController: NSViewController {
     }
 
     private func updateActionButtons() {
-        let hasPhoto = viewModel.mainPhoto != nil || viewModel.candidatePhoto != nil
+        let hasLeft = viewModel.mainPhoto != nil
+        let hasRight = viewModel.candidatePhoto != nil
+        let hasPhoto = hasLeft || hasRight
         rotateLeftButton.isEnabled = hasPhoto
         rotateRightButton.isEnabled = hasPhoto
+        leftDeleteButton.isEnabled = hasLeft
+        rightDeleteButton.isEnabled = hasRight
     }
 
     private func updateSourceControlAvailability() {
@@ -345,6 +372,24 @@ public final class duplicateCompareViewController: NSViewController {
             let leftId = left?.photoId ?? ""
             let rightId = right?.photoId ?? ""
             appFileLogger.log("operation failed page=duplicate action=\(actionName) targetCount=\(targetCount) leftPhotoId=\(leftId) rightPhotoId=\(rightId) error=\(error.localizedDescription)", level: .error)
+            showErrorAlert(message: error.localizedDescription)
+        }
+    }
+
+    @objc private func deleteLeftClicked() {
+        do {
+            let result = try viewModel.keepRight()   // 点左 → 删左留右
+            handleActionResult(result)
+        } catch {
+            showErrorAlert(message: error.localizedDescription)
+        }
+    }
+
+    @objc private func deleteRightClicked() {
+        do {
+            let result = try viewModel.keepLeft()    // 点右 → 删右留左
+            handleActionResult(result)
+        } catch {
             showErrorAlert(message: error.localizedDescription)
         }
     }

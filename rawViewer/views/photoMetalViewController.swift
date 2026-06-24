@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.4
-Date: 2026-06-18
-Description: Metal 视图控制器，包装 metalPhotoView 并管理缩放/平移/加载/空态四态状态机；修正顶部坐标渲染下的向上拖拽方向；新增图片区域顶部文件名栏
+Version: 1.5
+Date: 2026-06-24
+Description: Metal 视图控制器，包装 metalPhotoView 并管理缩放/平移/加载/空态四态状态机；修正顶部坐标渲染下的向上拖拽方向；新增图片区域顶部文件名栏；新增 contentTopAnchor 锚点供外部按钮紧贴文件名栏下方布局
 */
 
 import AppKit
@@ -19,6 +19,10 @@ public final class photoMetalViewController: NSViewController {
     public private(set) var hasImage: Bool = false
 
     public var currentZoom: Double { metalView.currentZoom }
+
+    /// 图片区顶部锚点（fileNameBar 底部），供外部按钮紧贴文件名栏下方布局。
+    /// fileNameBar 高度随 setDisplayName 动态变化（有名字 30、无名字 0），用此锚点可避免固定偏移导致悬空。
+    public var contentTopAnchor: NSLayoutYAxisAnchor { fileNameBar.bottomAnchor }
 
     public var onZoomChanged: ((Double) -> Void)? {
         get { metalView.onZoomChanged }
