@@ -24,23 +24,23 @@ pickpick 适合一次拍摄后面对大量 RAW/JPG 素材的场景。你只需�
 
 ### 1. 选择照片文件夹
 
-![image-20260612142515223](/Users/wilbur/Library/Application Support/typora-user-images/image-20260612142515223.png)
+![选择照片文件夹](docs/images/01-select-folder.png)
 
 ### 2. 自动分析进度
 
-![image-20260612142812599](/Users/wilbur/Library/Application Support/typora-user-images/image-20260612142812599.png)
+![自动分析进度](docs/images/02-analysis-progress.png)
 
 ### 3. 分组结果：像扑克牌一样快速浏览
 
-![image-20260612142823631](/Users/wilbur/Library/Application Support/typora-user-images/image-20260612142823631.png)
+![分组结果](docs/images/03-group-cards.png)
 
 ### 4. 单组照片浏览与批量删除
 
-![image-20260612143049003](/Users/wilbur/Library/Application Support/typora-user-images/image-20260612143049003.png)
+![单组照片浏览与批量删除](docs/images/04-browser-batch-delete.png)
 
 ### 5. 重复照片左右对比
 
-![image-20260612143143255](/Users/wilbur/Library/Application Support/typora-user-images/image-20260612143143255.png)
+![重复照片左右对比](docs/images/05-duplicate-compare.png)
 
 ---
 
