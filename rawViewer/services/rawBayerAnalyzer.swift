@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.5
-Date: 2026-06-22
-Description: RAW Bayer 分析：LibRaw 取数据 + Metal 全局/网格直方图 + 每格 Laplacian + 共享评分引擎。v1.5 用全局+网格特征 + 主因分类替代单阈值
+Version: 1.8
+Date: 2026-06-25
+Description: RAW Bayer 分析：LibRaw 取数据 + Metal 全局/网格直方图 + 每格 Laplacian + 共享评分引擎。v1.5 用全局+网格特征 + 主因分类替代单阈值；v1.6 greenBuffer/lapBuffer 改 .storageModePrivate（纯 GPU 中间缓冲，语义更正确、省去 CPU 可映射性/coherency 跟踪开销；CPU 后处理只读 histBuffer/gridHistBuffer/gridCountBuffer/perTileStatsBuffer）；v1.7 删除未读回的全局曝光计数 exposure buffer 链路并修正 p99 动态范围变量命名；v1.8 RAW 增加尺寸保护，Bayer pattern 来自 LibRaw，可诊断 open/unpack 错误
 */
 
 import Foundation
@@ -52,8 +52,10 @@ struct bayerHistConfig {
     var binCount: UInt32
     var blackLevel: UInt32
     var whiteLevel: UInt32
-    var overThreshold: UInt32
-    var underThreshold: UInt32
+    var color00: UInt32
+    var color01: UInt32
+    var color10: UInt32
+    var color11: UInt32
 }
 
 struct greenPlaneConfig {
@@ -64,6 +66,10 @@ struct greenPlaneConfig {
     var greenWidth: UInt32
     var greenHeight: UInt32
     var blackLevel: UInt32
+    var green1OffsetX: UInt32
+    var green1OffsetY: UInt32
+    var green2OffsetX: UInt32
+    var green2OffsetY: UInt32
 }
 
 struct greenLaplacianConfig {
@@ -104,17 +110,22 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
 
     public func analyze(rawPath: String, config: analysisConfig) throws -> rawAnalysisResult {
         let context = try contextProvider()
-        guard let handle = rwRawOpen(rawPath) else {
-            throw makeError("LibRaw open_file returned null for \(rawPath)")
+        var openError = [CChar](repeating: 0, count: 512)
+        let handle = rawPath.withCString { pathPointer in
+            openError.withUnsafeMutableBufferPointer { buffer in
+                rwRawOpenWithError(pathPointer, buffer.baseAddress, CInt(buffer.count))
+            }
+        }
+        guard let handle else {
+            let message = String(cString: openError)
+            throw makeError("LibRaw open/unpack failed for \(rawPath): \(message.isEmpty ? "unknown" : message)")
         }
         defer { rwRawClose(handle) }
 
-        let errorMsg = String(cString: rwRawLastError(handle))
-        if !errorMsg.isEmpty {
-            throw makeError("LibRaw error: \(errorMsg)")
-        }
-
         let data = rwRawGetBayerData(handle)
+        guard data.greenPixelCount == 2 else {
+            throw makeError("Unsupported Bayer pattern: expected 2 green pixels, got \(data.greenPixelCount)")
+        }
         guard data.rawWidth > 0, data.rawHeight > 0, data.rawImage != nil else {
             throw makeError("LibRaw returned empty Bayer data")
         }
@@ -131,15 +142,21 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
         let rawH = Int(data.rawHeight)
         let range = Double(white - black)
 
-        let totalRaw = rawW * rawH
+        let maxRawPixels = 120_000_000
+        let maxRawBytesPerTask = 768 * 1024 * 1024
+        let totalRaw = try checkedPixelCount(width: rawW, height: rawH, maxPixels: maxRawPixels, label: "RAW")
+        let rawByteCount = try checkedByteCount(
+            pixelCount: totalRaw,
+            bytesPerPixel: MemoryLayout<UInt16>.size,
+            maxBytes: maxRawBytesPerTask,
+            label: "RAW buffer"
+        )
         guard let rawBuffer = context.device.makeBuffer(
-            length: totalRaw * MemoryLayout<UInt16>.size,
+            length: rawByteCount,
             options: .storageModeShared
         ) else { throw makeError("alloc rawBuffer") }
-        memcpy(rawBuffer.contents(), data.rawImage, totalRaw * MemoryLayout<UInt16>.size)
+        memcpy(rawBuffer.contents(), data.rawImage, rawByteCount)
 
-        let absOver = UInt32(black) + UInt32(Double(white - black) * config.exposure.overexposePixelThreshold)
-        let absUnder = UInt32(black) + UInt32(Double(white - black) * config.exposure.underexposePixelThreshold)
 
         let binCount: UInt32 = 4096
         let gridRows = UInt32(config.grid.rows)
@@ -153,25 +170,27 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
         ) else { throw makeError("alloc histBuffer") }
         memset(histBuffer.contents(), 0, Int(4 * binCount) * MemoryLayout<UInt32>.size)
 
-        guard let exposureBuffer = context.device.makeBuffer(
-            length: 8 * MemoryLayout<UInt32>.size,
-            options: .storageModeShared
-        ) else { throw makeError("alloc exposureBuffer") }
-        memset(exposureBuffer.contents(), 0, 8 * MemoryLayout<UInt32>.size)
 
         let greenW = visibleW / 2
         let greenH = visibleH / 2
         guard greenW > 0, greenH > 0 else {
             throw makeError("Visible area too small for green plane")
         }
+        let greenPixels = try checkedPixelCount(width: greenW, height: greenH, maxPixels: maxRawPixels / 4, label: "RAW green plane")
+        let greenByteCount = try checkedByteCount(
+            pixelCount: greenPixels,
+            bytesPerPixel: MemoryLayout<Float>.size,
+            maxBytes: maxRawBytesPerTask,
+            label: "RAW green plane"
+        )
         guard let greenBuffer = context.device.makeBuffer(
-            length: greenW * greenH * MemoryLayout<Float>.size,
-            options: .storageModeShared
+            length: greenByteCount,
+            options: .storageModePrivate
         ) else { throw makeError("alloc greenBuffer") }
 
         guard let lapBuffer = context.device.makeBuffer(
-            length: greenW * greenH * MemoryLayout<Float>.size,
-            options: .storageModeShared
+            length: greenByteCount,
+            options: .storageModePrivate
         ) else { throw makeError("alloc lapBuffer") }
 
         guard let gridHistBuffer = context.device.makeBuffer(
@@ -195,13 +214,14 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
             throw makeError("makeCommandBuffer")
         }
 
-        // Dispatch 1: bayerHistogramKernel (全局 4 通道直方图 + 曝光计数)
+        // Dispatch 1: bayerHistogramKernel (全局 4 通道直方图)
         var histConfig = bayerHistConfig(
             rawWidth: UInt32(rawW), rawHeight: UInt32(rawH),
             visibleOffsetX: UInt32(data.visibleOffsetX), visibleOffsetY: UInt32(data.visibleOffsetY),
             visibleWidth: UInt32(visibleW), visibleHeight: UInt32(visibleH),
             binCount: binCount, blackLevel: UInt32(black), whiteLevel: UInt32(white),
-            overThreshold: absOver, underThreshold: absUnder
+            color00: UInt32(data.color00), color01: UInt32(data.color01),
+            color10: UInt32(data.color10), color11: UInt32(data.color11)
         )
         let totalVisible = visibleW * visibleH
         let histGroupSize = 256
@@ -211,7 +231,6 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
             encoder.setComputePipelineState(context.bayerHistogramPipeline)
             encoder.setBuffer(rawBuffer, offset: 0, index: 0)
             encoder.setBuffer(histBuffer, offset: 0, index: 1)
-            encoder.setBuffer(exposureBuffer, offset: 0, index: 2)
             encoder.setBytes(&histConfig, length: MemoryLayout<bayerHistConfig>.size, index: 3)
             encoder.dispatchThreadgroups(
                 MTLSize(width: histGroupCount, height: 1, depth: 1),
@@ -224,7 +243,9 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
         var greenConfig = greenPlaneConfig(
             rawWidth: UInt32(rawW), rawHeight: UInt32(rawH),
             visibleOffsetX: UInt32(data.visibleOffsetX), visibleOffsetY: UInt32(data.visibleOffsetY),
-            greenWidth: UInt32(greenW), greenHeight: UInt32(greenH), blackLevel: UInt32(black)
+            greenWidth: UInt32(greenW), greenHeight: UInt32(greenH), blackLevel: UInt32(black),
+            green1OffsetX: UInt32(data.green1OffsetX), green1OffsetY: UInt32(data.green1OffsetY),
+            green2OffsetX: UInt32(data.green2OffsetX), green2OffsetY: UInt32(data.green2OffsetY)
         )
         do {
             guard let encoder = cmd.makeComputeCommandEncoder() else { throw makeError("makeComputeCommandEncoder failed") }
@@ -350,8 +371,8 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
 
         // 动态范围 (复用全局特征百分位)
         let p01Code = globalFeatures.p01Norm * range
-        let p999Code = globalFeatures.p99Norm * range
-        let sceneSpreadEv = p01Code > 0 ? log2(p999Code / p01Code) : 0
+        let p99Code = globalFeatures.p99Norm * range
+        let sceneSpreadEv = p01Code > 0 ? log2(p99Code / p01Code) : 0
         let codeRangeEv = p01Code > 0 ? log2(range / p01Code) : 0
         let dr = dynamicRangeData(sceneSpreadEv: sceneSpreadEv, codeRangeEv: codeRangeEv, blackLevel: black, whiteLevel: white)
 
@@ -365,6 +386,30 @@ nonisolated public final class rawBayerAnalyzer: rawBayerAnalyzing, @unchecked S
             analysisSource: "raw",
             debugInfo: debugInfo
         )
+    }
+
+    private func checkedPixelCount(width: Int, height: Int, maxPixels: Int, label: String) throws -> Int {
+        guard width > 0, height > 0 else {
+            throw makeError("Invalid \(label) dimensions: \(width)x\(height)")
+        }
+        guard width <= maxPixels / height else {
+            throw makeError("\(label) dimension overflow: \(width)x\(height)")
+        }
+        let pixels = width * height
+        guard pixels <= maxPixels else {
+            throw makeError("\(label) too large: \(width)x\(height)")
+        }
+        return pixels
+    }
+
+    private func checkedByteCount(pixelCount: Int, bytesPerPixel: Int, maxBytes: Int, label: String) throws -> Int {
+        guard pixelCount > 0, bytesPerPixel > 0 else {
+            throw makeError("Invalid \(label) byte count input")
+        }
+        guard pixelCount <= maxBytes / bytesPerPixel else {
+            throw makeError("\(label) memory budget exceeded")
+        }
+        return pixelCount * bytesPerPixel
     }
 
     private func makeError(_ msg: String) -> NSError {

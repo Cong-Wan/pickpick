@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.1
-Date: 2026-06-22
-Description: RAW/JPG 直方图 + Green/Gray 平面 + Laplacian + 每格统计 kernels。v1.1 新增网格直方图与每格 Laplacian 规约，保留旧全局 reduce 以保证分步构建通过
+Version: 1.4
+Date: 2026-06-25
+Description: RAW/JPG 直方图 + Green/Gray 平面 + Laplacian + 每格统计 kernels。v1.1 新增网格直方图与每格 Laplacian 规约，保留旧全局 reduce 以保证分步构建通过；v1.2 删除未读回的全局曝光计数 exposure buffer 链路；v1.3 删除旧全局 Laplacian reduce kernel；v1.4 RAW histogram/green plane 根据 LibRaw Bayer pattern 取样
 */
 
 #include <metal_stdlib>
@@ -13,13 +13,15 @@ struct BayerHistConfig {
     uint visibleOffsetX; uint visibleOffsetY;
     uint visibleWidth; uint visibleHeight;
     uint binCount; uint blackLevel; uint whiteLevel;
-    uint overThreshold; uint underThreshold;
+    uint color00; uint color01; uint color10; uint color11;
 };
 
 struct GreenPlaneConfig {
     uint rawWidth; uint rawHeight;
     uint visibleOffsetX; uint visibleOffsetY;
     uint greenWidth; uint greenHeight; uint blackLevel;
+    uint green1OffsetX; uint green1OffsetY;
+    uint green2OffsetX; uint green2OffsetY;
 };
 
 struct GreenLaplacianConfig { uint width; uint height; };
@@ -40,13 +42,18 @@ struct JpgGridHistConfig {
 struct GridReduceConfig { uint width; uint height; uint gridRows; uint gridCols; };
 struct PerTileStats { float sum; float sumSq; };
 
-// 旧全局 reduce 过渡期保留，直到 RAW/JPG analyzer 都不再引用 reducePipeline
-struct PartialStats { float sum; float sumSq; float minVal; float maxVal; };
+static inline uint bayerColorForLocal(uint localX, uint localY, constant BayerHistConfig& config) {
+    bool right = (localX & 1u) == 1u;
+    bool bottom = (localY & 1u) == 1u;
+    if (!bottom && !right) return config.color00;
+    if (!bottom && right) return config.color01;
+    if (bottom && !right) return config.color10;
+    return config.color11;
+}
 
 kernel void bayerHistogramKernel(
     device const ushort* rawBuffer [[buffer(0)]],
     device atomic_uint* histogram [[buffer(1)]],
-    device atomic_uint* exposureCounts [[buffer(2)]],
     constant BayerHistConfig& config [[buffer(3)]],
     uint gid [[thread_position_in_grid]]
 ) {
@@ -61,14 +68,12 @@ kernel void bayerHistogramKernel(
     uint rawValue = static_cast<uint>(rawBuffer[y * config.rawWidth + x]);
     int valueSigned = static_cast<int>(rawValue) - static_cast<int>(config.blackLevel);
     valueSigned = max(0, min(static_cast<int>(config.whiteLevel - config.blackLevel), valueSigned));
-    uint channel = ((x & 1) == 0) ? ((y & 1) == 0 ? 0u : 3u) : ((y & 1) == 0 ? 1u : 2u);
+    uint channel = bayerColorForLocal(localX, localY, config);
     uint bin = config.binCount > 0
         ? static_cast<uint>(valueSigned) * config.binCount / (config.whiteLevel - config.blackLevel + 1u)
         : 0u;
     if (bin >= config.binCount) bin = config.binCount - 1u;
     atomic_fetch_add_explicit(&histogram[channel * config.binCount + bin], 1u, memory_order_relaxed);
-    if (rawValue >= config.overThreshold) atomic_fetch_add_explicit(&exposureCounts[channel * 2 + 0], 1u, memory_order_relaxed);
-    if (rawValue <= config.underThreshold && rawValue > 0) atomic_fetch_add_explicit(&exposureCounts[channel * 2 + 1], 1u, memory_order_relaxed);
 }
 
 kernel void bayerToGreenPlaneKernel(
@@ -80,9 +85,13 @@ kernel void bayerToGreenPlaneKernel(
     if (gid.x >= config.greenWidth || gid.y >= config.greenHeight) return;
     uint baseX = config.visibleOffsetX + gid.x * 2u;
     uint baseY = config.visibleOffsetY + gid.y * 2u;
-    if (baseX + 1u >= config.rawWidth || baseY + 1u >= config.rawHeight) return;
-    uint g1 = static_cast<uint>(rawBuffer[baseY * config.rawWidth + (baseX + 1u)]);
-    uint g2 = static_cast<uint>(rawBuffer[(baseY + 1u) * config.rawWidth + baseX]);
+    uint g1X = baseX + config.green1OffsetX;
+    uint g1Y = baseY + config.green1OffsetY;
+    uint g2X = baseX + config.green2OffsetX;
+    uint g2Y = baseY + config.green2OffsetY;
+    if (g1X >= config.rawWidth || g1Y >= config.rawHeight || g2X >= config.rawWidth || g2Y >= config.rawHeight) return;
+    uint g1 = static_cast<uint>(rawBuffer[g1Y * config.rawWidth + g1X]);
+    uint g2 = static_cast<uint>(rawBuffer[g2Y * config.rawWidth + g2X]);
     int g1Signed = static_cast<int>(g1) - static_cast<int>(config.blackLevel);
     int g2Signed = static_cast<int>(g2) - static_cast<int>(config.blackLevel);
     float greenValue = (static_cast<float>(max(0, g1Signed)) + static_cast<float>(max(0, g2Signed))) * 0.5f;
@@ -107,45 +116,6 @@ kernel void greenLaplacianKernel(
     float up = greenPlane[upY * config.width + x];
     float down = greenPlane[downY * config.width + x];
     laplacianBuffer[y * config.width + x] = center * 4.0f - left - right - up - down;
-}
-
-// 旧全局 Laplacian 规约：过渡期保留，保证 Task 2 后旧 analyzer 仍可编译运行
-kernel void reduceLaplacianKernel(
-    device const float* laplacianBuffer [[buffer(0)]],
-    device PartialStats* partialStats [[buffer(1)]],
-    constant GreenLaplacianConfig& config [[buffer(2)]],
-    uint tid [[thread_position_in_threadgroup]],
-    uint groupId [[threadgroup_position_in_grid]],
-    uint threadsPerGroup [[threads_per_threadgroup]]
-) {
-    threadgroup float localSum[256];
-    threadgroup float localSumSq[256];
-    threadgroup float localMin[256];
-    threadgroup float localMax[256];
-    uint total = config.width * config.height;
-    uint index = groupId * threadsPerGroup + tid;
-    bool valid = index < total;
-    float value = valid ? laplacianBuffer[index] : 0.0f;
-    localSum[tid] = valid ? value : 0.0f;
-    localSumSq[tid] = valid ? value * value : 0.0f;
-    localMin[tid] = valid ? value : INFINITY;
-    localMax[tid] = valid ? value : -INFINITY;
-    threadgroup_barrier(mem_flags::mem_threadgroup);
-    for (uint stride = threadsPerGroup / 2; stride > 0; stride >>= 1) {
-        if (tid < stride) {
-            localSum[tid] += localSum[tid + stride];
-            localSumSq[tid] += localSumSq[tid + stride];
-            localMin[tid] = min(localMin[tid], localMin[tid + stride]);
-            localMax[tid] = max(localMax[tid], localMax[tid + stride]);
-        }
-        threadgroup_barrier(mem_flags::mem_threadgroup);
-    }
-    if (tid == 0) {
-        partialStats[groupId].sum = localSum[0];
-        partialStats[groupId].sumSq = localSumSq[0];
-        partialStats[groupId].minVal = localMin[0];
-        partialStats[groupId].maxVal = localMax[0];
-    }
 }
 
 // 每格 Laplacian 规约：一个 threadgroup 处理一个 tile
@@ -207,7 +177,7 @@ kernel void rawGridHistogramKernel(
     if (v >= config.highlightThreshold) atomic_fetch_add_explicit(&counts[tileIdx * 4u + 3u], 1u, memory_order_relaxed);
 }
 
-struct JpgHistConfig { uint totalPixels; uint overThreshold; uint underThreshold; };
+struct JpgHistConfig { uint totalPixels; };
 struct JpgLaplacianConfig { uint width; uint height; };
 
 kernel void rgbToGrayKernel(
@@ -226,15 +196,12 @@ kernel void rgbToGrayKernel(
 kernel void jpgHistogramKernel(
     device const uchar* grayBuffer [[buffer(0)]],
     device atomic_uint* histogram [[buffer(1)]],
-    device atomic_uint* exposureCounts [[buffer(2)]],
     constant JpgHistConfig& config [[buffer(3)]],
     uint gid [[thread_position_in_grid]]
 ) {
     if (gid >= config.totalPixels) return;
     uint gray = static_cast<uint>(grayBuffer[gid]);
     atomic_fetch_add_explicit(&histogram[gray], 1u, memory_order_relaxed);
-    if (gray > config.overThreshold) atomic_fetch_add_explicit(&exposureCounts[0], 1u, memory_order_relaxed);
-    if (gray < config.underThreshold) atomic_fetch_add_explicit(&exposureCounts[1], 1u, memory_order_relaxed);
 }
 
 kernel void jpgLaplacianKernel(

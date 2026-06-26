@@ -42,4 +42,4 @@ scoring:
   blur_min_brightness_jpg: 0.15
 
 analysis:
-  metal_concurrency: 6
+  metal_concurrency: 3

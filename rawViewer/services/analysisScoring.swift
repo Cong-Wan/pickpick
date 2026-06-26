@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.0
-Date: 2026-06-23
-Description: 曝光/模糊评分引擎 + 主因分类器 + 特征构建器，RAW/JPG 共用。构建全局/网格特征后算 underexposed/overexposed/blurry 三个 score，分类器按曝光优先→模糊→normal 给出唯一 primaryIssue；模糊评分带整体亮度闸门(meanNorm>=blurMinBrightnessRaw/Jpg)，暗图缺乏可靠 Laplacian 信号不参与模糊评分，避免暗而清晰照片被误判 blurry
+Version: 1.1
+Date: 2026-06-25
+Description: 曝光/模糊评分引擎 + 主因分类器 + 特征构建器，RAW/JPG 共用。构建全局/网格特征后算 underexposed/overexposed/blurry 三个 score，分类器按曝光优先→模糊→normal 给出唯一 primaryIssue；模糊评分带整体亮度闸门(meanNorm>=blurMinBrightnessRaw/Jpg)，暗图缺乏可靠 Laplacian 信号不参与模糊评分，避免暗而清晰照片被误判 blurry；v1.1 删除 buildBlurFeatures 中未累加的 usable 死变量及占位赋值
 */
 
 import Foundation
@@ -151,7 +151,7 @@ public func buildBlurFeatures(
     let colStart = (gridCols - centerCols) / 2
     var centerSum: Double = 0, centerCount = 0
     var usableSum: Double = 0, usableCount = 0
-    var sharp = 0, lowContrast = 0, usable = 0
+    var sharp = 0, lowContrast = 0
     for r in 0..<gridRows {
         for c in 0..<gridCols {
             let idx = r * gridCols + c
@@ -166,7 +166,6 @@ public func buildBlurFeatures(
             if t.localContrastNorm < lowContrastTileThreshold { lowContrast += 1 }
         }
     }
-    _ = usable
     b.centerLaplacianVarianceNorm = centerCount > 0 ? centerSum / Double(centerCount) : 0
     b.usableAreaLaplacianVarianceNorm = usableCount > 0 ? usableSum / Double(usableCount) : 0
     b.sharpTileRatio = Double(sharp) / Double(total)

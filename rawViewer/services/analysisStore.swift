@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.3
-Date: 2026-06-17
-Description: 在 ~/Library/Application Support/rawViewer/{folderHash}/ 存储 analysis.json；读取缓存时可校验 configSnapshot，配置变化时拒绝旧缓存以触发重新分析
+Version: 1.6
+Date: 2026-06-25
+Description: 在 ~/Library/Application Support/rawViewer/{folderHash}/ 存储 analysis.json；读取缓存时可校验 configSnapshot，配置变化时拒绝旧缓存以触发重新分析；v1.4 新增 loadAsync(for:expectedConfig:) 把磁盘解码放到后台 Task.detached，避免在 MainActor 上同步阻塞 ioQueue；v1.5 update 改为读取完整 analysisFile 后原样保留 configSnapshot 写回，缺失缓存文件显式抛 missingResults；v1.6 save 覆盖损坏缓存时不再依赖旧文件可解码
 */
 
 import Foundation
@@ -27,10 +27,13 @@ nonisolated struct summaryData: Codable, Sendable {
 }
 
 public enum analysisStoreError: Error, LocalizedError, Equatable {
+    case missingResults
     case staleConfigSnapshot
 
     public var errorDescription: String? {
         switch self {
+        case .missingResults:
+            return "analysis cache file does not exist"
         case .staleConfigSnapshot:
             return "analysis cache configSnapshot differs from current config"
         }
@@ -87,6 +90,16 @@ nonisolated public final class analysisStore: @unchecked Sendable {
         }
     }
 
+    /// 异步读取：把磁盘解码放到后台，避免在 MainActor 上同步阻塞 ioQueue
+    public func loadAsync(for folderUrl: URL, expectedConfig: analysisConfig? = nil) async throws -> [photoItem] {
+        try await Task.detached(priority: .userInitiated) { [self] in
+            if let expectedConfig {
+                return try self.load(for: folderUrl, expectedConfig: expectedConfig)
+            }
+            return try self.load(for: folderUrl)
+        }.value
+    }
+
     public func save(folderUrl: URL, records: [photoItem], config: analysisConfig? = nil) throws {
         try ioQueue.sync {
             try saveUnlocked(folderUrl: folderUrl, records: records, config: config)
@@ -95,46 +108,58 @@ nonisolated public final class analysisStore: @unchecked Sendable {
 
     public func update(folderUrl: URL, mutate: (inout [photoItem]) throws -> Void) throws {
         try ioQueue.sync {
-            var records = try loadUnlocked(for: folderUrl)
-            try mutate(&records)
-            try saveUnlocked(folderUrl: folderUrl, records: records, config: nil)
+            var root = try loadFileUnlocked(for: folderUrl)
+            try mutate(&root.photos)
+            try saveFileUnlocked(folderUrl: folderUrl, root: root)
         }
     }
 
     private func loadUnlocked(for folderUrl: URL, expectedConfig: analysisConfig? = nil) throws -> [photoItem] {
-        let url = resultsUrl(for: folderUrl)
-        guard fileManager.fileExists(atPath: url.path) else { return [] }
-        let data = try Data(contentsOf: url)
-        let root = try JSONDecoder().decode(analysisFile.self, from: data)
+        let root = try loadFileUnlocked(for: folderUrl)
         if let expectedConfig, root.configSnapshot != expectedConfig {
             throw analysisStoreError.staleConfigSnapshot
         }
         return root.photos
     }
 
-    private func saveUnlocked(folderUrl: URL, records: [photoItem], config: analysisConfig? = nil) throws {
+    private func loadFileUnlocked(for folderUrl: URL) throws -> analysisFile {
+        let url = resultsUrl(for: folderUrl)
+        guard fileManager.fileExists(atPath: url.path) else {
+            throw analysisStoreError.missingResults
+        }
+        let data = try Data(contentsOf: url)
+        return try JSONDecoder().decode(analysisFile.self, from: data)
+    }
+
+    private func saveFileUnlocked(folderUrl: URL, root: analysisFile) throws {
         let dir = resultsUrl(for: folderUrl).deletingLastPathComponent()
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
 
+        var nextRoot = root
+        nextRoot.schemaVersion = "2.0"
+        nextRoot.folderPath = folderUrl.path
+        nextRoot.updatedAt = isoNow()
+        if nextRoot.createdAt.isEmpty { nextRoot.createdAt = nextRoot.updatedAt }
+        nextRoot.summary = summaryCounts(nextRoot.photos)
+
+        let data = try JSONEncoder().encode(nextRoot)
+        try data.write(to: resultsUrl(for: folderUrl), options: .atomic)
+    }
+
+    private func saveUnlocked(folderUrl: URL, records: [photoItem], config: analysisConfig? = nil) throws {
         var existing = analysisFile()
         let url = resultsUrl(for: folderUrl)
-        if fileManager.fileExists(atPath: url.path) {
-            let data = try Data(contentsOf: url)
-            existing = try JSONDecoder().decode(analysisFile.self, from: data)
+        if fileManager.fileExists(atPath: url.path),
+           let data = try? Data(contentsOf: url),
+           let decoded = try? JSONDecoder().decode(analysisFile.self, from: data) {
+            existing = decoded
         }
 
-        existing.schemaVersion = "2.0"
-        existing.folderPath = folderUrl.path
-        existing.updatedAt = isoNow()
-        if existing.createdAt.isEmpty { existing.createdAt = existing.updatedAt }
+        existing.photos = records
         if let config {
             existing.configSnapshot = config
         }
-        existing.photos = records
-        existing.summary = summaryCounts(records)
-
-        let data = try JSONEncoder().encode(existing)
-        try data.write(to: url, options: .atomic)
+        try saveFileUnlocked(folderUrl: folderUrl, root: existing)
     }
 
     private func summaryCounts(_ records: [photoItem]) -> summaryData {

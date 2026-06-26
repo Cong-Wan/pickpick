@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.6
-Date: 2026-06-16
-Description: 浏览器控制器，按当前照片 JPG/RAW 文件存在性禁用对应 segment，新增 Restore Normal 与显示旋转按钮；首图加载延后到 viewDidAppear 避免 Metal drawable 未就绪导致空白；主图无后缀文件名栏
+Version: 3.7
+Date: 2026-06-25
+Description: 浏览器控制器，按当前照片 JPG/RAW 文件存在性禁用对应 segment，新增 Restore Normal 与显示旋转按钮；首图加载延后到 viewDidAppear 避免 Metal drawable 未就绪导致空白；主图无后缀文件名栏；v3.7 删除操作清空当前列表后自动返回分组页
 */
 
 import AppKit
@@ -386,8 +386,13 @@ public final class photoBrowserViewController: NSViewController {
             do {
                 try viewModel.confirmDelete()
                 thumbnailView.updatePhotos(viewModel.photos)
-                thumbnailView.setCurrentIndex(viewModel.currentIndex)
-                loadCurrentPhoto()
+                thumbnailView.setCheckedIds(viewModel.checkedPhotoIds)
+                if viewModel.photos.isEmpty {
+                    onBack?()
+                } else {
+                    thumbnailView.setCurrentIndex(viewModel.currentIndex)
+                    loadCurrentPhoto()
+                }
             } catch {
                 showErrorAlert(message: error.localizedDescription)
             }

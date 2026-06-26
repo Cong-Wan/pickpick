@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.6
-Date: 2026-06-17
-Description: 主编排, 替代原 photoAnalyzerBridge；加载缓存时校验当前分析配置，configSnapshot 不一致则让上层重新分析；v1.6 在 --debug 下写 calibration dump 供阈值校准
+Version: 1.8
+Date: 2026-06-25
+Description: 主编排, 替代原 photoAnalyzerBridge；加载缓存时校验当前分析配置，configSnapshot 不一致则让上层重新分析；v1.6 在 --debug 下写 calibration dump 供阈值校准；v1.7 新增 loadRecordsAsync(folderUrl:) 委托 store.loadAsync，避免主线程同步阻塞；v1.8 删除无调用方的 runJpgFallback 死方法
 */
 
 import Foundation
@@ -40,6 +40,8 @@ public protocol photoAnalyzing: AnyObject {
     ) async throws -> analysisSummary
 
     func loadRecords(folderUrl: URL) throws -> [photoItem]
+
+    func loadRecordsAsync(folderUrl: URL) async throws -> [photoItem]
 }
 
 // MARK: - Service
@@ -152,6 +154,11 @@ public final class photoAnalysisService: photoAnalyzing {
     public func loadRecords(folderUrl: URL) throws -> [photoItem] {
         let config = try cfgLoader.load(for: folderUrl)
         return try store.load(for: folderUrl, expectedConfig: config)
+    }
+
+    public func loadRecordsAsync(folderUrl: URL) async throws -> [photoItem] {
+        let config = try cfgLoader.load(for: folderUrl)
+        return try await store.loadAsync(for: folderUrl, expectedConfig: config)
     }
 
     // MARK: - Private Helpers
@@ -311,39 +318,6 @@ public final class photoAnalysisService: photoAnalyzing {
                     analysisSource: "jpg_failed"
                 )
             }
-        }
-    }
-
-    private func runJpgFallback(pair: photoFilePair, config: analysisConfig) -> rawAnalysisResult {
-        guard pair.hasJpg, let jpgPath = pair.jpgPath else {
-            return rawAnalysisResult(
-                isBlurry: false,
-                exposureStatus: "failed",
-                dynamicRange: nil,
-                blackLevel: 0,
-                whiteLevel: 0,
-                analysisSource: "jpg_failed"
-            )
-        }
-        do {
-            let result = try jpgAnalyzerService.analyze(jpgPath: jpgPath, config: config)
-            return rawAnalysisResult(
-                isBlurry: result.isBlurry,
-                exposureStatus: result.exposureStatus,
-                dynamicRange: result.dynamicRange,
-                blackLevel: result.blackLevel,
-                whiteLevel: result.whiteLevel,
-                analysisSource: "jpg_fallback"
-            )
-        } catch {
-            return rawAnalysisResult(
-                isBlurry: false,
-                exposureStatus: "failed",
-                dynamicRange: nil,
-                blackLevel: 0,
-                whiteLevel: 0,
-                analysisSource: "jpg_failed"
-            )
         }
     }
 

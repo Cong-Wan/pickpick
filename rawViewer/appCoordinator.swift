@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.6
-Date: 2026-06-24
-Description: 导航协调器，持有 records/groups 作为全 app 数据单一来源，管理 screenState 状态机，路由分发到各 VC；普通浏览页传递 group kind；持有 trashService 实例并注入到各 ViewModel；v1.6 统一通过 installContentViewController 安装主页面，避免 contentViewController 替换导致窗口尺寸回退
+Version: 1.8
+Date: 2026-06-25
+Description: 导航协调器，持有 records/groups 作为全 app 数据单一来源，管理 screenState 状态机，路由分发到各 VC；普通浏览页传递 group kind；持有 trashService 实例并注入到各 ViewModel；v1.6 统一通过 installContentViewController 安装主页面，避免 contentViewController 替换导致窗口尺寸回退；v1.7 新增 reloadFromDiskThenShowGroups()，将返回分组页/重复组完成/缓存命中等 UI 读盘路径改为异步 loadRecordsAsync，避免主线程同步阻塞；v1.8 启动分析直接尝试加载带配置校验的缓存，过期或损坏时重分析
 */
 
 import AppKit
@@ -44,23 +44,26 @@ public final class appCoordinator: appCoordinating {
 
         Task { @MainActor in
             do {
-                if analysisStore.shared.hasResults(for: folderUrl) {
-                    do {
-                        let loadedRecords = try analyzer.loadRecords(folderUrl: folderUrl)
-                        self.records = loadedRecords
-                        self.trashService.cleanupTrashedPhotos(self.records)
-                        self.showGroups()
-                        return
-                    } catch {
-                        appDebugLogger.log("cached analysis load failed, reanalyzing: \(error.localizedDescription)")
-                    }
+                do {
+                    let loadedRecords = try await analyzer.loadRecordsAsync(folderUrl: folderUrl)
+                    self.records = loadedRecords
+                    self.trashService.cleanupTrashedPhotos(self.records)
+                    self.showGroups()
+                    return
+                } catch analysisStoreError.missingResults {
+                    appDebugLogger.log("analysis cache missing, analyzing")
+                } catch analysisStoreError.staleConfigSnapshot {
+                    appDebugLogger.log("analysis cache stale, reanalyzing")
+                } catch {
+                    appDebugLogger.log("cached analysis load failed, reanalyzing: \(error.localizedDescription)")
                 }
+
                 _ = try await analyzer.analyze(folderUrl: folderUrl) { progress in
                     Task { @MainActor in
                         progressController.update(progress: progress)
                     }
                 }
-                self.records = try analyzer.loadRecords(folderUrl: folderUrl)
+                self.records = try await analyzer.loadRecordsAsync(folderUrl: folderUrl)
                 self.trashService.cleanupTrashedPhotos(self.records)
                 self.showGroups()
             } catch {
@@ -105,11 +108,24 @@ public final class appCoordinator: appCoordinating {
         installContentViewController(controller)
     }
 
-    private func reloadDataIgnoringError() {
-        do {
-            try reloadData()
-        } catch {
-            appDebugLogger.log("reloadData failed: \(error.localizedDescription)")
+    /// UI 路径统一入口：后台读取 analysis.json，回主线程后刷新 records 并进入分组页。
+    /// 读盘放 Task.detached，避免在 MainActor 上同步阻塞 ioQueue 导致卡顿。
+    private func reloadFromDiskThenShowGroups() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            guard let folderUrl = self.currentFolderUrl else {
+                self.showGroups()
+                return
+            }
+            let loadedRecords: [photoItem]
+            do {
+                loadedRecords = try await self.analyzer.loadRecordsAsync(folderUrl: folderUrl)
+            } catch {
+                appDebugLogger.log("reloadData failed: \(error.localizedDescription)")
+                loadedRecords = self.records
+            }
+            self.records = loadedRecords
+            self.showGroups()
         }
     }
 
@@ -124,9 +140,7 @@ public final class appCoordinator: appCoordinating {
         )
         let browser = photoBrowserViewController(viewModel: viewModel, imageService: imageService, groupKind: group.kind)
         browser.onBack = { [weak self] in
-            guard let self else { return }
-            self.reloadDataIgnoringError()
-            self.showGroups()
+            self?.reloadFromDiskThenShowGroups()
         }
         installContentViewController(browser)
     }
@@ -137,18 +151,10 @@ public final class appCoordinator: appCoordinating {
         let viewModel = duplicateCompareViewModel(photos: group.photos, store: store, trashService: trashService)
         let duplicate = duplicateCompareViewController(viewModel: viewModel, imageService: imageService)
         duplicate.onBack = { [weak self] in
-            guard let self else { return }
-            self.reloadDataIgnoringError()
-            self.showGroups()
+            self?.reloadFromDiskThenShowGroups()
         }
         duplicate.onFinished = { [weak self] in
-            guard let self = self else { return }
-            do {
-                try self.reloadData()
-            } catch {
-                // reloadData 失败时仍尝试 showGroups，用内存中的旧数据
-            }
-            self.showGroups()
+            self?.reloadFromDiskThenShowGroups()
         }
         installContentViewController(duplicate)
     }

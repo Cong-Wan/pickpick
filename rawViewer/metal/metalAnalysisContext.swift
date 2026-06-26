@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.3
+Version: 1.4
 Date: 2026-06-22
-Description: Metal 设备 / queue / pipeline 上下文。v1.3 新增每格 Laplacian 规约 + 网格直方图 pipeline，并保留旧全局 reducePipeline 以保证分步构建通过
+Description: Metal 设备 / queue / pipeline 上下文。v1.3 新增每格 Laplacian 规约 + 网格直方图 pipeline，并保留旧全局 reduce 管线以保证分步构建通过；v1.4 删除旧 reduce 管线
 */
 
 import Foundation
@@ -37,7 +37,6 @@ public final class metalAnalysisContext {
     public let bayerHistogramPipeline: MTLComputePipelineState
     public let bayerToGreenPlanePipeline: MTLComputePipelineState
     public let greenLaplacianPipeline: MTLComputePipelineState
-    public let reducePipeline: MTLComputePipelineState
     public let reduceLaplacianPerTilePipeline: MTLComputePipelineState
     public let rawGridHistogramPipeline: MTLComputePipelineState
     public let rgbToGrayPipeline: MTLComputePipelineState
@@ -56,7 +55,6 @@ public final class metalAnalysisContext {
         self.bayerHistogramPipeline = try Self.makePipeline(device: device, library: library, name: "bayerHistogramKernel")
         self.bayerToGreenPlanePipeline = try Self.makePipeline(device: device, library: library, name: "bayerToGreenPlaneKernel")
         self.greenLaplacianPipeline = try Self.makePipeline(device: device, library: library, name: "greenLaplacianKernel")
-        self.reducePipeline = try Self.makePipeline(device: device, library: library, name: "reduceLaplacianKernel")
         self.reduceLaplacianPerTilePipeline = try Self.makePipeline(device: device, library: library, name: "reduceLaplacianPerTileKernel")
         self.rawGridHistogramPipeline = try Self.makePipeline(device: device, library: library, name: "rawGridHistogramKernel")
         self.rgbToGrayPipeline = try Self.makePipeline(device: device, library: library, name: "rgbToGrayKernel")

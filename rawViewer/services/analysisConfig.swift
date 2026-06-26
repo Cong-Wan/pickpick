@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.7
-Date: 2026-06-23
-Description: 分析参数配置结构 (algorithmVersion / exposure / blur / grid / scoring / concurrency) + 默认值；v1.5 新增网格分析与评分配置，并用 analysisAlgorithmVersion 让旧单阈值缓存明确失效；v1.6 校准：underexposed_threshold 默认值 0.55→0.855，使仅 4 张真欠曝越过阈值；v1.7 新增 blurMinBrightnessRaw/Jpg，暗图(meanNorm<0.10)缺乏可靠 Laplacian 信号不参与模糊评分，消除暗而清晰照片的假模糊(AC4)
+Version: 1.8
+Date: 2026-06-25
+Description: 分析参数配置结构 (algorithmVersion / exposure / blur / grid / scoring / concurrency) + 默认值；v1.5 新增网格分析与评分配置，并用 analysisAlgorithmVersion 让旧单阈值缓存明确失效；v1.6 校准：underexposed_threshold 默认值 0.55→0.855，使仅 4 张真欠曝越过阈值；v1.7 新增 blurMinBrightnessRaw/Jpg，暗图(meanNorm<0.10)缺乏可靠 Laplacian 信号不参与模糊评分，消除暗而清晰照片的假模糊(AC4)；v1.8 默认 metalConcurrency 6→3，降低 RAW 并发分析瞬时内存峰值(改 configSnapshot 让旧缓存失效触发重新分析，属正常机制)
 */
 
 import Foundation
@@ -183,7 +183,7 @@ nonisolated public extension analysisConfig {
         ),
         grid: gridAnalysisConfig(),
         scoring: scoringConfig(),
-        metalConcurrency: 6,
+        metalConcurrency: 3,
         analysisAlgorithmVersion: currentAlgorithmVersion
     )
 }

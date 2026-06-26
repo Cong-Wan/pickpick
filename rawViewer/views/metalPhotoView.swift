@@ -1,23 +1,14 @@
 /*
 Author: wilbur
-Version: 3.5
+Version: 3.6
 Date: 2026-06-17
-Description: 仅用于显示的 MTKView 子类；接收外部传入的 CIImage 或错误信息、清除旧内容、提供缩放与平移交互；修正 CoreImage 渲染到 Metal texture 的 Y 轴映射，避免详情图相对缩略图上下翻转
+Description: 仅用于显示的 MTKView 子类；接收外部传入的 CIImage 或错误信息、清除旧内容、提供缩放与平移交互；修正 CoreImage 渲染到 Metal texture 的 Y 轴映射，避免详情图相对缩略图上下翻转；累积捏合缩放逐帧增量并精简重绘触发
 */
 
 import AppKit
 import CoreImage
 import MetalKit
 
-public enum photoLoadError: Error, Equatable {
-    case cannotLoadImage
-    case missingDrawable
-}
-
-public enum photoSource {
-    case jpg
-    case raw
-}
 
 public final class metalPhotoView: MTKView {
     private let commandQueue: MTLCommandQueue?
@@ -34,8 +25,6 @@ public final class metalPhotoView: MTKView {
     private let minZoom: Double = 0.1
     private let maxZoom: Double = 10.0
     private let zoomStep: Double = 1.2
-    private var pinchStartZoom: Double = 1.0
-    private var pinchStartMagnification: Double = 0.0
     private var panOffset: CGPoint = .zero
     private var debugDrawLogCount = 0
 
@@ -75,17 +64,14 @@ public final class metalPhotoView: MTKView {
 
     @objc private func handlePinch(_ gesture: NSMagnificationGestureRecognizer) {
         switch gesture.state {
-        case .began:
-            pinchStartZoom = userZoom
-            pinchStartMagnification = Double(gesture.magnification)
-        case .changed, .ended:
-            let delta = Double(gesture.magnification) - pinchStartMagnification
-            let newZoom = max(minZoom, min(maxZoom, pinchStartZoom * (1.0 + delta)))
-            userZoom = newZoom
+        case .changed:
+            // magnification 是相对上一帧的增量，直接累积乘到 userZoom，长按捏合可连续放大/缩小。
+            userZoom = max(minZoom, min(maxZoom, userZoom * (1.0 + Double(gesture.magnification))))
             needsDisplay = true
             onZoomChanged?(userZoom)
+        case .ended:
+            onZoomChanged?(userZoom)
         default:
-            pinchStartMagnification = 0.0
             break
         }
     }
@@ -106,8 +92,8 @@ public final class metalPhotoView: MTKView {
     }
 
     private func requestRedrawIfNeeded() {
-        guard currentImage != nil || isShowingError else { return }
-        needsDisplay = true
+        // 保留 async 触发（带守卫）：drawable 在 viewDidMoveToWindow/layout 时机可能未就绪，
+        // 延后到下一 runloop 重绘更稳；去掉原先无守卫的同步裸触发，避免双触发。
         DispatchQueue.main.async { [weak self] in
             guard let self, self.currentImage != nil || self.isShowingError else { return }
             self.needsDisplay = true

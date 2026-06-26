@@ -1,11 +1,11 @@
 /*
 Author: wilbur
-Version: 1.3
-Date: 2026-06-24
+Version: 1.4
+Date: 2026-06-25
 Description: 浏览器视图模型：封装 photos/currentIndex/checkedPhotoIds/displaySource 状态，支持 Restore Normal 和展示旋转状态同步；
 并通过单调递增的 currentRequestId 让控制器在异步预加载完成时识别请求是否已被新的导航覆盖，
 避免在快速上下切换时把陈旧的 JPG/RAW 结果渲染到当前主图上；
-集成 photoTrashService，删除时先移入废纸篓再标记 JSON 状态；
+集成 photoTrashService，删除时先把目标状态落盘为 trashed、再逐张尽力删文件（失败只记日志不抛错），状态先于文件动作落盘消除幽灵照片；
 新增 carriedRotation 惯性角度 + handledPhotoIds 已处理集合：旋转某张后翻页逐张继承并落盘，已处理照片回翻不覆盖
 */
 
@@ -133,17 +133,33 @@ public final class photoBrowserViewModel {
 
     public func confirmDelete() throws {
         let targets = deleteTargets()
-        for photo in targets {
-            try trashService.trash(photo)
-        }
-
         let ids = Set(targets.map(\.photoId))
+        guard !ids.isEmpty else { return }
+
+        // 1. 先把目标状态落盘为 trashed —— 保证 JSON 永不落后于磁盘。
+        //    即便后续文件删除失败，状态已是 trashed，下次启动 cleanupTrashedPhotos 会兜底删文件，
+        //    不会出现"文件已删但状态还是 active"的幽灵照片。
+        //    注意：只有这步会抛错（磁盘 IO 失败），那时 photos 尚未变更，VC catch 不刷新 UI 也安全。
         try store.update { items in
             for index in items.indices where ids.contains(items[index].photoId) {
                 items[index].reviewStatus = .trashed
             }
         }
 
+        // 2. 逐张删文件，尽力而为：失败只记日志，不抛错。
+        //    状态已 trashed，文件若未删成功，下次启动 cleanupTrashedPhotos 会兜底。
+        //    刻意不抛错——与 duplicateCompareViewModel.keepLeft/keepRight 行为一致，
+        //    让 photoBrowserViewController.deleteClicked 始终走 do 成功路径刷新 UI，
+        //    避免"部分成功时抛错进 catch、列表不刷新"导致 UI/内存不一致。
+        for photo in targets {
+            do {
+                try trashService.trash(photo)
+            } catch {
+                appFileLogger.log("delete photo failed photoId=\(photo.photoId) error=\(error.localizedDescription)", level: .error)
+            }
+        }
+
+        // 3. 从内存列表移除全部目标（状态已正确落盘，缺失文件由启动时 cleanup 兜底，不会产生幽灵照片）
         photos.removeAll { ids.contains($0.photoId) }
         checkedPhotoIds.subtract(ids)
         currentIndex = min(currentIndex, max(photos.count - 1, 0))

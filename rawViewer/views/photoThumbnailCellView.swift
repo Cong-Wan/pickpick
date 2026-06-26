@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.0
-Date: 2026-06-06
-Description: 缩略图列表 NSTableCellView，包含 NSImageView + checkbox + 选中态边框，自管理异步缩略图加载 Task
+Version: 1.1
+Date: 2026-06-25
+Description: 缩略图列表 NSTableCellView，包含 NSImageView + checkbox + 选中态边框，自管理异步缩略图加载 Task；v1.1 异步缩略图回调校验 photoId，避免 cell 复用串图
 */
 
 import AppKit
@@ -11,6 +11,7 @@ public final class photoThumbnailCellView: NSTableCellView {
     public let thumbImageView = NSImageView()
     public let checkbox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private var loadTask: Task<Void, Never>?
+    private var representedPhotoId: String?
 
     public var thumbIndex: Int = 0
 
@@ -58,6 +59,7 @@ public final class photoThumbnailCellView: NSTableCellView {
         imageService: photoImageService?
     ) {
         thumbIndex = index
+        representedPhotoId = photo.photoId
         cancelLoad()
         thumbImageView.image = nil
         layer?.backgroundColor = NSColor.darkGray.cgColor
@@ -67,11 +69,15 @@ public final class photoThumbnailCellView: NSTableCellView {
 
         guard let imageService = imageService else { return }
         let targetView = thumbImageView
+        let expectedPhotoId = photo.photoId
         loadTask = Task { [weak self, weak targetView] in
             let image = await imageService.loadThumbnail(for: photo)
             if Task.isCancelled { return }
             await MainActor.run {
-                guard let self = self, let targetView = targetView, self.thumbImageView === targetView else { return }
+                guard let self = self,
+                      self.representedPhotoId == expectedPhotoId,
+                      let targetView = targetView,
+                      self.thumbImageView === targetView else { return }
                 if let image {
                     targetView.image = image
                     self.layer?.backgroundColor = NSColor.clear.cgColor
@@ -88,6 +94,7 @@ public final class photoThumbnailCellView: NSTableCellView {
     public override func prepareForReuse() {
         super.prepareForReuse()
         cancelLoad()
+        representedPhotoId = nil
         thumbImageView.image = nil
         layer?.backgroundColor = NSColor.darkGray.cgColor
         layer?.borderColor = NSColor.clear.cgColor

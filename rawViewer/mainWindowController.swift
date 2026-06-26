@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 2.2
-Date: 2026-06-11
-Description: 窗口控制器，仅负责窗口创建/菜单/生命周期管理；数据和路由逻辑全部转交 appCoordinator。v2.2: 窗口标题改为 pickpick
+Version: 2.3
+Date: 2026-06-25
+Description: 窗口控制器，仅负责窗口创建/菜单/生命周期管理；数据和路由逻辑全部转交 appCoordinator。v2.2: 窗口标题改为 pickpick；v2.3 screenState 转发 coordinator，避免窗口控制器维护过期状态
 */
 
 import AppKit
@@ -17,7 +17,9 @@ public enum windowScreenState: Equatable {
 }
 
 public final class mainWindowController: NSWindowController {
-    public private(set) var screenState: windowScreenState = .start
+    public var screenState: windowScreenState {
+        coordinator?.screenState ?? .start
+    }
     public var analyzer: photoAnalyzing
     private var coordinator: appCoordinator?
 

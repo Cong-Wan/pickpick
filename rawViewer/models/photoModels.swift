@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.11
-Date: 2026-06-17
-Description: 固定生成 Normal 工作流分组，并让 duplicate 中已保留且分析未失败的 kept 照片按展示语义归入 Normal；新增无后缀稳定展示文件名辅助逻辑
+Version: 1.12
+Date: 2026-06-25
+Description: 固定生成 Normal 工作流分组，并让 duplicate 中已保留且分析未失败的 kept 照片按展示语义归入 Normal；新增无后缀稳定展示文件名辅助逻辑；v1.12 删除展示地址可用性死代码
 */
 
 import Foundation
@@ -319,21 +319,5 @@ public final class displaySourceStore {
         set {
             defaults.set(newValue.rawValue, forKey: key)
         }
-    }
-}
-
-public enum displayAvailability: Equatable {
-    case available(URL)
-    case unavailable
-}
-
-public func displayUrl(for photo: photoItem, source: displaySource) -> displayAvailability {
-    switch source {
-    case .jpg:
-        guard photo.hasExistingJpgFile() else { return .unavailable }
-        return .available(URL(fileURLWithPath: photo.jpgPath))
-    case .raw:
-        guard photo.hasExistingRawFile(), let rawPath = photo.rawPath else { return .unavailable }
-        return .available(URL(fileURLWithPath: rawPath))
     }
 }

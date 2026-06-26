@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.3
-Date: 2026-06-17
-Description: 基于 CGImageSource 的降采样缩略图加载服务；v1.3 按真实 JPG/RAW 文件选择缩略图源，RAW 使用内嵌预览优先并串行限流，避免 RAW-heavy 分组页缩略图解码阻塞显示
+Version: 1.4
+Date: 2026-06-25
+Description: 基于 CGImageSource 的降采样缩略图加载服务；v1.3 按真实 JPG/RAW 文件选择缩略图源，RAW 使用内嵌预览优先并串行限流，避免 RAW-heavy 分组页缩略图解码阻塞显示；v1.4 缩略图缓存 key 加入实际来源路径、大小和修改时间
 */
 
 import AppKit
@@ -35,19 +35,32 @@ nonisolated public final class photoThumbnailService: @unchecked Sendable {
         cache.countLimit = 200
     }
 
-    public func loadThumbnail(for photo: photoItem, maxWidth: Int, maxHeight: Int) async -> NSImage? {
-        let cacheKey = "\(photo.photoId)|thumb|\(maxWidth)x\(maxHeight)" as NSString
-        if let cached = cache.object(forKey: cacheKey) {
-            return cached
-        }
+    private func thumbnailCacheKey(photo: photoItem, source: thumbnailSource, maxWidth: Int, maxHeight: Int) -> String {
+        "\(photo.photoId)|thumb|\(source.path)|\(fileSignature(path: source.path))|\(maxWidth)x\(maxHeight)"
+    }
 
+    private func fileSignature(path: String) -> String {
+        guard !path.isEmpty,
+              let attrs = try? fileManager.attributesOfItem(atPath: path) else {
+            return "missing"
+        }
+        let size = (attrs[.size] as? NSNumber)?.uint64Value ?? 0
+        let modified = (attrs[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
+        return "\(size)|\(modified)"
+    }
+
+    public func loadThumbnail(for photo: photoItem, maxWidth: Int, maxHeight: Int) async -> NSImage? {
         guard let source = resolveThumbnailSource(for: photo) else {
             return nil
         }
 
-        let photoId = photo.photoId
+        let cacheKey = thumbnailCacheKey(photo: photo, source: source, maxWidth: maxWidth, maxHeight: maxHeight)
+        if let cached = cache.object(forKey: cacheKey as NSString) {
+            return cached
+        }
+
         let maxPixelSize = max(maxWidth, maxHeight)
-        let task = Task.detached(priority: .userInitiated) { [weak self] () -> NSImage? in
+        let task = Task.detached(priority: .userInitiated) { [weak self, cacheKey] () -> NSImage? in
             guard !Task.isCancelled else { return nil }
             guard let self else { return nil }
 
@@ -55,8 +68,7 @@ nonisolated public final class photoThumbnailService: @unchecked Sendable {
             guard !Task.isCancelled else { return nil }
 
             if let image {
-                let key = "\(photoId)|thumb|\(maxWidth)x\(maxHeight)" as NSString
-                self.cache.setObject(image, forKey: key)
+                self.cache.setObject(image, forKey: cacheKey as NSString)
             }
             return image
         }

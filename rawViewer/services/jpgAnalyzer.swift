@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.6
-Date: 2026-06-22
-Description: JPG 兜底分析：CoreImage 渲染到 RGBA texture，Metal 全局/网格直方图 + 每格 Laplacian + 共享评分引擎。v1.6 改用全局+网格特征 + 主因分类
+Version: 1.9
+Date: 2026-06-25
+Description: JPG 兜底分析：CoreImage 渲染到 RGBA texture，Metal 全局/网格直方图 + 每格 Laplacian + 共享评分引擎。v1.6 改用全局+网格特征 + 主因分类；v1.7 grayBuffer/lapBuffer 改 .storageModePrivate（纯 GPU 中间缓冲，语义更正确、省去 CPU 可映射性/coherency 跟踪开销；CPU 后处理只读 histBuffer/gridHistBuffer/gridCountBuffer/perTileStatsBuffer）；v1.8 删除未读回的全局曝光计数 exposure buffer 链路并修正 p99 动态范围变量命名；v1.9 JPG 分析增加尺寸/内存预算检查并标准化 CIImage 零原点渲染
 */
 
 import Foundation
@@ -15,8 +15,6 @@ nonisolated public protocol jpgAnalyzing: AnyObject, Sendable {
 
 struct jpgHistConfig {
     var totalPixels: UInt32
-    var overThreshold: UInt32
-    var underThreshold: UInt32
 }
 
 struct jpgLaplacianConfig {
@@ -54,23 +52,24 @@ nonisolated public final class jpgAnalyzer: jpgAnalyzing, @unchecked Sendable {
         guard let ciImage = CIImage(contentsOf: URL(fileURLWithPath: jpgPath)) else {
             throw makeError("Failed to load CIImage from \(jpgPath)")
         }
-        let width = Int(ciImage.extent.width)
-        let height = Int(ciImage.extent.height)
-        guard width > 0, height > 0 else { throw makeError("CIImage has zero dimensions") }
-        let totalPixels = width * height
-        guard totalPixels <= maxJpgPixels else { throw makeError("JPG too large: \(width)x\(height)") }
+        let dimensions = try checkedImageDimensions(extent: ciImage.extent, maxPixels: maxJpgPixels, maxDimension: 32_768, label: "JPG")
+        let width = dimensions.width
+        let height = dimensions.height
+        let totalPixels = dimensions.pixels
+        let maxJpgBytesPerTask = 768 * 1024 * 1024
+        _ = try checkedByteCount(pixelCount: totalPixels, bytesPerPixel: 9, maxBytes: maxJpgBytesPerTask, label: "JPG analysis")
+        let normalizedImage = ciImage.transformed(by: CGAffineTransform(translationX: -dimensions.normalizedOrigin.x, y: -dimensions.normalizedOrigin.y))
+        let renderBounds = dimensions.bounds
 
         let texDesc = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: width, height: height, mipmapped: false)
         texDesc.usage = [.shaderRead, .shaderWrite]
         texDesc.storageMode = .shared
         guard let texture = context.device.makeTexture(descriptor: texDesc) else { throw makeError("Failed to create RGBA texture") }
 
-        guard let grayBuffer = context.device.makeBuffer(length: totalPixels * MemoryLayout<UInt8>.size, options: .storageModeShared) else { throw makeError("alloc grayBuffer") }
-        guard let lapBuffer = context.device.makeBuffer(length: totalPixels * MemoryLayout<Float>.size, options: .storageModeShared) else { throw makeError("alloc lapBuffer") }
+        guard let grayBuffer = context.device.makeBuffer(length: totalPixels * MemoryLayout<UInt8>.size, options: .storageModePrivate) else { throw makeError("alloc grayBuffer") }
+        guard let lapBuffer = context.device.makeBuffer(length: totalPixels * MemoryLayout<Float>.size, options: .storageModePrivate) else { throw makeError("alloc lapBuffer") }
         guard let histBuffer = context.device.makeBuffer(length: 256 * MemoryLayout<UInt32>.size, options: .storageModeShared) else { throw makeError("alloc histBuffer") }
         memset(histBuffer.contents(), 0, 256 * MemoryLayout<UInt32>.size)
-        guard let exposureBuffer = context.device.makeBuffer(length: 2 * MemoryLayout<UInt32>.size, options: .storageModeShared) else { throw makeError("alloc exposureBuffer") }
-        memset(exposureBuffer.contents(), 0, 2 * MemoryLayout<UInt32>.size)
 
         let gridRows = UInt32(config.grid.rows)
         let gridCols = UInt32(config.grid.columns)
@@ -85,10 +84,8 @@ nonisolated public final class jpgAnalyzer: jpgAnalyzing, @unchecked Sendable {
         guard let cmd = context.commandQueue.makeCommandBuffer() else { throw makeError("makeCommandBuffer") }
 
         let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        ciContext.render(ciImage, to: texture, commandBuffer: cmd, bounds: ciImage.extent, colorSpace: colorSpace)
+        ciContext.render(normalizedImage, to: texture, commandBuffer: cmd, bounds: renderBounds, colorSpace: colorSpace)
 
-        let absOver = UInt32(Double(255) * config.exposure.overexposePixelThreshold)
-        let absUnder = UInt32(Double(255) * config.exposure.underexposePixelThreshold)
 
         // Dispatch 1: rgbToGray
         do {
@@ -108,8 +105,7 @@ nonisolated public final class jpgAnalyzer: jpgAnalyzing, @unchecked Sendable {
             encoder.setComputePipelineState(context.jpgHistogramPipeline)
             encoder.setBuffer(grayBuffer, offset: 0, index: 0)
             encoder.setBuffer(histBuffer, offset: 0, index: 1)
-            encoder.setBuffer(exposureBuffer, offset: 0, index: 2)
-            var histConfig = jpgHistConfig(totalPixels: UInt32(totalPixels), overThreshold: absOver, underThreshold: absUnder)
+            var histConfig = jpgHistConfig(totalPixels: UInt32(totalPixels))
             encoder.setBytes(&histConfig, length: MemoryLayout<jpgHistConfig>.size, index: 3)
             let groupSize = 256
             let groupCount = (totalPixels + groupSize - 1) / groupSize
@@ -214,8 +210,8 @@ nonisolated public final class jpgAnalyzer: jpgAnalyzing, @unchecked Sendable {
         let fields = mapPrimaryToFields(primary)
 
         let p01Code = Double(globalFeatures.p01Norm) * range
-        let p999Code = Double(globalFeatures.p99Norm) * range
-        let sceneSpreadEv = p01Code > 0 ? log2(p999Code / p01Code) : 0
+        let p99Code = Double(globalFeatures.p99Norm) * range
+        let sceneSpreadEv = p01Code > 0 ? log2(p99Code / p01Code) : 0
         let codeRangeEv = p01Code > 0 ? log2(range / p01Code) : 0
         let dr = dynamicRangeData(sceneSpreadEv: sceneSpreadEv, codeRangeEv: codeRangeEv, blackLevel: 0, whiteLevel: 255)
 
@@ -229,6 +225,48 @@ nonisolated public final class jpgAnalyzer: jpgAnalyzing, @unchecked Sendable {
             analysisSource: "jpg",
             debugInfo: debugInfo
         )
+    }
+
+    private func checkedPixelCount(width: Int, height: Int, maxPixels: Int, label: String) throws -> Int {
+        guard width > 0, height > 0 else {
+            throw makeError("Invalid \(label) dimensions: \(width)x\(height)")
+        }
+        guard width <= maxPixels / height else {
+            throw makeError("\(label) dimension overflow: \(width)x\(height)")
+        }
+        let pixels = width * height
+        guard pixels <= maxPixels else {
+            throw makeError("\(label) too large: \(width)x\(height)")
+        }
+        return pixels
+    }
+
+    private func checkedByteCount(pixelCount: Int, bytesPerPixel: Int, maxBytes: Int, label: String) throws -> Int {
+        guard pixelCount > 0, bytesPerPixel > 0 else {
+            throw makeError("Invalid \(label) byte count input")
+        }
+        guard pixelCount <= maxBytes / bytesPerPixel else {
+            throw makeError("\(label) memory budget exceeded")
+        }
+        return pixelCount * bytesPerPixel
+    }
+
+    private func checkedImageDimensions(extent: CGRect, maxPixels: Int, maxDimension: Int, label: String) throws -> (width: Int, height: Int, pixels: Int, bounds: CGRect, normalizedOrigin: CGPoint) {
+        let integralExtent = extent.integral
+        guard integralExtent.width.isFinite, integralExtent.height.isFinite,
+              integralExtent.width > 0, integralExtent.height > 0 else {
+            throw makeError("\(label) has invalid extent")
+        }
+        guard integralExtent.width <= CGFloat(Int.max), integralExtent.height <= CGFloat(Int.max) else {
+            throw makeError("\(label) dimensions exceed Int range")
+        }
+        let width = Int(integralExtent.width)
+        let height = Int(integralExtent.height)
+        guard width <= maxDimension, height <= maxDimension else {
+            throw makeError("\(label) dimensions exceed texture limit: \(width)x\(height)")
+        }
+        let pixels = try checkedPixelCount(width: width, height: height, maxPixels: maxPixels, label: label)
+        return (width, height, pixels, CGRect(origin: .zero, size: integralExtent.size), integralExtent.origin)
     }
 
     private func makeError(_ msg: String) -> NSError {

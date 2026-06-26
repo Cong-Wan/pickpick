@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 4.3
-Date: 2026-06-17
-Description: 网格控制器改用 NSCollectionView + NSCollectionViewFlowLayout，resize 时 invalidateLayout 而非全量重建；分组过滤保留空 Normal 工作流卡片并固定 Normal 优先显示
+Version: 4.6
+Date: 2026-06-25
+Description: 网格控制器改用 groupCollectionViewItem configure/update/setOnTap 配合卡片复用重构；v4.6 dequeue groupCollectionViewItem 失败时记录错误并返回空 item，避免强转崩溃
 */
 
 import AppKit
@@ -23,9 +23,6 @@ public func visibleGroupCards(from groups: [photoGroup]) -> [photoGroup] {
     return normalGroups + otherGroups
 }
 
-public func route(for group: photoGroup) -> groupRoute {
-    group.kind.isDuplicate ? .duplicateCompare : .browser
-}
 
 public final class groupGridViewController: NSViewController {
     public var onBack: (() -> Void)?
@@ -160,15 +157,16 @@ extension groupGridViewController: NSCollectionViewDataSource {
 
     public func collectionView(_ collectionView: NSCollectionView, itemForRepresentedObjectAt indexPath: IndexPath) -> NSCollectionViewItem {
         let identifier = NSUserInterfaceItemIdentifier("groupCard")
-        let item = collectionView.makeItem(withIdentifier: identifier, for: indexPath) as! groupCollectionViewItem
+        guard let item = collectionView.makeItem(withIdentifier: identifier, for: indexPath) as? groupCollectionViewItem else {
+            appFileLogger.log("failed to dequeue groupCollectionViewItem index=\(indexPath.item)", level: .error)
+            return NSCollectionViewItem()
+        }
         let group = viewModel.groups[indexPath.item]
         appDebugLogger.log("display groups configure index=\(indexPath.item) title=\(group.kind.title) count=\(group.photos.count) first=\(group.photos.first?.photoId ?? "")")
-        item.configure(with: group, imageService: imageService)
-
-        if let card = item.view.subviews.first as? groupCardView {
-            card.onTap = { [weak self] in
-                self?.onSelectGroup?(group)
-            }
+        item.configure(imageService: imageService)
+        item.update(group: group)
+        item.setOnTap { [weak self] in
+            self?.onSelectGroup?(group)
         }
 
         return item

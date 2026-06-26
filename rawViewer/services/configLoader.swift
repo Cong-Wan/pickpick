@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.7
-Date: 2026-06-23
-Description: 配置加载顺序统一为 app bundle config.yaml → 硬编码默认值；兼容 bundle 根目录和 rawViewer 子目录资源，并通过 --debug 输出实际配置来源。v1.7 解析 grid_analysis/scoring 段（含 blur_min_brightness_raw/jpg），新增 clampedInt 对网格行列做安全 clamp
+Version: 1.9
+Date: 2026-06-25
+Description: 配置加载顺序统一为 app bundle config.yaml → 硬编码默认值；兼容 bundle 根目录和 rawViewer 子目录资源，并通过 --debug 输出实际配置来源。v1.7 解析 grid_analysis/scoring 段（含 blur_min_brightness_raw/jpg），新增 clampedInt 对网格行列做安全 clamp；v1.8 metal_concurrency clamp 上限 8→4，配合默认并发降低分析内存峰值；v1.9 剥离 YAML 行内注释并在值解析回退字符串时输出 debug 反馈
 */
 
 import Foundation
@@ -44,9 +44,12 @@ nonisolated public final class configLoader: @unchecked Sendable {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
 
-            if let colonIdx = trimmed.firstIndex(of: ":") {
-                let key = trimmed[..<colonIdx].trimmingCharacters(in: .whitespaces)
-                let afterColon = trimmed[trimmed.index(after: colonIdx)...]
+            let lineNoComment = stripInlineComment(trimmed)
+            if lineNoComment.isEmpty { continue }
+
+            if let colonIdx = lineNoComment.firstIndex(of: ":") {
+                let key = lineNoComment[..<colonIdx].trimmingCharacters(in: .whitespaces)
+                let afterColon = lineNoComment[lineNoComment.index(after: colonIdx)...]
                     .trimmingCharacters(in: .whitespaces)
 
                 if afterColon.isEmpty {
@@ -68,6 +71,23 @@ nonisolated public final class configLoader: @unchecked Sendable {
         return root
     }
 
+    /// 剥离 YAML 行内注释：首个引号外的 "#"（井号前需为空白或行首）之后视为注释。
+    /// 当前 config.yaml 的值均为简单标量，此实现足够；引号内的 # 不剥离。
+    private func stripInlineComment(_ value: String) -> String {
+        var inQuotes = false
+        let chars = Array(value)
+        for i in 0..<chars.count {
+            let ch = chars[i]
+            if ch == "\"" { inQuotes.toggle() }
+            if ch == "#" && !inQuotes {
+                if i == 0 || chars[i - 1] == " " || chars[i - 1] == "\t" {
+                    return String(chars[0..<i]).trimmingCharacters(in: .whitespaces)
+                }
+            }
+        }
+        return value
+    }
+
     private func parseValue(_ raw: String) -> Any {
         if raw.hasPrefix("\"") && raw.hasSuffix("\"") {
             return String(raw.dropFirst().dropLast())
@@ -76,6 +96,7 @@ nonisolated public final class configLoader: @unchecked Sendable {
         if let i = Int(raw) { return i }
         if raw == "true" { return true }
         if raw == "false" { return false }
+        appDebugLogger.log("config value parsed as string (fallback): \(raw)")
         return raw
     }
 
@@ -130,7 +151,7 @@ nonisolated public final class configLoader: @unchecked Sendable {
         )
 
         let rawConcurrency = intValue(analysisNode["metal_concurrency"]) ?? analysisConfig.defaults.metalConcurrency
-        let concurrency = min(max(rawConcurrency, 1), 8)
+        let concurrency = min(max(rawConcurrency, 1), 4)
 
         return analysisConfig(exposure: exposure, blur: blur, grid: grid, scoring: scoring, metalConcurrency: concurrency)
     }

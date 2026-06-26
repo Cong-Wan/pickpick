@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.7
-Date: 2026-06-13
-Description: 新增 Restore Normal 和照片旋转角度持久化接口；保留 review 状态写回时既有 configSnapshot。v1.7 通过 analysisStore 串行 update 入口执行 JSON 状态变更
+Version: 1.8
+Date: 2026-06-25
+Description: 新增 Restore Normal 和照片旋转角度持久化接口；保留 review 状态写回时既有 configSnapshot。v1.7 通过 analysisStore 串行 update 入口执行 JSON 状态变更；v1.8 缺失 folderUrl 时写操作显式抛错
 */
 
 import Foundation
@@ -17,6 +17,7 @@ public enum reviewOperation: Equatable {
 public enum reviewStateStoreError: LocalizedError, Equatable {
     case emptyPhotoIds
     case missingPhotoIds([String])
+    case missingFolderUrl
 
     public var errorDescription: String? {
         switch self {
@@ -24,6 +25,8 @@ public enum reviewStateStoreError: LocalizedError, Equatable {
             return "No photo ids were provided"
         case .missingPhotoIds(let ids):
             return "Photo ids were not found in analysis store: \(ids.joined(separator: ","))"
+        case .missingFolderUrl:
+            return "Review state store was created without folderUrl"
         }
     }
 }
@@ -104,14 +107,14 @@ public final class jsonReviewStateStore: jsonReviewStateStoring {
     }
 
     public func update(_ mutate: (inout [photoItem]) -> Void) throws {
-        guard let folderUrl else { return }
+        guard let folderUrl else { throw reviewStateStoreError.missingFolderUrl }
         try analysisStore.shared.update(folderUrl: folderUrl) { items in
             mutate(&items)
         }
     }
 
     private func updateThrowing(_ mutate: (inout [photoItem]) throws -> Void) throws {
-        guard let folderUrl else { return }
+        guard let folderUrl else { throw reviewStateStoreError.missingFolderUrl }
         try analysisStore.shared.update(folderUrl: folderUrl) { items in
             try mutate(&items)
         }

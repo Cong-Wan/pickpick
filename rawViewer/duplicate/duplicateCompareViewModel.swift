@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.6
-Date: 2026-06-17
-Description: 注入 photoTrashService，keepLeft/keepRight 在标记 JSON 前先将文件移入废纸篓；Duplicate 旋转改为当前组剩余照片整体旋转，确保新顶替照片继承旋转状态
+Version: 1.8
+Date: 2026-06-25
+Description: 注入 photoTrashService，keepLeft/keepRight 先把状态落盘为 trashed/kept 再删文件（失败只记日志不抛错），状态先于文件动作落盘消除幽灵照片；Duplicate 旋转改为当前组剩余照片整体旋转，确保新顶替照片继承旋转状态；v1.8 keepBoth 改为先落盘后更新内存，避免落盘失败导致 UI/磁盘状态分裂
 */
 
 import Foundation
@@ -34,9 +34,9 @@ public final class duplicateCompareViewModel {
             try markFinalKept(left)
             return .finished
         }
-        try trashService.trash(right)
-        photos.removeAll { $0.photoId == right.photoId }
-        let shouldFinish = photos.count == 1
+        let shouldFinish = photos.count == 2
+
+        // 1. 先落盘状态（right→trashed；若为组内最后一张，left→kept + 写 template）
         try store.update { items in
             if let rightIndex = items.firstIndex(where: { $0.photoId == right.photoId }) {
                 items[rightIndex].reviewStatus = .trashed
@@ -51,6 +51,16 @@ public final class duplicateCompareViewModel {
                 }
             }
         }
+
+        // 2. 再删文件（尽力删，失败记日志；状态已落盘不会幽灵）
+        do {
+            try trashService.trash(right)
+        } catch {
+            appFileLogger.log("keepLeft trash failed photoId=\(right.photoId) error=\(error.localizedDescription)", level: .error)
+        }
+
+        // 3. 更新内存
+        photos.removeAll { $0.photoId == right.photoId }
         if shouldFinish { return .finished }
         mainIndex = 0
         candidateIndex = min(1, photos.count - 1)
@@ -63,9 +73,9 @@ public final class duplicateCompareViewModel {
             try markFinalKept(left)
             return .finished
         }
-        try trashService.trash(left)
-        photos.removeAll { $0.photoId == left.photoId }
-        let shouldFinish = photos.count == 1
+        let shouldFinish = photos.count == 2
+
+        // 1. 先落盘状态（left→trashed；若为组内最后一张，right→kept + 写 template）
         try store.update { items in
             if let leftIndex = items.firstIndex(where: { $0.photoId == left.photoId }) {
                 items[leftIndex].reviewStatus = .trashed
@@ -80,6 +90,16 @@ public final class duplicateCompareViewModel {
                 }
             }
         }
+
+        // 2. 再删文件（尽力删，失败记日志；状态已落盘不会幽灵）
+        do {
+            try trashService.trash(left)
+        } catch {
+            appFileLogger.log("keepRight trash failed photoId=\(left.photoId) error=\(error.localizedDescription)", level: .error)
+        }
+
+        // 3. 更新内存
+        photos.removeAll { $0.photoId == left.photoId }
         if shouldFinish { return .finished }
         mainIndex = 0
         candidateIndex = min(1, photos.count - 1)
@@ -91,10 +111,9 @@ public final class duplicateCompareViewModel {
         let right = candidatePhoto
         let originalGroupId = left?.reviewGroupId.isEmpty == false ? left?.reviewGroupId : right?.reviewGroupId
         let keptIds = Set([left, right].compactMap { $0?.photoId })
-
-        photos.removeAll { keptIds.contains($0.photoId) }
-        let remainingCount = photos.count
-        let remainingLast = photos.first
+        let nextPhotos = photos.filter { !keptIds.contains($0.photoId) }
+        let remainingCount = nextPhotos.count
+        let remainingLast = nextPhotos.first
 
         try store.update { items in
             for index in items.indices where keptIds.contains(items[index].photoId) {
@@ -118,10 +137,9 @@ public final class duplicateCompareViewModel {
             }
         }
 
+        photos = nextPhotos
         switch remainingCount {
-        case 0:
-            return .finished
-        case 1:
+        case 0, 1:
             return .finished
         default:
             mainIndex = 0

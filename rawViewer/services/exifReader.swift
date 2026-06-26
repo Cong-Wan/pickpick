@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.2
+Version: 1.3
 Date: 2026-06-13
-Description: 使用 ImageIO 读取 EXIF DateTimeOriginal, 失败回退到 Spotlight kMDItemContentCreationDate。v1.2 调整 Spotlight CFDate 转换写法并标注可被后台任务并发调用
+Description: 使用 ImageIO 读取 EXIF DateTimeOriginal, 失败回退到 Spotlight kMDItemContentCreationDate。v1.2 调整 Spotlight CFDate 转换写法并标注可被后台任务并发调用；v1.3 改用系统免费桥接读取 Spotlight 日期，移除不安全转换
 */
 
 import Foundation
@@ -84,9 +84,11 @@ nonisolated public final class exifReader: @unchecked Sendable {
         guard CFGetTypeID(value) == CFDateGetTypeID() else {
             return .notFound
         }
-        let date = unsafeBitCast(value, to: CFDate.self)
-        let absolute = CFDateGetAbsoluteTime(date)
-        let seconds = Int64((absolute + kCFAbsoluteTimeIntervalSince1970).rounded())
+        // Spotlight 日期对象与 Date 可免费桥接，直接转换后读取 Unix 时间。
+        guard let date = value as? Date else {
+            return .notFound
+        }
+        let seconds = Int64(date.timeIntervalSince1970.rounded())
         return shootingTimeResult(found: true, epochSeconds: seconds, isoUtc: isoUtcFromEpoch(seconds), source: source)
     }
 

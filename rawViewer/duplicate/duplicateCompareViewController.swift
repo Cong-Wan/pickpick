@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 3.9
-Date: 2026-06-24
-Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment；旋转按钮改为旋转当前 duplicate 组剩余照片，确保新顶替照片继承旋转状态；左右图无后缀文件名栏；新增左右双侧删除按钮（点哪删哪，复用 keepLeft/keepRight）
+Version: 3.10
+Date: 2026-06-25
+Description: 重复照片双图比较界面，按左右任意一侧 JPG/RAW 文件存在性控制对应 segment；旋转按钮改为旋转当前 duplicate 组剩余照片，确保新顶替照片继承旋转状态；左右图无后缀文件名栏；新增左右双侧删除按钮（点哪删哪，复用 keepLeft/keepRight）；v3.10 duplicate source segment 要求左右两侧均可用，避免左右 RAW/JPG 混比
 */
 
 import AppKit
@@ -261,13 +261,13 @@ public final class duplicateCompareViewController: NSViewController {
     private func canSelectJpgForCurrentPair() -> Bool {
         let leftHasJpg = viewModel.mainPhoto?.hasExistingJpgFile() == true
         let rightHasJpg = viewModel.candidatePhoto?.hasExistingJpgFile() == true
-        return leftHasJpg || rightHasJpg
+        return leftHasJpg && rightHasJpg
     }
 
     private func canSelectRawForCurrentPair() -> Bool {
         let leftHasRaw = viewModel.mainPhoto?.hasExistingRawFile() == true
         let rightHasRaw = viewModel.candidatePhoto?.hasExistingRawFile() == true
-        return leftHasRaw || rightHasRaw
+        return leftHasRaw && rightHasRaw
     }
 
     private func show(pair: photoDisplayPair, source: displaySource, isLeft: Bool) {

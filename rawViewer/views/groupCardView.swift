@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 2.7
-Date: 2026-06-11
-Description: 收窄扑克牌扇形角度与水平偏移，避免分组缩略图散开过度
+Version: 2.9
+Date: 2026-06-25
+Description: 重构分组卡片为持久容器加 configure 更新数据，配合 NSCollectionViewItem 复用；v2.9 增加复用 generation 和 resetForReuse，避免卡片异步预览串图
 */
 
 import AppKit
@@ -20,36 +20,41 @@ public final class groupCardView: NSView {
     private let stackContainer = NSView()
     private let nameLabel = NSTextField(labelWithString: "")
     private let countLabel = NSTextField(labelWithString: "")
-    private var previewImageViews: [NSImageView] = []
+    private var cardContainers: [NSView] = []
     private var loadTasks: [Task<Void, Never>] = []
+    private var loadGeneration: Int = 0
+    private let imageService: photoImageService
 
-    public init(group: photoGroup, previewPhotos: [photoItem], imageService: photoImageService) {
+    public init(imageService: photoImageService) {
+        self.imageService = imageService
         super.init(frame: .zero)
-        setupView(group: group, previewPhotos: previewPhotos, imageService: imageService)
+        setupView()
     }
 
     required init?(coder: NSCoder) {
+        self.imageService = photoImageService()
         super.init(coder: coder)
+        setupView()
     }
 
     deinit {
-        loadTasks.forEach { $0.cancel() }
+        cancelLoads()
     }
 
-    private func setupView(group: photoGroup, previewPhotos: [photoItem], imageService: photoImageService) {
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.clear.cgColor
-        layer?.cornerRadius = 8
+    public func configure(group: photoGroup, previewPhotos: [photoItem]) {
+        cancelLoads()
+        loadGeneration += 1
+        let expectedGeneration = loadGeneration
+        cardContainers.forEach { $0.removeFromSuperview() }
+        cardContainers.removeAll()
 
-        stackContainer.wantsLayer = true
-        stackContainer.layer?.masksToBounds = false
-        stackContainer.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(stackContainer)
+        nameLabel.stringValue = group.kind.title
+        countLabel.stringValue = "\(group.photos.count)"
 
-        let count = min(5, previewPhotos.count)
-        let layouts = fanLayouts(for: count)
+        let photos = Array(previewPhotos.prefix(5))
+        let layouts = fanLayouts(for: photos.count)
 
-        for index in 0..<count {
+        for index in 0..<photos.count {
             let layout = layouts[index]
             let cardContainer = NSView()
             cardContainer.wantsLayer = true
@@ -57,6 +62,7 @@ public final class groupCardView: NSView {
             cardContainer.layer?.zPosition = layout.zPosition
             cardContainer.translatesAutoresizingMaskIntoConstraints = false
             stackContainer.addSubview(cardContainer)
+            cardContainers.append(cardContainer)
 
             let imgView = NSImageView()
             imgView.imageScaling = .scaleProportionallyUpOrDown
@@ -69,7 +75,6 @@ public final class groupCardView: NSView {
             imgView.layer?.shadowOpacity = 0
             imgView.translatesAutoresizingMaskIntoConstraints = false
             cardContainer.addSubview(imgView)
-            previewImageViews.append(imgView)
 
             NSLayoutConstraint.activate([
                 cardContainer.centerXAnchor.constraint(equalTo: stackContainer.centerXAnchor, constant: layout.xOffset),
@@ -85,28 +90,56 @@ public final class groupCardView: NSView {
 
             cardContainer.frameCenterRotation = layout.rotationDegrees
 
-            let photo = previewPhotos[index]
+            let photo = photos[index]
             let targetView = imgView
+            let imageService = self.imageService
             let task = Task { [weak self] in
                 let image = await imageService.loadThumbnail(for: photo, maxWidth: 164, maxHeight: 216)
                 if Task.isCancelled { return }
                 await MainActor.run {
-                    guard let self = self, self.previewImageViews.contains(targetView) else { return }
+                    guard let self = self,
+                          self.loadGeneration == expectedGeneration,
+                          let container = targetView.superview,
+                          self.cardContainers.contains(container) else { return }
                     targetView.image = image
                 }
             }
             loadTasks.append(task)
         }
+    }
+
+    public func cancelLoads() {
+        loadTasks.forEach { $0.cancel() }
+        loadTasks.removeAll()
+    }
+
+    public func resetForReuse() {
+        cancelLoads()
+        loadGeneration += 1
+        onTap = nil
+        cardContainers.forEach { $0.removeFromSuperview() }
+        cardContainers.removeAll()
+        nameLabel.stringValue = ""
+        countLabel.stringValue = ""
+    }
+
+    private func setupView() {
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.clear.cgColor
+        layer?.cornerRadius = 8
+
+        stackContainer.wantsLayer = true
+        stackContainer.layer?.masksToBounds = false
+        stackContainer.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stackContainer)
 
         nameLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         nameLabel.textColor = .labelColor
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
-        nameLabel.stringValue = group.kind.title
 
         countLabel.font = .systemFont(ofSize: 11)
         countLabel.textColor = .secondaryLabelColor
         countLabel.translatesAutoresizingMaskIntoConstraints = false
-        countLabel.stringValue = "\(group.photos.count)"
         countLabel.alignment = .right
 
         addSubview(nameLabel)
