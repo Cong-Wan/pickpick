@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.12
-Date: 2026-06-25
-Description: 固定生成 Normal 工作流分组，并让 duplicate 中已保留且分析未失败的 kept 照片按展示语义归入 Normal；新增无后缀稳定展示文件名辅助逻辑；v1.12 删除展示地址可用性死代码
+Version: 1.13
+Date: 2026-08-03
+Description: 固定生成 Normal 工作流分组，并让 duplicate 中已保留且分析未失败的 kept 照片按展示语义归入 Normal；新增无后缀稳定展示文件名辅助逻辑；v1.12 删除展示地址可用性死代码；v1.13 彻底关闭曝光/虚焦检测：删除 photoItem 的 isBlurry/exposureStatus/dynamicRange/analysisSource 字段与 dynamicRangeData，photoGroupKind 仅保留 normal/duplicate，makeVisiblePhotoGroups 不再生成曝光/虚焦分组，analysisPhase 删除 rawAnalysis/jpgAnalysis
 */
 
 import Foundation
@@ -49,8 +49,6 @@ nonisolated public enum reviewStatus: String, Codable, Equatable, Sendable {
 nonisolated public enum analysisPhase: String, Codable, Equatable, Sendable {
     case scanning
     case exifReading
-    case rawAnalysis
-    case jpgAnalysis
     case duplicateGrouping
     case organizing
     case completed
@@ -70,57 +68,31 @@ nonisolated public struct analysisProgress: Equatable, Sendable {
     }
 }
 
-nonisolated public struct dynamicRangeData: Codable, Equatable, Sendable {
-    public var sceneSpreadEv: Double
-    public var codeRangeEv: Double
-    public var blackLevel: Int
-    public var whiteLevel: Int
-
-    public init(sceneSpreadEv: Double, codeRangeEv: Double, blackLevel: Int, whiteLevel: Int) {
-        self.sceneSpreadEv = sceneSpreadEv
-        self.codeRangeEv = codeRangeEv
-        self.blackLevel = blackLevel
-        self.whiteLevel = whiteLevel
-    }
-}
-
 nonisolated public struct photoItem: Codable, Equatable, Identifiable, Sendable {
     public var id: String { photoId }
     public var photoId: String
     public var jpgPath: String
     public var rawPath: String?
-    public var isBlurry: Bool
-    public var exposureStatus: String
     public var reviewStatus: reviewStatus
     public var reviewGroupId: String
     public var templatePhotoId: String
-    public var analysisSource: String
-    public var dynamicRange: dynamicRangeData?
     public var rotationDegrees: Int
 
     public init(
         photoId: String,
         jpgPath: String,
         rawPath: String? = nil,
-        isBlurry: Bool = false,
-        exposureStatus: String = "normal",
         reviewStatus: reviewStatus = .active,
         reviewGroupId: String = "",
         templatePhotoId: String = "",
-        analysisSource: String = "",
-        dynamicRange: dynamicRangeData? = nil,
         rotationDegrees: Int = 0
     ) {
         self.photoId = photoId
         self.jpgPath = jpgPath
         self.rawPath = rawPath
-        self.isBlurry = isBlurry
-        self.exposureStatus = exposureStatus
         self.reviewStatus = reviewStatus
         self.reviewGroupId = reviewGroupId
         self.templatePhotoId = templatePhotoId
-        self.analysisSource = analysisSource
-        self.dynamicRange = dynamicRange
         self.rotationDegrees = normalizedRotationDegrees(rotationDegrees)
     }
 
@@ -131,13 +103,9 @@ nonisolated public struct photoItem: Codable, Equatable, Identifiable, Sendable 
         case photoId
         case jpgPath
         case rawPath
-        case isBlurry
-        case exposureStatus
         case reviewStatus
         case reviewGroupId
         case templatePhotoId
-        case analysisSource
-        case dynamicRange
         case rotationDegrees
     }
 
@@ -146,13 +114,9 @@ nonisolated public struct photoItem: Codable, Equatable, Identifiable, Sendable 
         self.photoId = try container.decode(String.self, forKey: .photoId)
         self.jpgPath = try container.decode(String.self, forKey: .jpgPath)
         self.rawPath = try container.decodeIfPresent(String.self, forKey: .rawPath)
-        self.isBlurry = try container.decode(Bool.self, forKey: .isBlurry)
-        self.exposureStatus = try container.decode(String.self, forKey: .exposureStatus)
         self.reviewStatus = try container.decode(itemReviewStatus.self, forKey: .reviewStatus)
         self.reviewGroupId = try container.decode(String.self, forKey: .reviewGroupId)
         self.templatePhotoId = try container.decode(String.self, forKey: .templatePhotoId)
-        self.analysisSource = try container.decode(String.self, forKey: .analysisSource)
-        self.dynamicRange = try container.decodeIfPresent(dynamicRangeData.self, forKey: .dynamicRange)
         self.rotationDegrees = normalizedRotationDegrees(try container.decodeIfPresent(Int.self, forKey: .rotationDegrees) ?? 0)
     }
 
@@ -161,13 +125,9 @@ nonisolated public struct photoItem: Codable, Equatable, Identifiable, Sendable 
         try container.encode(photoId, forKey: .photoId)
         try container.encode(jpgPath, forKey: .jpgPath)
         try container.encodeIfPresent(rawPath, forKey: .rawPath)
-        try container.encode(isBlurry, forKey: .isBlurry)
-        try container.encode(exposureStatus, forKey: .exposureStatus)
         try container.encode(reviewStatus, forKey: .reviewStatus)
         try container.encode(reviewGroupId, forKey: .reviewGroupId)
         try container.encode(templatePhotoId, forKey: .templatePhotoId)
-        try container.encode(analysisSource, forKey: .analysisSource)
-        try container.encodeIfPresent(dynamicRange, forKey: .dynamicRange)
         try container.encode(normalizedRotationDegrees(rotationDegrees), forKey: .rotationDegrees)
     }
 }
@@ -199,32 +159,12 @@ nonisolated public extension photoItem {
     }
 }
 
-nonisolated public extension photoItem {
-    var hasFailedAnalysis: Bool {
-        exposureStatus == "failed" || analysisSource == "jpg_failed" || analysisSource == "none"
-    }
-
-    var isNormalAnalysisResult: Bool {
-        !hasFailedAnalysis && !isBlurry && exposureStatus == "normal"
-    }
-
-    var isNormalDisplayPhoto: Bool {
-        (reviewStatus == .kept && !hasFailedAnalysis) || isNormalAnalysisResult
-    }
-}
-
 public enum photoGroupKind: Equatable {
-    case overexposed
-    case underexposed
-    case blurry
     case normal
     case duplicate(reviewGroupId: String)
 
     public var title: String {
         switch self {
-        case .overexposed: return "Overexposed"
-        case .underexposed: return "Underexposed"
-        case .blurry: return "Blurry"
         case .normal: return "Normal"
         case .duplicate(let reviewGroupId): return "Duplicate \(reviewGroupId)"
         }
@@ -244,9 +184,6 @@ public enum groupRoute: Equatable {
 public struct photoGroup: Equatable, Identifiable {
     public var id: String {
         switch kind {
-        case .overexposed: return "overexposed"
-        case .underexposed: return "underexposed"
-        case .blurry: return "blurry"
         case .normal: return "normal"
         case .duplicate(let reviewGroupId): return "duplicate-\(reviewGroupId)"
         }
@@ -274,19 +211,7 @@ public func makeVisiblePhotoGroups(from photos: [photoItem]) -> [photoGroup] {
         !photo.reviewGroupId.isEmpty && validDuplicateIds.contains(photo.reviewGroupId)
     }
 
-    appendGroup(.overexposed, photos: visiblePhotos.filter {
-        $0.exposureStatus == "overexposed" && $0.reviewStatus != .kept && !isInValidDuplicateGroup($0)
-    }, into: &groups)
-    appendGroup(.underexposed, photos: visiblePhotos.filter {
-        $0.exposureStatus == "underexposed" && $0.reviewStatus != .kept && !isInValidDuplicateGroup($0)
-    }, into: &groups)
-    appendGroup(.blurry, photos: visiblePhotos.filter {
-        $0.isBlurry && $0.reviewStatus != .kept && !isInValidDuplicateGroup($0)
-    }, into: &groups)
-
-    let normalPhotos = visiblePhotos.filter {
-        $0.isNormalDisplayPhoto && !isInValidDuplicateGroup($0)
-    }
+    let normalPhotos = visiblePhotos.filter { !isInValidDuplicateGroup($0) }
     groups.append(photoGroup(kind: .normal, photos: normalPhotos))
 
     for reviewGroupId in validDuplicateIds.sorted() {

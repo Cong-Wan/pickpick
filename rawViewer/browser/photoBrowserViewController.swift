@@ -55,8 +55,6 @@ public final class photoBrowserViewController: NSViewController {
 
     private var canRestoreNormal: Bool {
         switch groupKind {
-        case .overexposed, .underexposed, .blurry:
-            return true
         default:
             return false
         }

@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.6
-Date: 2026-06-25
-Description: 在 ~/Library/Application Support/rawViewer/{folderHash}/ 存储 analysis.json；读取缓存时可校验 configSnapshot，配置变化时拒绝旧缓存以触发重新分析；v1.4 新增 loadAsync(for:expectedConfig:) 把磁盘解码放到后台 Task.detached，避免在 MainActor 上同步阻塞 ioQueue；v1.5 update 改为读取完整 analysisFile 后原样保留 configSnapshot 写回，缺失缓存文件显式抛 missingResults；v1.6 save 覆盖损坏缓存时不再依赖旧文件可解码
+Version: 1.7
+Date: 2026-08-03
+Description: 在 ~/Library/Application Support/rawViewer/{folderHash}/ 存储 analysis.json；读取缓存时可校验 configSnapshot，配置变化时拒绝旧缓存以触发重新分析；v1.4 新增 loadAsync(for:expectedConfig:) 把磁盘解码放到后台 Task.detached，避免在 MainActor 上同步阻塞 ioQueue；v1.5 update 改为读取完整 analysisFile 后原样保留 configSnapshot 写回，缺失缓存文件显式抛 missingResults；v1.6 save 覆盖损坏缓存时不再依赖旧文件可解码；v1.7 彻底关闭曝光/虚焦检测：summary 仅保留 totalPhotos/normal，删除 blurry/overexposed/underexposed 计数
 */
 
 import Foundation
@@ -20,9 +20,6 @@ nonisolated struct analysisFile: Codable, Sendable {
 
 nonisolated struct summaryData: Codable, Sendable {
     var totalPhotos: Int = 0
-    var blurry: Int = 0
-    var overexposed: Int = 0
-    var underexposed: Int = 0
     var normal: Int = 0
 }
 
@@ -165,10 +162,14 @@ nonisolated public final class analysisStore: @unchecked Sendable {
     private func summaryCounts(_ records: [photoItem]) -> summaryData {
         var s = summaryData()
         s.totalPhotos = records.count
-        s.blurry = records.filter { $0.isBlurry }.count
-        s.overexposed = records.filter { $0.exposureStatus == "overexposed" }.count
-        s.underexposed = records.filter { $0.exposureStatus == "underexposed" }.count
-        s.normal = records.filter { $0.isNormalAnalysisResult }.count
+        let duplicateIds = Dictionary(grouping: records, by: \.reviewGroupId)
+            .filter { !$0.key.isEmpty }
+            .mapValues { $0.count }
+            .filter { $0.value >= 2 }
+            .keys
+        s.normal = records.filter { photo in
+            photo.reviewGroupId.isEmpty || !duplicateIds.contains(photo.reviewGroupId)
+        }.count
         return s
     }
 

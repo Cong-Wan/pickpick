@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.8
-Date: 2026-06-25
-Description: 新增 Restore Normal 和照片旋转角度持久化接口；保留 review 状态写回时既有 configSnapshot。v1.7 通过 analysisStore 串行 update 入口执行 JSON 状态变更；v1.8 缺失 folderUrl 时写操作显式抛错
+Version: 1.9
+Date: 2026-08-03
+Description: 新增 Restore Normal 和照片旋转角度持久化接口；保留 review 状态写回时既有 configSnapshot。v1.7 通过 analysisStore 串行 update 入口执行 JSON 状态变更；v1.8 缺失 folderUrl 时写操作显式抛错；v1.9 彻底关闭曝光/虚焦检测：restoreNormal 删除对已移除字段 exposureStatus/isBlurry 的重置（照片恢复逻辑仅重置 reviewStatus 即可，canRestoreNormal 恒 false 使该链路成为不可达死代码，留待后续清理）
 */
 
 import Foundation
@@ -77,8 +77,6 @@ public final class jsonReviewStateStore: jsonReviewStateStoring {
         try updateThrowing { items in
             var missingIds = photoIds
             for index in items.indices where photoIds.contains(items[index].photoId) {
-                items[index].exposureStatus = "normal"
-                items[index].isBlurry = false
                 missingIds.remove(items[index].photoId)
             }
             guard missingIds.isEmpty else {

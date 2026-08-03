@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 1.0
-Date: 2026-06-02
-Description: 实现圆形进度界面和分析阶段、百分比、数量文本格式化逻辑
+Version: 1.1
+Date: 2026-08-03
+Description: 实现圆形进度界面和分析阶段、百分比、数量文本格式化逻辑；v1.1 彻底关闭曝光/虚焦检测：删除 rawAnalysis/jpgAnalysis 阶段文本
 */
 
 import AppKit
@@ -14,8 +14,6 @@ public struct progressFormatter {
         switch phase {
         case .scanning: return "Scanning"
         case .exifReading: return "Reading EXIF"
-        case .rawAnalysis: return "Analyzing RAW"
-        case .jpgAnalysis: return "Analyzing JPG"
         case .duplicateGrouping: return "Grouping Duplicates"
         case .organizing: return "Organizing"
         case .completed: return "Completed"
