@@ -270,7 +270,7 @@
 					"$(PROJECT_DIR)/3rdPart/json",
 					"$(PROJECT_DIR)/3rdPart/libraw/include",
 				);
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 wilbur";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -324,7 +324,7 @@
 					"$(PROJECT_DIR)/3rdPart/json",
 					"$(PROJECT_DIR)/3rdPart/libraw/include",
 				);
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 wilbur";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
