@@ -1,0 +1,2 @@
+# 第三方库不参与 GitHub 语言统计（linguist 忽略）
+3rdPart/** linguist-vendored
