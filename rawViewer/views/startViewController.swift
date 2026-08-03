@@ -1,8 +1,8 @@
 /*
 Author: wilbur
-Version: 2.0
-Date: 2026-06-03
-Description: 实现 AppKit 起始页、虚线文件夹选择区域、文件夹选择入口和仅接受文件夹的拖拽校验
+Version: 2.1
+Date: 2026-08-03
+Description: 实现 AppKit 起始页、虚线文件夹选择区域、文件夹选择入口和仅接受文件夹的拖拽校验。v2.1 补全 folderDropZoneView 拖拽协议实现（注册 .fileURL、拖入高亮、performDragOperation 回调 onFolderDropped）
 */
 
 import AppKit
@@ -24,6 +24,9 @@ public final class folderDropZoneView: NSView {
     private let hintLabel = NSTextField(labelWithString: "or drag a folder here")
 
     public var onActivate: (() -> Void)?
+    public var onFolderDropped: ((URL) -> Void)?
+    private let validator = folderDropValidator()
+    private var isDropTarget = false
 
     public override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -85,6 +88,8 @@ public final class folderDropZoneView: NSView {
 
         let click = NSClickGestureRecognizer(target: self, action: #selector(handleClick))
         addGestureRecognizer(click)
+
+        registerForDraggedTypes([.fileURL])
     }
 
     public override func layout() {
@@ -96,6 +101,55 @@ public final class folderDropZoneView: NSView {
 
     @objc private func handleClick() {
         onActivate?()
+    }
+
+    // MARK: 拖拽
+
+    public override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        isDropTarget = acceptsFolder(from: sender)
+        updateHighlight()
+        return isDropTarget ? .copy : []
+    }
+
+    public override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        isDropTarget = acceptsFolder(from: sender)
+        updateHighlight()
+        return isDropTarget ? .copy : []
+    }
+
+    public override func draggingExited(_ sender: NSDraggingInfo?) {
+        isDropTarget = false
+        updateHighlight()
+    }
+
+    public override func draggingEnded(_ sender: NSDraggingInfo) {
+        isDropTarget = false
+        updateHighlight()
+    }
+
+    public override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard let url = firstFolderUrl(from: sender) else { return false }
+        onFolderDropped?(url)
+        return true
+    }
+
+    private func acceptsFolder(from sender: NSDraggingInfo) -> Bool {
+        firstFolderUrl(from: sender) != nil
+    }
+
+    private func firstFolderUrl(from sender: NSDraggingInfo) -> URL? {
+        guard let urls = sender.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] else { return nil }
+        return urls.first { validator.accepts(url: $0) }
+    }
+
+    private func updateHighlight() {
+        if isDropTarget {
+            shapeLayer.strokeColor = NSColor.controlAccentColor.cgColor
+            layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.08).cgColor
+        } else {
+            shapeLayer.strokeColor = NSColor.tertiaryLabelColor.cgColor
+            layer?.backgroundColor = NSColor.clear.cgColor
+        }
     }
 }
 
@@ -112,6 +166,9 @@ public final class startViewController: NSViewController {
         dropZone.translatesAutoresizingMaskIntoConstraints = false
         dropZone.onActivate = { [weak self] in
             self?.chooseFolder()
+        }
+        dropZone.onFolderDropped = { [weak self] url in
+            self?.onFolderSelected?(url)
         }
         root.addSubview(dropZone)
 
